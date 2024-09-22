@@ -61,7 +61,7 @@ struct ContentView: View {
                     set: { self.model.setReadingSpeed($0) }
                 )) {
                     Text("1x").tag(1.0 as Float)
-                    Text("2x").tag(2.0 as Float)
+                    Text("2.2x").tag(2.2 as Float)
                     Text("3x").tag(3.0 as Float)
                 }
                 .pickerStyle(SegmentedPickerStyle())
