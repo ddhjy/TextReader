@@ -223,11 +223,19 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
     
     private func loadBooks() {
-        // 这里只是一个示例,您需要根据实际情况加载书本列表
-        books = [
-            Book(title: "示例书本1", fileName: "content"),
-            Book(title: "示例书本2", fileName: "content2")
+        // 从 main bundle 中加载已有的书本
+        let bookFiles = [
+            ("思考快与慢", "思考快与慢"),
+            ("罗素作品集", "罗素作品集")
         ]
+        
+        books = bookFiles.compactMap { (title, fileName) in
+            if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
+                return Book(title: title, fileName: fileName)
+            }
+            return nil
+        }
+        
         currentBook = books.first
     }
     
