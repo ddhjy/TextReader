@@ -10,23 +10,25 @@ struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
     @State private var showingDocumentPicker: Bool = false
-    @State private var searchText = ""
-    @State private var showingSearchResults = false
-    @FocusState private var isSearchFieldFocused: Bool
+    @State private var showingSearchView = false // 新增状态变量
 
     var body: some View {
         GeometryReader { geometry in
             NavigationView {
                 VStack(spacing: 0) {
                     if model.isContentLoaded {
-                        // 搜索栏
-                        SearchBar(text: $searchText, onCommit: {
-                            model.searchContent(searchText)
-                            showingSearchResults = true
-                        })
-                        .padding(.horizontal)
-                        .padding(.top)
-                        .focused($isSearchFieldFocused)
+                        // 搜索按钮
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                showingSearchView = true // 修改为显示搜索页面
+                            }) {
+                                Image(systemName: "magnifyingglass")
+                                    .foregroundColor(.blue)
+                            }
+                            .padding(.horizontal)
+                            .padding(.top)
+                        }
 
                         // 内容显示区域
                         ScrollView {
@@ -45,30 +47,57 @@ struct ContentView: View {
                             // 控制面板
                             ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                         }
-                        .onTapGesture {
-                            isSearchFieldFocused = false
-                        }
                     } else {
                         ProgressView("加载中...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                     }
                 }
-                .navigationTitle(model.currentBook?.title ?? "阅读器")
                 .sheet(isPresented: $showingBookList) {
                     BookListView(model: model)
                 }
                 .sheet(isPresented: $showingDocumentPicker) {
                     DocumentPicker(model: model)
                 }
-                .sheet(isPresented: $showingSearchResults) {
-                    SearchResultsView(results: model.searchResults, onSelect: { index in
-                        model.currentPageIndex = index
-                        showingSearchResults = false
-                    })
+                .sheet(isPresented: $showingSearchView) { // 新增搜索页面的sheet
+                    SearchView(model: model)
                 }
             }
         }
         .onDisappear { model.saveCurrentBook() }
+    }
+}
+
+// 新增 SearchView
+struct SearchView: View {
+    @ObservedObject var model: ContentModel
+    @State private var searchText = ""
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                SearchBar(text: $searchText, onCommit: {
+                    model.searchContent(searchText)
+                })
+                .padding()
+
+                List(model.searchResults, id: \.0) { index, preview in
+                    Button(action: {
+                        model.currentPageIndex = index
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        VStack(alignment: .leading) {
+                            Text("第 \(index + 1) 页").font(.headline)
+                            Text(preview).lineLimit(2)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("搜索")
+            .navigationBarItems(trailing: Button("取消") {
+                presentationMode.wrappedValue.dismiss()
+            })
+        }
     }
 }
 
@@ -204,28 +233,6 @@ struct SearchBar: View {
                     .padding(.vertical, 8)
             }
         }
-    }
-}
-
-// 搜索结果视图
-struct SearchResultsView: View {
-    let results: [(Int, String)]
-    let onSelect: (Int) -> Void
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        List(results, id:\.0) { index, preview in
-            Button(action:{ 
-                onSelect(index)
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                VStack(alignment:.leading) {
-                    Text("第 \(index + 1) 页").font(.headline)
-                    Text(preview).lineLimit(2)
-                }
-            }
-        }
-        .navigationTitle("搜索结果")
     }
 }
 
