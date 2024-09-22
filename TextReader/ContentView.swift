@@ -29,7 +29,7 @@ struct ContentView: View {
 
                         // 内容显示区域
                         ScrollView {
-                            Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
+                            Text(model.pages.isEmpty ? "没���内容可显示。" : model.pages[model.currentPageIndex])
                                 .padding()
                                 .frame(minHeight: geometry.size.height * 0.5)
                                 .font(.body)
@@ -156,6 +156,7 @@ struct ReadingControl: View {
 
             Picker("速度", selection: Binding(get: { self.model.readingSpeed }, set: { self.model.setReadingSpeed($0) })) {
                 Text("1x").tag(1.0 as Float)
+                Text("2x").tag(2.0 as Float)
                 Text("2.2x").tag(2.2 as Float)
                 Text("3x").tag(3.0 as Float)
             }
@@ -276,12 +277,22 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     @Published var searchResults: [(Int, String)] = []
 
+    private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+
     override init() {
         super.init()
         synthesizer.delegate = self
         loadBooks()
         loadSavedSettings()
         loadAvailableVoices()
+        
+        // 设置音频会话类别
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("设置音频会话失败: \(error)")
+        }
     }
 
     private func loadBooks() {
@@ -367,6 +378,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             let utterance = AVSpeechUtterance(string: pages[currentPageIndex])
             utterance.voice = selectedVoice ?? AVSpeechSynthesisVoice(language: "zh-CN")
             utterance.rate = readingSpeed * AVSpeechUtteranceDefaultSpeechRate // 设置朗读速度
+            
+            // 开始后台任务
+            startBackgroundTask()
+            
             synthesizer.speak(utterance)
         }
     }
@@ -374,6 +389,22 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func stopReading() {
         synthesizer.stopSpeaking(at: .immediate)
         isReading = false
+        
+        // 结束后台任务
+        endBackgroundTask()
+    }
+
+    private func startBackgroundTask() {
+        backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
+            self?.endBackgroundTask()
+        }
+    }
+
+    private func endBackgroundTask() {
+        if backgroundTask != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTask)
+            backgroundTask = .invalid
+        }
     }
 
     func setReadingSpeed(_ speed: Float) {
@@ -409,7 +440,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 readCurrentPage()
             } else {
                 isReading = false
+                endBackgroundTask()
             }
+        } else {
+            endBackgroundTask()
         }
     }
 
