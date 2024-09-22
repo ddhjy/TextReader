@@ -99,12 +99,16 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
     
     private func loadContent() {
-        if let url = Bundle.main.url(forResource: "content", withExtension: "txt"),
-           let content = try? String(contentsOf: url) {
-            let characters = Array(content)
-            let pageSize = 100
-            pages = stride(from: 0, to: characters.count, by: pageSize).map {
-                String(characters[$0..<min($0 + pageSize, characters.count)])
+        if let url = Bundle.main.url(forResource: "content", withExtension: "txt") {
+            do {
+                let content = try String(contentsOf: url, encoding: .utf8)
+                let characters = Array(content)
+                let pageSize = 100
+                pages = stride(from: 0, to: characters.count, by: pageSize).map {
+                    String(characters[$0..<min($0 + pageSize, characters.count)])
+                }
+            } catch {
+                print("加载内容时出错：\(error.localizedDescription)")
             }
         }
     }
