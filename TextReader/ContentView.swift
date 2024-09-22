@@ -119,9 +119,31 @@ struct PageControl: View {
 
             Spacer()
 
-            Text("第 \(model.currentPageIndex + 1) / \(model.pages.count) 页")
-                .font(.footnote)
-                .foregroundColor(.gray)
+            // 朗读按钮
+            VStack {
+                Button(action: { 
+                    if model.isReading {
+                        model.stopReading()
+                    } else {
+                        model.readCurrentPage()
+                    }
+                }) {
+                    VStack {
+                        Image(systemName: model.isReading ? "stop.fill" : "play.fill")
+                            .foregroundColor(model.isReading ? .red : .green)
+                            .font(.system(size: 30))
+                        Text(model.isReading ? "停止" : "朗读").font(.caption)
+                    }
+                }
+                .frame(width: 80, height: 80)
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(40)
+                
+                // 进度展示
+                Text("\(model.currentPageIndex + 1)/\(model.pages.count)")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
 
             Spacer()
 
@@ -132,6 +154,7 @@ struct PageControl: View {
                 }
             }
         }
+        .padding(.horizontal)
     }
 }
 
@@ -141,24 +164,9 @@ struct ReadingControl: View {
 
     var body: some View {
         HStack {
-            Button(action: { 
-                if model.isReading {
-                    model.stopReading()
-                } else {
-                    model.readCurrentPage()
-                }
-            }) {
-                VStack {
-                    Image(systemName: model.isReading ? "stop.fill" : "play.fill")
-                        .foregroundColor(model.isReading ? .red : .green)
-                    Text(model.isReading ? "停止" : "朗读").font(.caption)
-                }
-            }
-
             Picker("速度", selection: Binding(get: { self.model.readingSpeed }, set: { self.model.setReadingSpeed($0) })) {
                 Text("1x").tag(1.0 as Float)
                 Text("2x").tag(2.0 as Float)
-                Text("2.2x").tag(2.2 as Float)
                 Text("3x").tag(3.0 as Float)
             }
             .pickerStyle(SegmentedPickerStyle())
