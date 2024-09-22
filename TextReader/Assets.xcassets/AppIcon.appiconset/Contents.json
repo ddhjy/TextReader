@@ -26,6 +26,343 @@
       "idiom" : "universal",
       "platform" : "ios",
       "size" : "1024x1024"
+    },
+    {
+      "filename" : "iPad notification iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "iPhone notification iOS 7,12@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "20x20"
+    },
+    {
+      "filename" : "iPad Settings.png",
+      "idiom" : "iphone",
+      "scale" : "1x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "Apple Watch Companion Settings@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "Apple Watch Companion Settings@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29"
+    },
+    {
+      "filename" : "iPad Spotlight iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 7,12@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "40x40"
+    },
+    {
+      "filename" : "iPhone App Icon iOS 5,6.png",
+      "idiom" : "iphone",
+      "scale" : "1x",
+      "size" : "57x57"
+    },
+    {
+      "filename" : "iPhone App Icon iOS 5,6@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "57x57"
+    },
+    {
+      "filename" : "iPhone App Icon iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "60x60"
+    },
+    {
+      "filename" : "iPhone App Icon iOS 7,12@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "60x60"
+    },
+    {
+      "idiom" : "ios-marketing",
+      "scale" : "1x",
+      "size" : "1024x1024"
+    },
+    {
+      "filename" : "App Store.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    },
+    {
+      "filename" : "Messages iPad Pro@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x"
+    },
+    {
+      "filename" : "Messages iPhone@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x"
+    },
+    {
+      "filename" : "Messages (27x20pt)@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "size" : "27x20"
+    },
+    {
+      "filename" : "Messages (27x20pt)@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x",
+      "size" : "27x20"
+    },
+    {
+      "filename" : "Messages (32x24pt)@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "size" : "32x24"
+    },
+    {
+      "filename" : "Messages (32x24pt)@3x.png",
+      "idiom" : "universal",
+      "scale" : "3x",
+      "size" : "32x24"
+    },
+    {
+      "filename" : "iPhone notification iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "20x20",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 5,6 & Settings.png",
+      "idiom" : "iphone",
+      "scale" : "1x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad Settings@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone settings iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 5,6 & Settings@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages iPad Settings@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages iPhone Settings@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone settings iOS 7,12@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 5,6 & Settings@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages iPhone Settings@3x.png",
+      "idiom" : "iphone",
+      "scale" : "3x",
+      "size" : "29x29",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 7,12@2x.png",
+      "idiom" : "iphone",
+      "scale" : "2x",
+      "size" : "40x40",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Home Screen (38mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Home Screen (40mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Home Screen (41mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Home Screen (44mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Home Screen (45mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Notification center (38mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Notification center (42mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Notification center (45mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Short Look (38mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Short Look (42mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Short Look (44mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Apple Watch Short Look (45mm).png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad App Icon iOS 5,6.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad App Icon iOS 7,12.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad notification iOS 7,12.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad Spotlight iOS 5,6.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad Spotlight iOS 7,12.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPhone Spotlight iOS 7,12.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages App Store.png",
+      "idiom" : "universal",
+      "scale" : "1x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad App Icon iOS 5,6@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad App Icon iOS 7,12@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad Pro Icon iOS 9,12@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "iPad Spotlight iOS 5,6@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages iPad@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
+    },
+    {
+      "filename" : "Messages iPhone@2x.png",
+      "idiom" : "universal",
+      "scale" : "2x",
+      "unassigned" : true
     }
   ],
   "info" : {
