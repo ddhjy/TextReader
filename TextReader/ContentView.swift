@@ -97,9 +97,20 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     @Published var isReading: Bool = false
     
-    @Published var readingSpeed: Float = 2.2 // 将默认值改为2.2
+    @Published var readingSpeed: Float = UserDefaults.standard.float(forKey: "readingSpeed") {
+        didSet {
+            UserDefaults.standard.set(readingSpeed, forKey: "readingSpeed")
+        }
+    }
     
-    @Published var selectedVoice: AVSpeechSynthesisVoice?
+    @Published var selectedVoice: AVSpeechSynthesisVoice? {
+        didSet {
+            if let identifier = selectedVoice?.identifier {
+                UserDefaults.standard.set(identifier, forKey: "selectedVoiceIdentifier")
+            }
+        }
+    }
+    
     @Published var availableVoices: [AVSpeechSynthesisVoice] = []
     
     private var synthesizer = AVSpeechSynthesizer()
@@ -110,6 +121,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         loadContent()
         loadProgress()
         loadAvailableVoices()
+        loadSavedSettings()
     }
     
     private func loadContent() {
@@ -161,6 +173,20 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private func loadAvailableVoices() {
         availableVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: "zh") }
         if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
+            selectedVoice = defaultVoice
+        }
+    }
+    
+    private func loadSavedSettings() {
+        readingSpeed = UserDefaults.standard.float(forKey: "readingSpeed")
+        if readingSpeed == 0 {
+            readingSpeed = 1.0 // 默认速度
+        }
+
+        if let savedVoiceIdentifier = UserDefaults.standard.string(forKey: "selectedVoiceIdentifier"),
+           let savedVoice = AVSpeechSynthesisVoice(identifier: savedVoiceIdentifier) {
+            selectedVoice = savedVoice
+        } else if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
             selectedVoice = defaultVoice
         }
     }
