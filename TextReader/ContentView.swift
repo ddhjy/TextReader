@@ -13,56 +13,57 @@ struct ContentView: View {
     @State private var showingSearchView = false
 
     var body: some View {
-        GeometryReader { geometry in
-            NavigationView {
-                VStack(spacing: 0) {
-                    if model.isContentLoaded {
-                        // 搜索按钮
+        NavigationView {
+            ZStack {
+                // 背景色
+                Color(.systemBackground).edgesIgnoringSafeArea(.all)
+                
+                if model.isContentLoaded {
+                    VStack(spacing: 0) {
+                        // 顶部工具栏
                         HStack {
-                            Spacer()
-                            Button(action: {
-                                showingSearchView = true
-                            }) {
-                                Image(systemName: "magnifyingglass")
-                                    .foregroundColor(.blue)
+                            Button(action: { showingBookList = true }) {
+                                Image(systemName: "book")
                             }
-                            .padding(.horizontal)
-                            .padding(.top)
+                            Spacer()
+                            Button(action: { showingSearchView = true }) {
+                                Image(systemName: "magnifyingglass")
+                            }
                         }
-
+                        .padding()
+                        .background(Color(.systemBackground).shadow(radius: 1))
+                        
                         // 内容显示区域
                         ScrollView {
-                            Text(model.pages.isEmpty ? "没内容可显示。" : model.pages[model.currentPageIndex])
+                            Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
                                 .padding()
-                                .frame(minHeight: geometry.size.height * 0.5)
-                                .font(.body)
-                                .lineSpacing(6)
-                                .transition(.opacity)
+                                .font(.system(size: 18))
+                                .lineSpacing(8)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                                 .id(model.currentPageIndex)
-                                .animation(.easeInOut, value: model.currentPageIndex)
-                                .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
                         }
+                        .background(Color(.secondarySystemBackground))
                         
-                        Divider()
-
-                        // 控制面板 - 固定在底部
+                        // 底部控制面板
                         ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                             .padding()
-                    } else {
-                        ProgressView("加载中...")
-                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
+                            .background(Color(.systemBackground).shadow(radius: 1))
                     }
-                }
-                .sheet(isPresented: $showingBookList) {
-                    BookListView(model: model)
-                }
-                .sheet(isPresented: $showingDocumentPicker) {
-                    DocumentPicker(model: model)
-                }
-                .sheet(isPresented: $showingSearchView) {
-                    SearchView(model: model)
+                } else {
+                    ProgressView("加载中...")
+                        .progressViewStyle(CircularProgressViewStyle())
                 }
             }
+            .navigationBarHidden(true)
+        }
+        .sheet(isPresented: $showingBookList) {
+            BookListView(model: model)
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker(model: model)
+        }
+        .sheet(isPresented: $showingSearchView) {
+            SearchView(model: model)
         }
         .onDisappear { model.saveCurrentBook() }
     }
