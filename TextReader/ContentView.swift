@@ -10,75 +10,90 @@ import AVFoundation
 
 struct ContentView: View {
     @StateObject private var model = ContentModel()
+    @State private var showingBookList = false
     
     var body: some View {
-        VStack {
-            ScrollView {
-                Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
-                    .padding()
-                    .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
-            }
-            HStack {
+        NavigationView {
+            VStack {
+                // 在 VStack 的顶部添加一个按钮来显示书本列表
                 Button(action: {
-                    model.previousPage()
+                    showingBookList = true
                 }) {
-                    Text("上一页")
+                    Text("选择书本")
                 }
-                .disabled(model.currentPageIndex == 0)
+                .padding()
                 
-                Spacer()
-                
-                Text("第 \(model.currentPageIndex + 1) 页，共 \(model.pages.count) 页")
-                
-                Spacer()
-                
-                Button(action: {
-                    model.nextPage()
-                }) {
-                    Text("下一页")
+                ScrollView {
+                    Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
+                        .padding()
+                        .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
                 }
-                .disabled(model.currentPageIndex >= model.pages.count - 1)
-            }
-            .padding()
-            .accessibility(hidden: true)
-            
-            // 朗读控制按钮
-            HStack {
-                Button(action: {
-                    model.readCurrentPage()
-                }) {
-                    Text("朗读")
-                }
-                
-                Button(action: {
-                    model.stopReading()
-                }) {
-                    Text("停止")
-                }
-                
-                Picker("速度", selection: Binding<Float>(
-                    get: { self.model.readingSpeed },
-                    set: { self.model.setReadingSpeed($0) }
-                )) {
-                    Text("1x").tag(1.0 as Float)
-                    Text("2.2x").tag(2.2 as Float)
-                    Text("3x").tag(3.0 as Float)
-                }
-                .pickerStyle(SegmentedPickerStyle())
-                
-                Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
-                    get: { self.model.selectedVoice },
-                    set: { self.model.setVoice($0!) }
-                )) {
-                    ForEach(model.availableVoices, id: \.identifier) { voice in
-                        Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                HStack {
+                    Button(action: {
+                        model.previousPage()
+                    }) {
+                        Text("上一页")
                     }
+                    .disabled(model.currentPageIndex == 0)
+                    
+                    Spacer()
+                    
+                    Text("第 \(model.currentPageIndex + 1) 页，共 \(model.pages.count) 页")
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        model.nextPage()
+                    }) {
+                        Text("下一页")
+                    }
+                    .disabled(model.currentPageIndex >= model.pages.count - 1)
                 }
-                .pickerStyle(MenuPickerStyle())
+                .padding()
+                .accessibility(hidden: true)
+                
+                // 朗读控制按钮
+                HStack {
+                    Button(action: {
+                        model.readCurrentPage()
+                    }) {
+                        Text("朗读")
+                    }
+                    
+                    Button(action: {
+                        model.stopReading()
+                    }) {
+                        Text("停止")
+                    }
+                    
+                    Picker("速度", selection: Binding<Float>(
+                        get: { self.model.readingSpeed },
+                        set: { self.model.setReadingSpeed($0) }
+                    )) {
+                        Text("1x").tag(1.0 as Float)
+                        Text("2.2x").tag(2.2 as Float)
+                        Text("3x").tag(3.0 as Float)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    
+                    Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
+                        get: { self.model.selectedVoice },
+                        set: { self.model.setVoice($0!) }
+                    )) {
+                        ForEach(model.availableVoices, id: \.identifier) { voice in
+                            Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                        }
+                    }
+                    .pickerStyle(MenuPickerStyle())
+                }
+                .padding()
             }
             .padding()
+            .navigationTitle(model.currentBook?.title ?? "阅读器")
+            .sheet(isPresented: $showingBookList) {
+                BookListView(model: model)
+            }
         }
-        .padding()
     }
 }
 
@@ -115,6 +130,9 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     private var synthesizer = AVSpeechSynthesizer()
     
+    @Published var books: [Book] = []
+    @Published var currentBook: Book?
+    
     override init() {
         super.init()
         synthesizer.delegate = self
@@ -122,6 +140,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         loadProgress()
         loadAvailableVoices()
         loadSavedSettings()
+        loadBooks()
     }
     
     private func loadContent() {
@@ -191,6 +210,15 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
     
+    private func loadBooks() {
+        // 这里只是一个示例,您需要根据实际情况加载书本列表
+        books = [
+            Book(title: "示例书本1", fileName: "content"),
+            Book(title: "示例书本2", fileName: "content2")
+        ]
+        currentBook = books.first
+    }
+    
     func nextPage() {
         if currentPageIndex < pages.count - 1 {
             stopReading() // 在翻页前停止朗读
@@ -241,6 +269,13 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             readCurrentPage()
         }
     }
+    
+    func loadBook(_ book: Book) {
+        currentBook = book
+        if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
+            // ... 使用现有的 loadContent 逻辑加载新书本 ...
+        }
+    }
 
     // AVSpeechSynthesizerDelegate 方法
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
@@ -252,5 +287,29 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 isReading = false
             }
         }
+    }
+}
+
+struct Book: Identifiable {
+    let id = UUID()
+    let title: String
+    let fileName: String
+}
+
+
+struct BookListView: View {
+    @ObservedObject var model: ContentModel
+    @Environment(\.presentationMode) var presentationMode
+    
+    var body: some View {
+        List(model.books) { book in
+            Button(action: {
+                model.loadBook(book)
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Text(book.title)
+            }
+        }
+        .navigationTitle("选择书本")
     }
 }
