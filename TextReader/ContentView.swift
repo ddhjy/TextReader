@@ -4,6 +4,7 @@
 
 import SwiftUI
 import AVFoundation
+import MediaPlayer
 
 struct ContentView: View {
     @StateObject private var model = ContentModel()
@@ -29,7 +30,7 @@ struct ContentView: View {
 
                         // 内容显示区域
                         ScrollView {
-                            Text(model.pages.isEmpty ? "没���内容可显示。" : model.pages[model.currentPageIndex])
+                            Text(model.pages.isEmpty ? "没内容可显示。" : model.pages[model.currentPageIndex])
                                 .padding()
                                 .frame(minHeight: geometry.size.height * 0.5)
                                 .font(.body)
@@ -140,17 +141,17 @@ struct ReadingControl: View {
 
     var body: some View {
         HStack {
-            Button(action: { model.readCurrentPage() }) {
-                VStack {
-                    Image(systemName: "play.fill").foregroundColor(.green)
-                    Text("朗读").font(.caption)
+            Button(action: { 
+                if model.isReading {
+                    model.stopReading()
+                } else {
+                    model.readCurrentPage()
                 }
-            }
-
-            Button(action: { model.stopReading() }) {
+            }) {
                 VStack {
-                    Image(systemName: "stop.fill").foregroundColor(.red)
-                    Text("停止").font(.caption)
+                    Image(systemName: model.isReading ? "stop.fill" : "play.fill")
+                        .foregroundColor(model.isReading ? .red : .green)
+                    Text(model.isReading ? "停止" : "朗读").font(.caption)
                 }
             }
 
@@ -221,7 +222,7 @@ struct SearchResultsView: View {
     }
 }
 
-// 在 ContentView 结构体外部添加这个按钮样式
+// 在 ContentView 结构体外部添这个按钮样式
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -293,6 +294,8 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         } catch {
             print("设置音频会话失败: \(error)")
         }
+        
+        setupRemoteCommandCenter()
     }
 
     private func loadBooks() {
@@ -580,6 +583,29 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 return (index, page)
             }
             return nil
+        }
+    }
+
+    private func setupRemoteCommandCenter() {
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            self?.readCurrentPage()
+            return .success
+        }
+        
+        commandCenter.pauseCommand.addTarget { [weak self] _ in
+            self?.stopReading()
+            return .success
+        }
+        
+        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+            if self?.isReading == true {
+                self?.stopReading()
+            } else {
+                self?.readCurrentPage()
+            }
+            return .success
         }
     }
 }
