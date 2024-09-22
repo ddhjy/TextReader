@@ -65,6 +65,16 @@ struct ContentView: View {
                     Text("3x").tag(3.0 as Float)
                 }
                 .pickerStyle(SegmentedPickerStyle())
+                
+                Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
+                    get: { self.model.selectedVoice },
+                    set: { self.model.setVoice($0!) }
+                )) {
+                    ForEach(model.availableVoices, id: \.identifier) { voice in
+                        Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
             }
             .padding()
         }
@@ -87,7 +97,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     @Published var isReading: Bool = false
     
-    @Published var readingSpeed: Float = 1.0 // 添加阅读速度属性
+    @Published var readingSpeed: Float = 2.2 // 将默认值改为2.2
+    
+    @Published var selectedVoice: AVSpeechSynthesisVoice?
+    @Published var availableVoices: [AVSpeechSynthesisVoice] = []
     
     private var synthesizer = AVSpeechSynthesizer()
     
@@ -96,6 +109,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         synthesizer.delegate = self
         loadContent()
         loadProgress()
+        loadAvailableVoices()
     }
     
     private func loadContent() {
@@ -144,6 +158,13 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
     
+    private func loadAvailableVoices() {
+        availableVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: "zh") }
+        if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
+            selectedVoice = defaultVoice
+        }
+    }
+    
     func nextPage() {
         if currentPageIndex < pages.count - 1 {
             stopReading() // 在翻页前停止朗读
@@ -168,7 +189,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         if !pages.isEmpty && currentPageIndex < pages.count {
             isReading = true
             let utterance = AVSpeechUtterance(string: pages[currentPageIndex])
-            utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
+            utterance.voice = selectedVoice ?? AVSpeechSynthesisVoice(language: "zh-CN")
             utterance.rate = readingSpeed * AVSpeechUtteranceDefaultSpeechRate // 设置朗读速度
             synthesizer.speak(utterance)
         }
@@ -181,6 +202,14 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     func setReadingSpeed(_ speed: Float) {
         readingSpeed = speed
+        if isReading {
+            stopReading()
+            readCurrentPage()
+        }
+    }
+    
+    func setVoice(_ voice: AVSpeechSynthesisVoice) {
+        selectedVoice = voice
         if isReading {
             stopReading()
             readCurrentPage()
