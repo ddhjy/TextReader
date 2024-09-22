@@ -321,13 +321,22 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             
             // 创建新书本并添加到列表
             let newBook = Book(title: bookTitle, fileName: fileName)
-            books.append(newBook)
-            currentBook = newBook
+            DispatchQueue.main.async {
+                self.books.append(newBook)
+                self.currentBook = newBook
+            }
             
             // 加载新书本内容
             loadContent(from: savedURL)
+            
+            print("成功导入书本：\(bookTitle)")
         } catch {
             print("导入书本时出错：\(error.localizedDescription)")
+            // 可以在这里添加用户反馈，例如显示一个警告对话框
+            DispatchQueue.main.async {
+                // 显示错误警告（这需要在 UI 中实现）
+                self.showErrorAlert(message: "导入书本时出错：\(error.localizedDescription)")
+            }
         }
     }
     
@@ -368,6 +377,12 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             print("加载内容时出错：\(error.localizedDescription)")
         }
     }
+
+    // 添加这个方法来显示错误警告
+    func showErrorAlert(message: String) {
+        // 在这里实现显示错误警告的逻辑
+        // 例如，你可以设置一个 @Published 属性来触发 SwiftUI 视图中的警告显示
+    }
 }
 
 struct Book: Identifiable {
@@ -397,10 +412,12 @@ struct BookListView: View {
 // 新增 DocumentPicker 视图
 struct DocumentPicker: UIViewControllerRepresentable {
     @ObservedObject var model: ContentModel
+    @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.text], asCopy: true)
         picker.delegate = context.coordinator
+        picker.shouldShowFileExtensions = true
         return picker
     }
     
@@ -420,6 +437,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else { return }
             parent.model.importBookFromiCloud(url)
+            parent.presentationMode.wrappedValue.dismiss()
         }
     }
 }
