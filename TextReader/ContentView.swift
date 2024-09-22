@@ -11,91 +11,100 @@ import AVFoundation
 struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
-    @State private var showingDocumentPicker = false // 新增状态变量
+    @State private var showingDocumentPicker = false
     
     var body: some View {
         NavigationView {
             VStack {
-                // 在 VStack 的顶部添加一个按钮来显示书本列表
-                Button(action: {
-                    showingBookList = true
-                }) {
-                    Text("选择书本")
-                }
-                .padding()
-                
-                // 在"选择书本"按钮下方添加一个新按钮
-                Button(action: {
-                    showingDocumentPicker = true
-                }) {
-                    Text("从 iCloud 导入")
-                }
-                .padding()
-                
                 ScrollView {
                     Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
                         .padding()
                         .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
                 }
-                HStack {
-                    Button(action: {
-                        model.previousPage()
-                    }) {
-                        Text("上一页")
-                    }
-                    .disabled(model.currentPageIndex == 0)
-                    
-                    Spacer()
-                    
-                    Text("第 \(model.currentPageIndex + 1) 页，共 \(model.pages.count) 页")
-                    
-                    Spacer()
-                    
-                    Button(action: {
-                        model.nextPage()
-                    }) {
-                        Text("下一页")
-                    }
-                    .disabled(model.currentPageIndex >= model.pages.count - 1)
-                }
-                .padding()
-                .accessibility(hidden: true)
                 
-                // 朗读控制按钮
-                HStack {
-                    Button(action: {
-                        model.readCurrentPage()
-                    }) {
-                        Text("朗读")
+                Spacer()
+                
+                // 所有操作按钮都放在这里
+                VStack {
+                    // 翻页控制
+                    HStack {
+                        Button(action: {
+                            model.previousPage()
+                        }) {
+                            Text("上一页")
+                        }
+                        .disabled(model.currentPageIndex == 0)
+                        
+                        Spacer()
+                        
+                        Text("第 \(model.currentPageIndex + 1) 页，共 \(model.pages.count) 页")
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            model.nextPage()
+                        }) {
+                            Text("下一页")
+                        }
+                        .disabled(model.currentPageIndex >= model.pages.count - 1)
                     }
+                    .padding()
+                    .accessibility(hidden: true)
                     
-                    Button(action: {
-                        model.stopReading()
-                    }) {
-                        Text("停止")
+                    // 朗读控制按钮
+                    HStack {
+                        Button(action: {
+                            model.readCurrentPage()
+                        }) {
+                            Text("朗读")
+                        }
+                        
+                        Button(action: {
+                            model.stopReading()
+                        }) {
+                            Text("停止")
+                        }
+                        
+                        Picker("速度", selection: Binding<Float>(
+                            get: { self.model.readingSpeed },
+                            set: { self.model.setReadingSpeed($0) }
+                        )) {
+                            Text("1x").tag(1.0 as Float)
+                            Text("2.2x").tag(2.2 as Float)
+                            Text("3x").tag(3.0 as Float)
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        
+                        Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
+                            get: { self.model.selectedVoice },
+                            set: { self.model.setVoice($0!) }
+                        )) {
+                            ForEach(model.availableVoices, id: \.identifier) { voice in
+                                Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
                     }
+                    .padding()
                     
-                    Picker("速度", selection: Binding<Float>(
-                        get: { self.model.readingSpeed },
-                        set: { self.model.setReadingSpeed($0) }
-                    )) {
-                        Text("1x").tag(1.0 as Float)
-                        Text("2.2x").tag(2.2 as Float)
-                        Text("3x").tag(3.0 as Float)
-                    }
-                    .pickerStyle(SegmentedPickerStyle())
-                    
-                    Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
-                        get: { self.model.selectedVoice },
-                        set: { self.model.setVoice($0!) }
-                    )) {
-                        ForEach(model.availableVoices, id: \.identifier) { voice in
-                            Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                    // 书本选择和导入按钮
+                    HStack {
+                        Button(action: {
+                            showingBookList = true
+                        }) {
+                            Text("选择书本")
+                        }
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            showingDocumentPicker = true
+                        }) {
+                            Text("从 iCloud 导入")
                         }
                     }
-                    .pickerStyle(MenuPickerStyle())
+                    .padding()
                 }
-                .padding()
             }
             .padding()
             .navigationTitle(model.currentBook?.title ?? "阅读器")
