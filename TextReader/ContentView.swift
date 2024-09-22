@@ -15,12 +15,10 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // 背景色
-                Color(.systemBackground).edgesIgnoringSafeArea(.all)
+                Color.white.edgesIgnoringSafeArea(.all)
                 
                 if model.isContentLoaded {
                     VStack(spacing: 0) {
-                        // 顶部工具栏
                         HStack {
                             Button(action: { showingBookList = true }) {
                                 Image(systemName: "book")
@@ -31,27 +29,20 @@ struct ContentView: View {
                             }
                         }
                         .padding()
-                        .background(Color(.systemBackground).shadow(radius: 1))
                         
-                        // 内容显示区域
                         ScrollView {
-                            Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
+                            Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
                                 .padding()
-                                .font(.system(size: 18))
-                                .lineSpacing(8)
+                                .font(.body)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .id(model.currentPageIndex)
                         }
-                        .background(Color(.secondarySystemBackground))
                         
-                        // 底部控制面板
                         ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                             .padding()
-                            .background(Color(.systemBackground).shadow(radius: 1))
                     }
                 } else {
-                    ProgressView("加载中...")
-                        .progressViewStyle(CircularProgressViewStyle())
+                    ProgressView()
                 }
             }
             .navigationBarHidden(true)
@@ -116,20 +107,6 @@ struct ControlPanel: View {
 
             // 朗读控制
             ReadingControl(model: model)
-
-            // 书本选择和导入按钮
-            HStack {
-                Button(action: { showingBookList = true }) {
-                    Label("选择书本", systemImage: "book")
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
-                }
-
-                Button(action: { showingDocumentPicker = true }) {
-                    Label("从iCloud导入", systemImage: "icloud.and.arrow.down")
-                        .buttonStyle(.bordered)
-                }
-            }
         }
     }
 }
