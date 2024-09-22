@@ -88,7 +88,7 @@ struct ContentView: View {
                         }
                         .padding()
                         
-                        // 书本选择和导入按钮
+                        // ��本选择和导入按钮
                         HStack {
                             Button(action: {
                                 showingBookList = true
@@ -134,11 +134,14 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published var pages: [String] = []
     @Published var currentPageIndex: Int = 0 {
         didSet {
-            let key = "bookProgress_\(currentBook?.id ?? "")"
-            UserDefaults.standard.set(currentPageIndex, forKey: key)
-            print("保存进度: \(currentPageIndex) 到 \(key)") // 调试信息
+            if isContentLoaded, let currentBook = currentBook {
+                let key = "bookProgress_\(currentBook.id)"
+                UserDefaults.standard.set(currentPageIndex, forKey: key)
+                print("保存进度: \(currentPageIndex) 到 \(key)") // 调试信息
+            }
         }
     }
+    private var savedPageIndex: Int?
 
     @Published var isReading: Bool = false
 
@@ -291,8 +294,9 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func loadBook(_ book: Book) {
         currentBook = book
         isContentLoaded = false
+        loadBookProgress(for: book) // 先加载进度
         if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
-            loadContent(from: url)
+            loadContent(from: url) // 然后加载内容
         }
     }
 
@@ -386,11 +390,16 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                     self?.pages = pages
                     self?.isContentLoaded = true
                     self?.objectWillChange.send()
-                    // 在内容加载完成后加载书本进度
-                    if let book = self?.currentBook {
-                        self?.loadBookProgress(for: book)
-                        print("加载进度完成: \(self?.currentPageIndex ?? 0)") // 调试信息
+                    
+                    // 在内容加载完成后设置正确的页面索引
+                    if let savedIndex = self?.savedPageIndex, savedIndex < pages.count {
+                        self?.currentPageIndex = savedIndex
+                    } else {
+                        self?.currentPageIndex = 0
                     }
+                    
+                    self?.savedPageIndex = nil // 清除临时保存的索引
+                    print("内容加载完成，当前页面索引: \(self?.currentPageIndex ?? 0)") // 调试信息
                 }
             } catch {
                 print("加载内容时出错：\(error.localizedDescription)")
@@ -410,14 +419,8 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     // 修改后的 loadBookProgress 方法
     private func loadBookProgress(for book: Book) {
         let key = "bookProgress_\(book.id)"
-        let savedIndex = UserDefaults.standard.integer(forKey: key)
-        if isContentLoaded && savedIndex < pages.count {
-            currentPageIndex = savedIndex
-            print("从 UserDefaults 加载进度: \(savedIndex)") // 调试信息
-        } else {
-            currentPageIndex = 0
-            print("保存的进度无效或内容未加载完成，重置为第一页") // 调试信息
-        }
+        savedPageIndex = UserDefaults.standard.integer(forKey: key)
+        print("从 UserDefaults 加载进度: \(savedPageIndex ?? 0)") // 调试信息
     }
 
     // 修改后的 saveBookProgress 方法
