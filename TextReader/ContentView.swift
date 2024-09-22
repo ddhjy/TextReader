@@ -11,6 +11,7 @@ import AVFoundation
 struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
+    @State private var showingDocumentPicker = false // 新增状态变量
     
     var body: some View {
         NavigationView {
@@ -20,6 +21,14 @@ struct ContentView: View {
                     showingBookList = true
                 }) {
                     Text("选择书本")
+                }
+                .padding()
+                
+                // 在"选择书本"按钮下方添加一个新按钮
+                Button(action: {
+                    showingDocumentPicker = true
+                }) {
+                    Text("从 iCloud 导入")
                 }
                 .padding()
                 
@@ -92,6 +101,9 @@ struct ContentView: View {
             .navigationTitle(model.currentBook?.title ?? "阅读器")
             .sheet(isPresented: $showingBookList) {
                 BookListView(model: model)
+            }
+            .sheet(isPresented: $showingDocumentPicker) {
+                DocumentPicker(model: model)
             }
         }
     }
@@ -288,6 +300,74 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             }
         }
     }
+
+    // 新增方法
+    func importBookFromiCloud(_ url: URL) {
+        guard url.startAccessingSecurityScopedResource() else {
+            print("无法访问文件")
+            return
+        }
+        defer { url.stopAccessingSecurityScopedResource() }
+        
+        do {
+            let content = try String(contentsOf: url, encoding: .utf8)
+            let fileName = url.lastPathComponent
+            let bookTitle = url.deletingPathExtension().lastPathComponent
+            
+            // 保存文件到应用的文档目录
+            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            let savedURL = documentsURL.appendingPathComponent(fileName)
+            try content.write(to: savedURL, atomically: true, encoding: .utf8)
+            
+            // 创建新书本并添加到列表
+            let newBook = Book(title: bookTitle, fileName: fileName)
+            books.append(newBook)
+            currentBook = newBook
+            
+            // 加载新书本内容
+            loadContent(from: savedURL)
+        } catch {
+            print("导入书本时出错：\(error.localizedDescription)")
+        }
+    }
+    
+    // 修改 loadContent 方法以接受 URL 参数
+    private func loadContent(from url: URL) {
+        do {
+            let content = try String(contentsOf: url, encoding: .utf8)
+            let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
+                                   .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            
+            var currentPage = ""
+            var currentPageSize = 0
+            let maxPageSize = 100
+            
+            pages = sentences.reduce(into: [String]()) { result, sentence in
+                let sentenceSize = sentence.count
+                
+                if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
+                    result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    currentPage = ""
+                    currentPageSize = 0
+                }
+                
+                currentPage += sentence + "。"
+                currentPageSize += sentenceSize + 1
+                
+                if currentPageSize >= maxPageSize {
+                    result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    currentPage = ""
+                    currentPageSize = 0
+                }
+            }
+            
+            if !currentPage.isEmpty {
+                pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+            }
+        } catch {
+            print("加载内容时出错：\(error.localizedDescription)")
+        }
+    }
 }
 
 struct Book: Identifiable {
@@ -311,5 +391,35 @@ struct BookListView: View {
             }
         }
         .navigationTitle("选择书本")
+    }
+}
+
+// 新增 DocumentPicker 视图
+struct DocumentPicker: UIViewControllerRepresentable {
+    @ObservedObject var model: ContentModel
+    
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.text], asCopy: true)
+        picker.delegate = context.coordinator
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIDocumentPickerViewController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIDocumentPickerDelegate {
+        var parent: DocumentPicker
+        
+        init(_ parent: DocumentPicker) {
+            self.parent = parent
+        }
+        
+        func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+            guard let url = urls.first else { return }
+            parent.model.importBookFromiCloud(url)
+        }
     }
 }
