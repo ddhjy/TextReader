@@ -589,17 +589,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
-        commandCenter.playCommand.addTarget { [weak self] _ in
-            self?.readCurrentPage()
-            return .success
-        }
-        
         commandCenter.pauseCommand.addTarget { [weak self] _ in
-            self?.stopReading()
-            return .success
-        }
-        
-        commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
             if self?.isReading == true {
                 self?.stopReading()
             } else {
