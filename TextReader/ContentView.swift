@@ -132,7 +132,6 @@ struct PageControl: View {
                         Image(systemName: model.isReading ? "stop.fill" : "play.fill")
                             .foregroundColor(model.isReading ? .red : .green)
                             .font(.system(size: 30))
-                        Text(model.isReading ? "停止" : "朗读").font(.caption)
                     }
                 }
                 .frame(width: 80, height: 80)
