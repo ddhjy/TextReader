@@ -47,16 +47,16 @@ struct ContentView: View {
                 Button(action: {
                     model.readCurrentPage()
                 }) {
-                    Text("朗读当前页")
+                    Text("朗读")
                 }
                 
                 Button(action: {
                     model.stopReading()
                 }) {
-                    Text("停止朗读")
+                    Text("停止")
                 }
                 
-                Picker("朗读速度", selection: Binding<Float>(
+                Picker("速度", selection: Binding<Float>(
                     get: { self.model.readingSpeed },
                     set: { self.model.setReadingSpeed($0) }
                 )) {
@@ -101,8 +101,11 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private func loadContent() {
         if let url = Bundle.main.url(forResource: "content", withExtension: "txt"),
            let content = try? String(contentsOf: url) {
-            // 假设每页内容之间用两个换行符分隔
-            pages = content.components(separatedBy: "\n\n")
+            let characters = Array(content)
+            let pageSize = 100
+            pages = stride(from: 0, to: characters.count, by: pageSize).map {
+                String(characters[$0..<min($0 + pageSize, characters.count)])
+            }
         }
     }
     
