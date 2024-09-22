@@ -152,79 +152,53 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private var synthesizer = AVSpeechSynthesizer()
     
     @Published var books: [Book] = []
-    @Published var currentBook: Book?
-    
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-        loadContent()
-        loadProgress()
-        loadAvailableVoices()
-        loadSavedSettings()
-        loadBooks()
-    }
-    
-    private func loadContent() {
-        if let url = Bundle.main.url(forResource: "content", withExtension: "txt") {
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                do {
-                    let content = try String(contentsOf: url, encoding: .utf8)
-                    let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
-                                           .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                    
-                    var pages = [String]()
-                    var currentPage = ""
-                    var currentPageSize = 0
-                    let maxPageSize = 100
-                    
-                    for sentence in sentences {
-                        let sentenceSize = sentence.count
-                        
-                        if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
-                            pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                            currentPage = ""
-                            currentPageSize = 0
-                        }
-                        
-                        currentPage += sentence + "。"
-                        currentPageSize += sentenceSize + 1
-                        
-                        if currentPageSize >= maxPageSize {
-                            pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                            currentPage = ""
-                            currentPageSize = 0
-                        }
-                    }
-                    
-                    if !currentPage.isEmpty {
-                        pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                    }
-                    
-                    DispatchQueue.main.async {
-                        self?.pages = pages
-                        self?.objectWillChange.send()
-                    }
-                } catch {
-                    print("加载内容时出错：\(error.localizedDescription)")
-                    DispatchQueue.main.async {
-                        self?.showErrorAlert(message: "加载内容时出错：\(error.localizedDescription)")
-                    }
-                }
+    @Published var currentBook: Book? {
+        didSet {
+            if let book = currentBook {
+                UserDefaults.standard.set(book.id.uuidString, forKey: "currentBookID")
+                loadBookProgress(for: book)
             }
         }
     }
     
-    private func loadProgress() {
-        currentPageIndex = UserDefaults.standard.integer(forKey: "currentPageIndex")
-        if currentPageIndex >= pages.count {
-            currentPageIndex = 0
-        }
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+        loadBooks()
+        loadSavedSettings()
+        loadAvailableVoices()
     }
     
-    private func loadAvailableVoices() {
-        availableVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: "zh") }
-        if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
-            selectedVoice = defaultVoice
+    private func loadBooks() {
+        // 从 main bundle 中加载已有的书本
+        let bookFiles = [
+            ("思考快与慢", "思考快与慢"),
+            ("罗素作品集", "罗素作品集")
+        ]
+        
+        books = bookFiles.compactMap { (title, fileName) in
+            if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
+                return Book(title: title, fileName: fileName)
+            }
+            return nil
+        }
+        
+        // 修改这部分来加载上次阅读的书籍
+        if let savedBookID = UserDefaults.standard.string(forKey: "currentBookID"),
+           let savedBook = books.first(where: { $0.id.uuidString == savedBookID }) {
+            currentBook = savedBook
+            loadBookContent(savedBook)
+        } else if let firstBook = books.first {
+            currentBook = firstBook
+            loadBookContent(firstBook)
+        }
+    }
+
+    // 新增方法来加载书籍内容
+    private func loadBookContent(_ book: Book) {
+        if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
+            loadContent(from: url)
+            loadBookProgress(for: book)
         }
     }
     
@@ -242,39 +216,31 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
     
-    private func loadBooks() {
-        // 从 main bundle 中加载已有的书本
-        let bookFiles = [
-            ("思考快与慢", "思考快与慢"),
-            ("罗素作品集", "罗素作品集")
-        ]
-        
-        books = bookFiles.compactMap { (title, fileName) in
-            if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
-                return Book(title: title, fileName: fileName)
-            }
-            return nil
+    private func loadAvailableVoices() {
+        availableVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: "zh") }
+        if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
+            selectedVoice = defaultVoice
         }
-        
-        currentBook = books.first
     }
     
     func nextPage() {
         if currentPageIndex < pages.count - 1 {
-            stopReading() // 在翻页前停止朗读
+            stopReading()
             currentPageIndex += 1
+            saveBookProgress()
             if isReading {
-                readCurrentPage() // 如果之前在朗读，则开始朗读新页面
+                readCurrentPage()
             }
         }
     }
     
     func previousPage() {
         if currentPageIndex > 0 {
-            stopReading() // 在翻页前停止朗读
+            stopReading()
             currentPageIndex -= 1
+            saveBookProgress()
             if isReading {
-                readCurrentPage() // 如果之前在朗读，则开始朗读新页面
+                readCurrentPage()
             }
         }
     }
@@ -314,6 +280,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         currentBook = book
         if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
             loadContent(from: url)
+            loadBookProgress(for: book)
         }
     }
 
@@ -421,6 +388,21 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func showErrorAlert(message: String) {
         // 在这里实现显示错误警告的逻辑
         // 例如，你可以设置一个 @Published 属性来触发 SwiftUI 视图中的警告显示
+    }
+
+    private func loadBookProgress(for book: Book) {
+        let key = "bookProgress_\(book.id.uuidString)"
+        currentPageIndex = UserDefaults.standard.integer(forKey: key)
+        if currentPageIndex >= pages.count {
+            currentPageIndex = 0
+        }
+    }
+
+    private func saveBookProgress() {
+        if let book = currentBook {
+            let key = "bookProgress_\(book.id.uuidString)"
+            UserDefaults.standard.set(currentPageIndex, forKey: key)
+        }
     }
 }
 
