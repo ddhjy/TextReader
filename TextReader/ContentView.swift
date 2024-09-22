@@ -102,10 +102,34 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         if let url = Bundle.main.url(forResource: "content", withExtension: "txt") {
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
-                let characters = Array(content)
-                let pageSize = 100
-                pages = stride(from: 0, to: characters.count, by: pageSize).map {
-                    String(characters[$0..<min($0 + pageSize, characters.count)])
+                let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
+                                       .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                
+                var currentPage = ""
+                var currentPageSize = 0
+                let maxPageSize = 100
+                
+                pages = sentences.reduce(into: [String]()) { result, sentence in
+                    let sentenceSize = sentence.count
+                    
+                    if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
+                        result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                        currentPage = ""
+                        currentPageSize = 0
+                    }
+                    
+                    currentPage += sentence + "。"
+                    currentPageSize += sentenceSize + 1
+                    
+                    if currentPageSize >= maxPageSize {
+                        result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                        currentPage = ""
+                        currentPageSize = 0
+                    }
+                }
+                
+                if !currentPage.isEmpty {
+                    pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
                 }
             } catch {
                 print("加载内容时出错：\(error.localizedDescription)")
