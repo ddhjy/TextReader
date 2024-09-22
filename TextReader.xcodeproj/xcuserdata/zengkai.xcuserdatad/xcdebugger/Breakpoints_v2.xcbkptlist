@@ -16,7 +16,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "412"
             endingLineNumber = "412"
-            landmarkName = "loadBook(_:)"
+            landmarkName = "setReadingSpeed(_:)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

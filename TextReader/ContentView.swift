@@ -8,6 +8,9 @@
 import SwiftUI
 import AVFoundation
 
+import SwiftUI
+import AVFoundation
+
 struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
@@ -15,7 +18,7 @@ struct ContentView: View {
     @State private var searchText = ""
     @State private var showingSearchResults = false
     @FocusState private var isSearchFieldFocused: Bool
-    
+
     var body: some View {
         GeometryReader { geometry in
             NavigationView {
@@ -29,7 +32,7 @@ struct ContentView: View {
                         .padding(.horizontal)
                         .padding(.top)
                         .focused($isSearchFieldFocused)
-                        
+
                         // 内容显示区域
                         ScrollView {
                             Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
@@ -39,112 +42,122 @@ struct ContentView: View {
                                 .lineSpacing(6)
                                 .transition(.opacity)
                                 .id(model.currentPageIndex)
-                        }
-                        .animation(.easeInOut, value: model.currentPageIndex)
-                        .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
-                        
-                        Divider()
-                        
-                        // 控制面板
-                        VStack(spacing: 15) {
-                            // 翻页控制
-                            HStack {
-                                Button(action: { model.previousPage() }) {
-                                    HStack {
-                                        Image(systemName: "chevron.left")
-                                        Text("上一页")
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                                .disabled(model.currentPageIndex == 0)
-                                
-                                Spacer()
-                                
-                                Text("第 \(model.currentPageIndex + 1) / \(model.pages.count) 页")
-                                    .font(.footnote)
-                                    .foregroundColor(.gray)
-                                
-                                Spacer()
-                                
-                                Button(action: { model.nextPage() }) {
-                                    HStack {
-                                        Text("下一页")
-                                        Image(systemName: "chevron.right")
-                                    }
-                                    .foregroundColor(.blue)
-                                }
-                                .disabled(model.currentPageIndex >= model.pages.count - 1)
-                                .buttonStyle(PressableButtonStyle())
-                            }
-                            .padding(.horizontal)
-                            
+                                .animation(.easeInOut, value: model.currentPageIndex)
+                                .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
+
                             Divider()
-                            
-                            // 朗读控制
-                            HStack {
-                                Button(action: { model.readCurrentPage() }) {
-                                    VStack {
-                                        Image(systemName: "play.fill")
-                                            .foregroundColor(.green)
-                                        Text("朗读")
-                                            .font(.caption)
+
+                            // 控制面板
+                            VStack(spacing: 15) {
+                                // 翻页控制
+                                HStack {
+                                    Button(action: {
+                                        model.previousPage()
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "chevron.left")
+                                            Text("上一页")
+                                                .foregroundColor(.blue)
+                                                .disabled(model.currentPageIndex == 0)
+                                            Spacer()
+                                            Text("第 \(model.currentPageIndex + 1) / \(model.pages.count) 页")
+                                                .font(.footnote)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Button(action: {
+                                        model.nextPage()
+                                    }) {
+                                        HStack {
+                                            Text("下一页")
+                                            Image(systemName: "chevron.right")
+                                                .foregroundColor(.blue)
+                                                .disabled(model.currentPageIndex >= model.pages.count - 1)
+                                        }
                                     }
                                 }
-                                
-                                Button(action: { model.stopReading() }) {
-                                    VStack {
-                                        Image(systemName: "stop.fill")
-                                            .foregroundColor(.red)
-                                        Text("停止")
-                                            .font(.caption)
+
+                                Divider()
+
+                                // 朗读控制
+                                HStack {
+                                    Button(action: {
+                                        model.readCurrentPage()
+                                    }) {
+                                        VStack {
+                                            Image(systemName: "play.fill")
+                                                .foregroundColor(.green)
+                                            Text("朗读")
+                                                .font(.caption)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Button(action: {
+                                        model.stopReading()
+                                    }) {
+                                        VStack {
+                                            Image(systemName: "stop.fill")
+                                                .foregroundColor(.red)
+                                            Text("停止")
+                                                .font(.caption)
+                                        }
+                                    }
+
+                                    Picker("速度", selection: Binding(
+                                        get: { self.model.readingSpeed },
+                                        set: { self.model.setReadingSpeed($0) }
+                                    )) {
+                                        Text("1x").tag(1.0 as Float)
+                                        Text("2.2x").tag(2.2 as Float)
+                                        Text("3x").tag(3.0 as Float)
+                                    }
+                                    .pickerStyle(SegmentedPickerStyle())
+                                    .frame(width: 150)
+
+                                    Picker("音色", selection: Binding(
+                                        get: { self.model.selectedVoice },
+                                        set: { self.model.setVoice($0!) }
+                                    )) {
+                                        ForEach(model.availableVoices, id: \.identifier) { voice in
+                                            Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                                        }
+                                    }
+                                    .pickerStyle(MenuPickerStyle())
+                                    .padding(.horizontal)
+                                }
+
+                                Divider()
+
+                                // 书本选择和导入
+                                HStack {
+                                    Button(action: {
+                                        showingBookList = true
+                                    }) {
+                                        Label("选择书本", systemImage: "book")
+                                            .buttonStyle(.borderedProminent)
+                                            .tint(.blue)
+                                    }
+
+                                    Spacer()
+
+                                    Button(action: {
+                                        showingDocumentPicker = true
+                                    }) {
+                                        Label("从iCloud导入", systemImage: "icloud.and.arrow.down")
+                                            .buttonStyle(.bordered)
+                                            .padding(.horizontal)
+                                            .padding(.vertical)
+                                            .background(Color(UIColor.systemBackground))
+                                            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: -2)
                                     }
                                 }
-                                
-                                Picker("速度", selection: Binding<Float>(
-                                    get: { self.model.readingSpeed },
-                                    set: { self.model.setReadingSpeed($0) }
-                                )) {
-                                    Text("1x").tag(1.0 as Float)
-                                    Text("2.2x").tag(2.2 as Float)
-                                    Text("3x").tag(3.0 as Float)
-                                }
-                                .pickerStyle(SegmentedPickerStyle())
-                                .frame(width: 150)
-                                
-                                Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
-                                    get: { self.model.selectedVoice },
-                                    set: { self.model.setVoice($0!) }
-                                )) {
-                                    ForEach(model.availableVoices, id: \.identifier) { voice in
-                                        Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
-                                    }
-                                }
-                                .pickerStyle(MenuPickerStyle())
                             }
-                            .padding(.horizontal)
-                            
-                            Divider()
-                            
-                            // 书本选择和导入
-                            HStack {
-                                Button(action: { showingBookList = true }) {
-                                    Label("选择书本", systemImage: "book")
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(.blue)
-                                
-                                Spacer()
-                                
-                                Button(action: { showingDocumentPicker = true }) {
-                                    Label("从iCloud导入", systemImage: "icloud.and.arrow.down")
-                                }
-                                .buttonStyle(.bordered)
-                            }
-                            .padding(.horizontal)
                         }
-                        .padding(.vertical)
-                        .background(Color(UIColor.systemBackground))
-                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: -2)
                     } else {
                         ProgressView("加载中...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -157,7 +170,6 @@ struct ContentView: View {
                 .sheet(isPresented: $showingDocumentPicker) {
                     DocumentPicker(model: model)
                 }
-                // 添加搜索结果显示
                 .sheet(isPresented: $showingSearchResults) {
                     SearchResultsView(results: model.searchResults, onSelect: { index in
                         model.currentPageIndex = index
@@ -170,9 +182,9 @@ struct ContentView: View {
                             isSearchFieldFocused = false
                         }
                 )
-            }
-            .onDisappear {
-                model.saveCurrentBook()
+                .onDisappear {
+                    model.saveCurrentBook()
+                }
             }
         }
     }
