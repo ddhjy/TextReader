@@ -12,11 +12,20 @@ struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
     @State private var showingDocumentPicker: Bool = false
+    @State private var searchText = ""
+    @State private var showingSearchResults = false
     
     var body: some View {
         NavigationView {
             VStack {
                 if model.isContentLoaded {
+                    // 添加搜索栏
+                    SearchBar(text: $searchText, onCommit: {
+                        model.searchContent(searchText)
+                        showingSearchResults = true
+                    })
+                    .padding()
+                    
                     ScrollView {
                         Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
                             .padding()
@@ -88,7 +97,7 @@ struct ContentView: View {
                         }
                         .padding()
                         
-                        // ��本选择和导入按钮
+                        // 本选择和导入按钮
                         HStack {
                             Button(action: {
                                 showingBookList = true
@@ -105,6 +114,14 @@ struct ContentView: View {
                             }
                         }
                         .padding()
+                    }
+                    
+                    // 添加搜索结果显示
+                    .sheet(isPresented: $showingSearchResults) {
+                        SearchResultsView(results: model.searchResults, onSelect: { index in
+                            model.currentPageIndex = index
+                            showingSearchResults = false
+                        })
                     }
                 } else {
                     ProgressView("加载中...")
@@ -129,6 +146,42 @@ struct ContentView: View {
     ContentView()
 }
 
+// 添加 SearchBar 视图
+struct SearchBar: View {
+    @Binding var text: String
+    var onCommit: () -> Void
+    
+    var body: some View {
+        HStack {
+            TextField("搜索...", text: $text, onCommit: onCommit)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+            
+            Button(action: onCommit) {
+                Image(systemName: "magnifyingglass")
+            }
+        }
+    }
+}
+
+// 添加 SearchResultsView 视图
+struct SearchResultsView: View {
+    let results: [(Int, String)]
+    let onSelect: (Int) -> Void
+    
+    var body: some View {
+        List(results, id: \.0) { index, preview in
+            Button(action: { onSelect(index) }) {
+                VStack(alignment: .leading) {
+                    Text("第 \(index + 1) 页")
+                        .font(.headline)
+                    Text(preview)
+                        .lineLimit(2)
+                }
+            }
+        }
+        .navigationTitle("搜索结果")
+    }
+}
 
 class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     @Published var pages: [String] = []
@@ -174,6 +227,8 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     @Published var isContentLoaded: Bool = false
+
+    @Published var searchResults: [(Int, String)] = []
 
     override init() {
         super.init()
@@ -436,6 +491,15 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         if let book = currentBook {
             UserDefaults.standard.set(book.id, forKey: "currentBookID")
             saveBookProgress()
+        }
+    }
+
+    func searchContent(_ query: String) {
+        searchResults = pages.enumerated().compactMap { index, page in
+            if page.lowercased().contains(query.lowercased()) {
+                return (index, page)
+            }
+            return nil
         }
     }
 }
