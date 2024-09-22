@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var showingDocumentPicker: Bool = false
     @State private var searchText = ""
     @State private var showingSearchResults = false
+    @FocusState private var isSearchFieldFocused: Bool
     
     var body: some View {
         GeometryReader { geometry in
@@ -27,6 +28,7 @@ struct ContentView: View {
                         })
                         .padding(.horizontal)
                         .padding(.top)
+                        .focused($isSearchFieldFocused)
                         
                         // 内容显示区域
                         ScrollView {
@@ -162,6 +164,12 @@ struct ContentView: View {
                         showingSearchResults = false
                     })
                 }
+                .gesture(
+                    TapGesture()
+                        .onEnded { _ in
+                            isSearchFieldFocused = false
+                        }
+                )
             }
             .onDisappear {
                 model.saveCurrentBook()
