@@ -16,126 +16,156 @@ struct ContentView: View {
     @State private var showingSearchResults = false
     
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                if model.isContentLoaded {
-                    // 搜索栏
-                    SearchBar(text: $searchText, onCommit: {
-                        model.searchContent(searchText)
-                        showingSearchResults = true
-                    })
-                    .padding(.horizontal)
-                    .padding(.top)
-                    
-                    // 内容显示区域
-                    ScrollView {
-                        Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
-                            .padding()
-                            .frame(minHeight: 300)
-                    }
-                    .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
-                    
-                    Divider()
-                    
-                    // 控制面板
-                    VStack(spacing: 15) {
-                        // 翻页控制
-                        HStack {
-                            Button(action: { model.previousPage() }) {
-                                Image(systemName: "chevron.left")
-                                    .foregroundColor(.blue)
-                            }
-                            .disabled(model.currentPageIndex == 0)
-                            
-                            Spacer()
-                            
-                            Text("第 \(model.currentPageIndex + 1) / \(model.pages.count) 页")
-                                .font(.footnote)
-                            
-                            Spacer()
-                            
-                            Button(action: { model.nextPage() }) {
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.blue)
-                            }
-                            .disabled(model.currentPageIndex >= model.pages.count - 1)
-                        }
+        GeometryReader { geometry in
+            NavigationView {
+                VStack(spacing: 0) {
+                    if model.isContentLoaded {
+                        // 搜索栏
+                        SearchBar(text: $searchText, onCommit: {
+                            model.searchContent(searchText)
+                            showingSearchResults = true
+                        })
                         .padding(.horizontal)
+                        .padding(.top)
                         
-                        // 朗读控制
-                        HStack {
-                            Button(action: { model.readCurrentPage() }) {
-                                Image(systemName: "play.fill")
-                                    .foregroundColor(.green)
-                            }
-                            
-                            Button(action: { model.stopReading() }) {
-                                Image(systemName: "stop.fill")
-                                    .foregroundColor(.red)
-                            }
-                            
-                            Picker("速度", selection: Binding<Float>(
-                                get: { self.model.readingSpeed },
-                                set: { self.model.setReadingSpeed($0) }
-                            )) {
-                                Text("1x").tag(1.0 as Float)
-                                Text("2.2x").tag(2.2 as Float)
-                                Text("3x").tag(3.0 as Float)
-                            }
-                            .pickerStyle(SegmentedPickerStyle())
-                            
-                            Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
-                                get: { self.model.selectedVoice },
-                                set: { self.model.setVoice($0!) }
-                            )) {
-                                ForEach(model.availableVoices, id: \.identifier) { voice in
-                                    Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                        // 内容显示区域
+                        ScrollView {
+                            Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex])
+                                .padding()
+                                .frame(minHeight: geometry.size.height * 0.5)
+                                .font(.body)
+                                .lineSpacing(6)
+                                .transition(.opacity)
+                                .id(model.currentPageIndex)
+                        }
+                        .animation(.easeInOut, value: model.currentPageIndex)
+                        .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
+                        
+                        Divider()
+                        
+                        // 控制面板
+                        VStack(spacing: 15) {
+                            // 翻页控制
+                            HStack {
+                                Button(action: { model.previousPage() }) {
+                                    HStack {
+                                        Image(systemName: "chevron.left")
+                                        Text("上一页")
+                                    }
+                                    .foregroundColor(.blue)
                                 }
+                                .disabled(model.currentPageIndex == 0)
+                                
+                                Spacer()
+                                
+                                Text("第 \(model.currentPageIndex + 1) / \(model.pages.count) 页")
+                                    .font(.footnote)
+                                    .foregroundColor(.gray)
+                                
+                                Spacer()
+                                
+                                Button(action: { model.nextPage() }) {
+                                    HStack {
+                                        Text("下一页")
+                                        Image(systemName: "chevron.right")
+                                    }
+                                    .foregroundColor(.blue)
+                                }
+                                .disabled(model.currentPageIndex >= model.pages.count - 1)
+                                .buttonStyle(PressableButtonStyle())
                             }
-                            .pickerStyle(MenuPickerStyle())
-                        }
-                        .padding(.horizontal)
-                        
-                        // 书本选择和导入
-                        HStack {
-                            Button(action: { showingBookList = true }) {
-                                Label("选择书本", systemImage: "book")
-                            }
-                            .buttonStyle(.bordered)
+                            .padding(.horizontal)
                             
-                            Spacer()
+                            Divider()
                             
-                            Button(action: { showingDocumentPicker = true }) {
-                                Label("从 iCloud 导入", systemImage: "icloud.and.arrow.down")
+                            // 朗读控制
+                            HStack {
+                                Button(action: { model.readCurrentPage() }) {
+                                    VStack {
+                                        Image(systemName: "play.fill")
+                                            .foregroundColor(.green)
+                                        Text("朗读")
+                                            .font(.caption)
+                                    }
+                                }
+                                
+                                Button(action: { model.stopReading() }) {
+                                    VStack {
+                                        Image(systemName: "stop.fill")
+                                            .foregroundColor(.red)
+                                        Text("停止")
+                                            .font(.caption)
+                                    }
+                                }
+                                
+                                Picker("速度", selection: Binding<Float>(
+                                    get: { self.model.readingSpeed },
+                                    set: { self.model.setReadingSpeed($0) }
+                                )) {
+                                    Text("1x").tag(1.0 as Float)
+                                    Text("2.2x").tag(2.2 as Float)
+                                    Text("3x").tag(3.0 as Float)
+                                }
+                                .pickerStyle(SegmentedPickerStyle())
+                                .frame(width: 150)
+                                
+                                Picker("音色", selection: Binding<AVSpeechSynthesisVoice?>(
+                                    get: { self.model.selectedVoice },
+                                    set: { self.model.setVoice($0!) }
+                                )) {
+                                    ForEach(model.availableVoices, id: \.identifier) { voice in
+                                        Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
                             }
-                            .buttonStyle(.bordered)
+                            .padding(.horizontal)
+                            
+                            Divider()
+                            
+                            // 书本选择和导入
+                            HStack {
+                                Button(action: { showingBookList = true }) {
+                                    Label("选择书本", systemImage: "book")
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.blue)
+                                
+                                Spacer()
+                                
+                                Button(action: { showingDocumentPicker = true }) {
+                                    Label("从iCloud导入", systemImage: "icloud.and.arrow.down")
+                                }
+                                .buttonStyle(.bordered)
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
+                        .padding(.vertical)
+                        .background(Color(UIColor.systemBackground))
+                        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: -2)
+                    } else {
+                        ProgressView("加载中...")
+                            .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                     }
-                    .padding(.vertical)
-                    .background(Color(UIColor.systemBackground))
-                    .shadow(radius: 2)
-                } else {
-                    ProgressView("加载中...")
+                }
+                .navigationTitle(model.currentBook?.title ?? "阅读器")
+                .sheet(isPresented: $showingBookList) {
+                    BookListView(model: model)
+                }
+                .sheet(isPresented: $showingDocumentPicker) {
+                    DocumentPicker(model: model)
+                }
+                // 添加搜索结果显示
+                .sheet(isPresented: $showingSearchResults) {
+                    SearchResultsView(results: model.searchResults, onSelect: { index in
+                        model.currentPageIndex = index
+                        showingSearchResults = false
+                    })
                 }
             }
-            .navigationTitle(model.currentBook?.title ?? "阅读器")
-            .sheet(isPresented: $showingBookList) {
-                BookListView(model: model)
+            .onDisappear {
+                model.saveCurrentBook()
             }
-            .sheet(isPresented: $showingDocumentPicker) {
-                DocumentPicker(model: model)
-            }
-            // 添加搜索结果显示
-            .sheet(isPresented: $showingSearchResults) {
-                SearchResultsView(results: model.searchResults, onSelect: { index in
-                    model.currentPageIndex = index
-                    showingSearchResults = false
-                })
-            }
-        }
-        .onDisappear {
-            model.saveCurrentBook()
         }
     }
 }
@@ -144,7 +174,7 @@ struct ContentView: View {
     ContentView()
 }
 
-// 添加 SearchBar 视图
+// 修改 SearchBar 视图
 struct SearchBar: View {
     @Binding var text: String
     var onCommit: () -> Void
@@ -153,11 +183,28 @@ struct SearchBar: View {
         HStack {
             TextField("搜索...", text: $text, onCommit: onCommit)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding(.trailing, 8)
+            
+            if !text.isEmpty {
+                Button(action: {
+                    self.text = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .accessibility(label: Text("清除搜索内容"))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
             
             Button(action: onCommit) {
                 Image(systemName: "magnifyingglass")
+                    .foregroundColor(.blue)
             }
+            .accessibility(label: Text("执行搜索"))
         }
+        .padding(.vertical, 8)
+        .background(Color(UIColor.secondarySystemBackground))
+        .cornerRadius(10)
     }
 }
 
@@ -178,6 +225,15 @@ struct SearchResultsView: View {
             }
         }
         .navigationTitle("搜索结果")
+    }
+}
+
+// 在 ContentView 结构体外部添加这个按钮样式
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
