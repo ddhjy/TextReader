@@ -14,8 +14,8 @@
             filePath = "TextReader/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "412"
-            endingLineNumber = "412"
+            startingLineNumber = "398"
+            endingLineNumber = "398"
             landmarkName = "stopReading()"
             landmarkType = "7">
          </BreakpointContent>
