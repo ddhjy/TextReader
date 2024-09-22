@@ -569,17 +569,45 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
+    func updateNowPlayingInfo() {
+        let nowPlayingInfo: [String: Any] = [
+            MPMediaItemPropertyTitle: "思考快与慢",
+            MPMediaItemPropertyArtist: "丹尼尔·卡尼曼",
+            MPNowPlayingInfoPropertyPlaybackRate: self.isReading ? 1.0 : 0.0,
+        ]
+
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
         
+        commandCenter.playCommand.isEnabled = true;
+        commandCenter.pauseCommand.isEnabled = true;
+
         commandCenter.pauseCommand.addTarget { [weak self] _ in
-            if self?.isReading == true {
-                self?.stopReading()
-            } else {
-                self?.readCurrentPage()
-            }
+            guard let self = self else { return .commandFailed }
+            self.stopReading()
+            self.updateNowPlayingInfo()
             return .success
         }
+
+        commandCenter.playCommand.addTarget { [weak self] _ in
+            guard let self = self else { return .commandFailed }
+            self.readCurrentPage()
+            self.updateNowPlayingInfo()
+            return .success
+        }
+
+        // commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
+        //     guard let self = self else { return .commandFailed }
+        //     if self.isReading {
+        //         self.stopReading()
+        //     } else {
+        //         self.readCurrentPage()
+        //     }
+        //     return .success
+        // }
     }
 }
 
