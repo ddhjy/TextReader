@@ -157,39 +157,50 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     private func loadContent() {
         if let url = Bundle.main.url(forResource: "content", withExtension: "txt") {
-            do {
-                let content = try String(contentsOf: url, encoding: .utf8)
-                let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
-                                       .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-                
-                var currentPage = ""
-                var currentPageSize = 0
-                let maxPageSize = 100
-                
-                pages = sentences.reduce(into: [String]()) { result, sentence in
-                    let sentenceSize = sentence.count
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                do {
+                    let content = try String(contentsOf: url, encoding: .utf8)
+                    let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
+                                           .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                     
-                    if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
-                        result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                        currentPage = ""
-                        currentPageSize = 0
+                    var pages = [String]()
+                    var currentPage = ""
+                    var currentPageSize = 0
+                    let maxPageSize = 100
+                    
+                    for sentence in sentences {
+                        let sentenceSize = sentence.count
+                        
+                        if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
+                            pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                            currentPage = ""
+                            currentPageSize = 0
+                        }
+                        
+                        currentPage += sentence + "。"
+                        currentPageSize += sentenceSize + 1
+                        
+                        if currentPageSize >= maxPageSize {
+                            pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                            currentPage = ""
+                            currentPageSize = 0
+                        }
                     }
                     
-                    currentPage += sentence + "。"
-                    currentPageSize += sentenceSize + 1
+                    if !currentPage.isEmpty {
+                        pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    }
                     
-                    if currentPageSize >= maxPageSize {
-                        result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                        currentPage = ""
-                        currentPageSize = 0
+                    DispatchQueue.main.async {
+                        self?.pages = pages
+                        self?.objectWillChange.send()
+                    }
+                } catch {
+                    print("加载内容时出错：\(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        self?.showErrorAlert(message: "加载内容时出错：\(error.localizedDescription)")
                     }
                 }
-                
-                if !currentPage.isEmpty {
-                    pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                }
-            } catch {
-                print("加载内容时出错：\(error.localizedDescription)")
             }
         }
     }
@@ -293,7 +304,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     func loadBook(_ book: Book) {
         currentBook = book
         if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
-            // ... 使用现有的 loadContent 逻辑加载新书本 ...
+            loadContent(from: url)
         }
     }
 
@@ -350,39 +361,50 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     
     // 修改 loadContent 方法以接受 URL 参数
     private func loadContent(from url: URL) {
-        do {
-            let content = try String(contentsOf: url, encoding: .utf8)
-            let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
-                                   .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-            
-            var currentPage = ""
-            var currentPageSize = 0
-            let maxPageSize = 100
-            
-            pages = sentences.reduce(into: [String]()) { result, sentence in
-                let sentenceSize = sentence.count
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            do {
+                let content = try String(contentsOf: url, encoding: .utf8)
+                let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
+                                       .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
                 
-                if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
-                    result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                    currentPage = ""
-                    currentPageSize = 0
+                var pages = [String]()
+                var currentPage = ""
+                var currentPageSize = 0
+                let maxPageSize = 100
+                
+                for sentence in sentences {
+                    let sentenceSize = sentence.count
+                    
+                    if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
+                        pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                        currentPage = ""
+                        currentPageSize = 0
+                    }
+                    
+                    currentPage += sentence + "。"
+                    currentPageSize += sentenceSize + 1
+                    
+                    if currentPageSize >= maxPageSize {
+                        pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                        currentPage = ""
+                        currentPageSize = 0
+                    }
                 }
                 
-                currentPage += sentence + "。"
-                currentPageSize += sentenceSize + 1
+                if !currentPage.isEmpty {
+                    pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                }
                 
-                if currentPageSize >= maxPageSize {
-                    result.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                    currentPage = ""
-                    currentPageSize = 0
+                DispatchQueue.main.async {
+                    self?.pages = pages
+                    self?.objectWillChange.send()
+                }
+            } catch {
+                print("加载内容时出错：\(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    self?.showErrorAlert(message: "加载内容时出错：\(error.localizedDescription)")
                 }
             }
-            
-            if !currentPage.isEmpty {
-                pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-            }
-        } catch {
-            print("加载内容时出错：\(error.localizedDescription)")
         }
     }
 
