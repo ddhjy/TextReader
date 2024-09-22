@@ -44,6 +44,9 @@ struct ContentView: View {
                             // 控制面板
                             ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                         }
+                        .onTapGesture {
+                            isSearchFieldFocused = false
+                        }
                     } else {
                         ProgressView("加载中...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -61,7 +64,6 @@ struct ContentView: View {
                         model.currentPageIndex = index
                         showingSearchResults = false
                     })
-                    .gesture(TapGesture().onEnded { _ in isSearchFieldFocused = false })
                 }
             }
         }
@@ -200,16 +202,21 @@ struct SearchBar: View {
 struct SearchResultsView: View {
     let results: [(Int, String)]
     let onSelect: (Int) -> Void
+    @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         List(results, id:\.0) { index, preview in
-            Button(action:{ onSelect(index) }) {
+            Button(action:{ 
+                onSelect(index)
+                presentationMode.wrappedValue.dismiss()
+            }) {
                 VStack(alignment:.leading) {
                     Text("第 \(index + 1) 页").font(.headline)
                     Text(preview).lineLimit(2)
                 }
             }
-        }.navigationTitle("搜索结果")
+        }
+        .navigationTitle("搜索结果")
     }
 }
 
