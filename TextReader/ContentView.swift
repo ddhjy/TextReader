@@ -10,7 +10,7 @@ struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
     @State private var showingDocumentPicker: Bool = false
-    @State private var showingSearchView = false // 新增状态变量
+    @State private var showingSearchView = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -21,7 +21,7 @@ struct ContentView: View {
                         HStack {
                             Spacer()
                             Button(action: {
-                                showingSearchView = true // 修改为显示搜索页面
+                                showingSearchView = true
                             }) {
                                 Image(systemName: "magnifyingglass")
                                     .foregroundColor(.blue)
@@ -41,12 +41,13 @@ struct ContentView: View {
                                 .id(model.currentPageIndex)
                                 .animation(.easeInOut, value: model.currentPageIndex)
                                 .accessibility(label: Text(model.pages.isEmpty ? "没有内容可显示。" : model.pages[model.currentPageIndex]))
-                            
-                            Divider()
-
-                            // 控制面板
-                            ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                         }
+                        
+                        Divider()
+
+                        // 控制面板 - 固定在底部
+                        ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
+                            .padding()
                     } else {
                         ProgressView("加载中...")
                             .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -58,7 +59,7 @@ struct ContentView: View {
                 .sheet(isPresented: $showingDocumentPicker) {
                     DocumentPicker(model: model)
                 }
-                .sheet(isPresented: $showingSearchView) { // 新增搜索页面的sheet
+                .sheet(isPresented: $showingSearchView) {
                     SearchView(model: model)
                 }
             }
@@ -129,7 +130,6 @@ struct ControlPanel: View {
                 }
             }
         }
-        .padding()
     }
 }
 
