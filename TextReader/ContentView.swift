@@ -30,12 +30,14 @@ struct ContentView: View {
                         }
                         .padding()
                         
-                        ScrollView {
-                            Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
-                                .padding()
-                                .font(.body)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .id(model.currentPageIndex)
+                        GeometryReader { geometry in
+                            ScrollView {
+                                Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
+                                    .padding()
+                                    .font(.body)
+                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                                    .id(model.currentPageIndex)
+                            }
                         }
                         
                         ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
@@ -101,87 +103,76 @@ struct ControlPanel: View {
     @Binding var showingDocumentPicker: Bool
 
     var body: some View {
-        VStack(spacing: 15) {
-            // 翻页控制
+        VStack(spacing: 20) {
             PageControl(model: model)
-
-            // 朗读控制
             ReadingControl(model: model)
         }
+        .padding()
     }
 }
 
-// 翻页控制视图
 struct PageControl: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
+        Text("\(model.currentPageIndex + 1) / \(model.pages.count)")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding()
         HStack {
             Button(action: { model.previousPage() }) {
-                HStack {
-                    Image(systemName: "chevron.left")
-                    Text("上一页").foregroundColor(.blue).disabled(model.currentPageIndex == 0)
-                }
+                Image(systemName: "chevron.left")
+                    .foregroundColor(.blue)
+                    .frame(width: 60, height: 60)
             }
+            .disabled(model.currentPageIndex == 0)
 
             Spacer()
 
-            // 朗读按钮
-            VStack {
-                Button(action: { 
-                    if model.isReading {
-                        model.stopReading()
-                    } else {
-                        model.readCurrentPage()
-                    }
-                }) {
-                    VStack {
-                        Image(systemName: model.isReading ? "stop.fill" : "play.fill")
-                            .foregroundColor(model.isReading ? .red : .green)
-                            .font(.system(size: 30))
-                    }
+            Button(action: { 
+                if model.isReading {
+                    model.stopReading()
+                } else {
+                    model.readCurrentPage()
                 }
-                .frame(width: 80, height: 80)
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(40)
-                
-                // 进度展示
-                Text("\(model.currentPageIndex + 1)/\(model.pages.count)")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+            }) {
+                Image(systemName: model.isReading ? "stop.fill" : "play.fill")
+                    .foregroundColor(.white)
+                    .frame(width: 60, height: 60)
+                    .background(model.isReading ? Color.red : Color.green)
+                    .clipShape(Circle())
             }
 
             Spacer()
 
             Button(action: { model.nextPage() }) {
-                HStack {
-                    Text("下一页")
-                    Image(systemName: "chevron.right").foregroundColor(.blue).disabled(model.currentPageIndex >= model.pages.count - 1)
-                }
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.blue)
+                    .frame(width: 60, height: 60)
             }
+            .disabled(model.currentPageIndex >= model.pages.count - 1)
         }
-        .padding(.horizontal)
+        .padding()
     }
 }
 
-// 朗读控制视图
 struct ReadingControl: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
         HStack {
-            Picker("速度", selection: Binding(get: { self.model.readingSpeed }, set: { self.model.setReadingSpeed($0) })) {
-                Text("1x").tag(1.0 as Float)
-                Text("2x").tag(2.0 as Float)
-                Text("3x").tag(3.0 as Float)
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            .frame(width: 150)
-
             Picker("音色", selection: Binding(get: { self.model.selectedVoice }, set: { self.model.setVoice($0!) })) {
                 ForEach(model.availableVoices, id: \.identifier) { voice in
                     Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
                 }
+            }
+            .pickerStyle(MenuPickerStyle())
+
+            Picker("速度", selection: Binding(get: { self.model.readingSpeed }, set: { self.model.setReadingSpeed($0) })) {
+                Text("1x").tag(1.0 as Float)
+                Text("1.5x").tag(1.5 as Float)
+                Text("2x").tag(2.0 as Float)
+                Text("3x").tag(3.0 as Float)
             }
             .pickerStyle(MenuPickerStyle())
         }
