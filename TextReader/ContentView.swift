@@ -285,7 +285,8 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         // 从 main bundle 中加载已有的书本
         let bookFiles = [
             ("思考快与慢", "思考快与慢"),
-            ("罗素作品集", "罗素作品集")
+            ("罗素作品集", "罗素作品集"),
+            ("哲学研究", "哲学研究")
         ]
 
         books = bookFiles.compactMap { (title, fileName) in
