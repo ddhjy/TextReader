@@ -9,37 +9,18 @@ import MediaPlayer
 struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
-    @State private var showingDocumentPicker: Bool = false
+    @State private var showingDocumentPicker = false
     @State private var showingSearchView = false
 
     var body: some View {
         NavigationView {
             ZStack {
                 Color.white.edgesIgnoringSafeArea(.all)
-                
+
                 if model.isContentLoaded {
                     VStack(spacing: 0) {
-                        HStack {
-                            Button(action: { showingBookList = true }) {
-                                Image(systemName: "book")
-                            }
-                            Spacer()
-                            Button(action: { showingSearchView = true }) {
-                                Image(systemName: "magnifyingglass")
-                            }
-                        }
-                        .padding()
-                        
-                        GeometryReader { geometry in
-                            ScrollView {
-                                Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
-                                    .padding()
-                                    .font(.body)
-                                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                                    .id(model.currentPageIndex)
-                            }
-                        }
-                        
+                        TopBar(showingBookList: $showingBookList, showingSearchView: $showingSearchView)
+                        ContentDisplay(model: model)
                         ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
                             .padding()
                     }
@@ -48,17 +29,55 @@ struct ContentView: View {
                 }
             }
             .navigationBarHidden(true)
+            .sheet(isPresented: $showingBookList) {
+                BookListView(model: model)
+            }
+            .sheet(isPresented: $showingDocumentPicker) {
+                DocumentPicker(model: model)
+            }
+            .sheet(isPresented: $showingSearchView) {
+                SearchView(model: model)
+            }
+            .onDisappear {
+                model.saveCurrentBook()
+            }
         }
-        .sheet(isPresented: $showingBookList) {
-            BookListView(model: model)
+    }
+}
+
+// 分离顶栏视图
+struct TopBar: View {
+    @Binding var showingBookList: Bool
+    @Binding var showingSearchView: Bool
+
+    var body: some View {
+        HStack {
+            Button(action: { showingBookList = true }) {
+                Image(systemName: "book")
+            }
+            Spacer()
+            Button(action: { showingSearchView = true }) {
+                Image(systemName: "magnifyingglass")
+            }
         }
-        .sheet(isPresented: $showingDocumentPicker) {
-            DocumentPicker(model: model)
+        .padding()
+    }
+}
+
+// 分离内容显示视图
+struct ContentDisplay: View {
+    @ObservedObject var model: ContentModel
+
+    var body: some View {
+        GeometryReader { geometry in
+            ScrollView {
+                Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
+                    .padding()
+                    .font(.body)
+                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
+                    .id(model.currentPageIndex)
+            }
         }
-        .sheet(isPresented: $showingSearchView) {
-            SearchView(model: model)
-        }
-        .onDisappear { model.saveCurrentBook() }
     }
 }
 
@@ -129,12 +148,8 @@ struct PageControl: View {
 
             Spacer()
 
-            Button(action: { 
-                if model.isReading {
-                    model.stopReading()
-                } else {
-                    model.readCurrentPage()
-                }
+            Button(action: {
+                model.toggleReading()
             }) {
                 Image(systemName: model.isReading ? "stop.fill" : "play.fill")
                     .foregroundColor(.white)
@@ -161,14 +176,14 @@ struct ReadingControl: View {
 
     var body: some View {
         HStack {
-            Picker("音色", selection: Binding(get: { self.model.selectedVoice }, set: { self.model.setVoice($0!) })) {
+            Picker("音色", selection: $model.selectedVoice) {
                 ForEach(model.availableVoices, id: \.identifier) { voice in
                     Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
                 }
             }
             .pickerStyle(MenuPickerStyle())
 
-            Picker("速度", selection: Binding(get: { self.model.readingSpeed }, set: { self.model.setReadingSpeed($0) })) {
+            Picker("速度", selection: $model.readingSpeed) {
                 Text("1x").tag(1.0 as Float)
                 Text("1.5x").tag(1.5 as Float)
                 Text("2x").tag(2.0 as Float)
@@ -192,20 +207,24 @@ struct SearchBar: View {
 
             if !text.isEmpty {
                 Button(action: { self.text = "" }) {
-                    Image(systemName: "xmark.circle.fill").foregroundColor(.gray).accessibility(label: Text("清除搜索内容"))
-                        .buttonStyle(PlainButtonStyle())
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.gray)
+                        .accessibility(label: Text("清除搜索内容"))
                 }
+                .buttonStyle(PlainButtonStyle())
             }
 
-            Button(action:onCommit) {
-                Image(systemName: "magnifyingglass").foregroundColor(.blue).accessibility(label: Text("执行搜索"))
+            Button(action: onCommit) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.blue)
+                    .accessibility(label: Text("执行搜索"))
                     .padding(.vertical, 8)
             }
         }
     }
 }
 
-// 在 ContentView 结构体外部添这个按钮样式
+// 按钮样式
 struct PressableButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -221,17 +240,19 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             if isContentLoaded, let currentBook = currentBook {
                 let key = "bookProgress_\(currentBook.id)"
                 UserDefaults.standard.set(currentPageIndex, forKey: key)
-                print("保存进度: \(currentPageIndex) 到 \(key)") // 调试信息
             }
         }
     }
     private var savedPageIndex: Int?
 
-    @Published var isReading: Bool = false
+    @Published var isReading = false
 
     @Published var readingSpeed: Float = UserDefaults.standard.float(forKey: "readingSpeed") {
         didSet {
             UserDefaults.standard.set(readingSpeed, forKey: "readingSpeed")
+            if isReading {
+                restartReading()
+            }
         }
     }
 
@@ -239,6 +260,9 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         didSet {
             if let identifier = selectedVoice?.identifier {
                 UserDefaults.standard.set(identifier, forKey: "selectedVoiceIdentifier")
+            }
+            if isReading {
+                restartReading()
             }
         }
     }
@@ -257,7 +281,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    @Published var isContentLoaded: Bool = false
+    @Published var isContentLoaded = false
 
     @Published var searchResults: [(Int, String)] = []
 
@@ -269,15 +293,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         loadBooks()
         loadSavedSettings()
         loadAvailableVoices()
-        
-        // 设置音频会话类别
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-        } catch {
-            print("设置音频会话失败: \(error)")
-        }
-        
+        setupAudioSession()
         setupRemoteCommandCenter()
     }
 
@@ -296,20 +312,17 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             return nil
         }
 
-        // 修改这部分来加载上次阅读的书籍
+        // 加载上次阅读的书籍
         if let savedBookFileName = UserDefaults.standard.string(forKey: "currentBookID"),
            let savedBook = books.first(where: { $0.id == savedBookFileName }) {
             currentBook = savedBook
             loadBookContent(savedBook)
-            print("加载上次阅读的书籍: \(savedBook.title)") // 调试信息
         } else if let firstBook = books.first {
             currentBook = firstBook
             loadBookContent(firstBook)
-            print("加载第一本书籍: \(firstBook.title)") // 调试信息
         }
     }
 
-    // 新增方法来加载书籍内容
     private func loadBookContent(_ book: Book) {
         if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
             loadContent(from: url)
@@ -317,68 +330,68 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     private func loadSavedSettings() {
-        readingSpeed = UserDefaults.standard.float(forKey: "readingSpeed")
-        if readingSpeed == 0 {
-            readingSpeed = 1.0 // 默认速度
-        }
+        let speed = UserDefaults.standard.float(forKey: "readingSpeed")
+        readingSpeed = speed == 0 ? 1.0 : speed
 
         if let savedVoiceIdentifier = UserDefaults.standard.string(forKey: "selectedVoiceIdentifier"),
            let savedVoice = AVSpeechSynthesisVoice(identifier: savedVoiceIdentifier) {
             selectedVoice = savedVoice
-        } else if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
-            selectedVoice = defaultVoice
+        } else {
+            selectedVoice = AVSpeechSynthesisVoice(language: "zh-CN")
         }
     }
 
     private func loadAvailableVoices() {
         availableVoices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: "zh") }
-        if let defaultVoice = AVSpeechSynthesisVoice(language: "zh-CN") {
-            selectedVoice = defaultVoice
+        if selectedVoice == nil {
+            selectedVoice = availableVoices.first
         }
     }
 
     func nextPage() {
-        if currentPageIndex < pages.count - 1 {
-            stopReading()
-            currentPageIndex += 1
-            saveBookProgress()
-            if isReading {
-                readCurrentPage()
-            }
+        guard currentPageIndex < pages.count - 1 else { return }
+        stopReading()
+        currentPageIndex += 1
+        saveBookProgress()
+        if isReading {
+            readCurrentPage()
         }
     }
 
     func previousPage() {
-        if currentPageIndex > 0 {
-            stopReading()
-            currentPageIndex -= 1
-            saveBookProgress()
-            if isReading {
-                readCurrentPage()
-            }
+        guard currentPageIndex > 0 else { return }
+        stopReading()
+        currentPageIndex -= 1
+        saveBookProgress()
+        if isReading {
+            readCurrentPage()
         }
     }
 
+    func toggleReading() {
+        isReading ? stopReading() : readCurrentPage()
+    }
+
     func readCurrentPage() {
-        if !pages.isEmpty && currentPageIndex < pages.count {
-            isReading = true
-            let utterance = AVSpeechUtterance(string: pages[currentPageIndex])
-            utterance.voice = selectedVoice ?? AVSpeechSynthesisVoice(language: "zh-CN")
-            utterance.rate = readingSpeed * AVSpeechUtteranceDefaultSpeechRate // 设置朗读速度
-            
-            // 开始后台任务
-            startBackgroundTask()
-            
-            synthesizer.speak(utterance)
-        }
+        guard !pages.isEmpty, currentPageIndex < pages.count else { return }
+        isReading = true
+        let utterance = AVSpeechUtterance(string: pages[currentPageIndex])
+        utterance.voice = selectedVoice ?? AVSpeechSynthesisVoice(language: "zh-CN")
+        utterance.rate = readingSpeed * AVSpeechUtteranceDefaultSpeechRate
+
+        startBackgroundTask()
+        synthesizer.speak(utterance)
     }
 
     func stopReading() {
         synthesizer.stopSpeaking(at: .immediate)
         isReading = false
-        
-        // 结束后台任务
         endBackgroundTask()
+    }
+
+    private func restartReading() {
+        stopReading()
+        readCurrentPage()
     }
 
     private func startBackgroundTask() {
@@ -394,28 +407,12 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    func setReadingSpeed(_ speed: Float) {
-        readingSpeed = speed
-        if isReading {
-            stopReading()
-            readCurrentPage()
-        }
-    }
-
-    func setVoice(_ voice: AVSpeechSynthesisVoice) {
-        selectedVoice = voice
-        if isReading {
-            stopReading()
-            readCurrentPage()
-        }
-    }
-
     func loadBook(_ book: Book) {
         currentBook = book
         isContentLoaded = false
-        loadBookProgress(for: book) // 先加载进度
+        loadBookProgress(for: book)
         if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
-            loadContent(from: url) // 然后加载内容
+            loadContent(from: url)
         }
     }
 
@@ -434,7 +431,6 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    // 新增方法
     func importBookFromiCloud(_ url: URL) {
         guard url.startAccessingSecurityScopedResource() else {
             print("无法访问文件")
@@ -466,19 +462,17 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         } catch {
             print("导入书本时出错：\(error.localizedDescription)")
             DispatchQueue.main.async {
-                // 显示错误警告（这需要在 UI 中实现）
                 self.showErrorAlert(message: "导入书本时出错：\(error.localizedDescription)")
             }
         }
     }
 
-    // 修改 loadContent 方法以接受 URL 参数
     private func loadContent(from url: URL) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
                 let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
-                                       .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                    .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
                 var pages = [String]()
                 var currentPage = ""
@@ -511,17 +505,14 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 DispatchQueue.main.async {
                     self?.pages = pages
                     self?.isContentLoaded = true
-                    self?.objectWillChange.send()
-                    
+
                     // 在内容加载完成后设置正确的页面索引
                     if let savedIndex = self?.savedPageIndex, savedIndex < pages.count {
                         self?.currentPageIndex = savedIndex
                     } else {
                         self?.currentPageIndex = 0
                     }
-                    
-                    self?.savedPageIndex = nil // 清除临时保存的索引
-                    print("内容加载完成，当前页面索引: \(self?.currentPageIndex ?? 0)") // 调试信息
+                    self?.savedPageIndex = nil
                 }
             } catch {
                 print("加载内容时出错：\(error.localizedDescription)")
@@ -532,20 +523,15 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    // 添加这个方法来显示错误警告
     func showErrorAlert(message: String) {
         // 在这里实现显示错误警告的逻辑
-        // 例如，你可以设置一个 @Published 属性来触发 SwiftUI 视图中的警告显示
     }
 
-    // 修改后的 loadBookProgress 方法
     private func loadBookProgress(for book: Book) {
         let key = "bookProgress_\(book.id)"
         savedPageIndex = UserDefaults.standard.integer(forKey: key)
-        print("从 UserDefaults 加载进度: \(savedPageIndex ?? 0)") // 调试信息
     }
 
-    // 修改后的 saveBookProgress 方法
     private func saveBookProgress() {
         if let book = currentBook {
             let key = "bookProgress_\(book.id)"
@@ -553,7 +539,6 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         }
     }
 
-    // 修改后的 saveCurrentBook 方法
     func saveCurrentBook() {
         if let book = currentBook {
             UserDefaults.standard.set(book.id, forKey: "currentBookID")
@@ -563,7 +548,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     func searchContent(_ query: String) {
         searchResults = pages.enumerated().compactMap { index, page in
-            if page.lowercased().contains(query.lowercased()) {
+            if page.contains(query) {
                 return (index, page)
             }
             return nil
@@ -571,44 +556,40 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func updateNowPlayingInfo() {
+        guard let bookTitle = currentBook?.title else { return }
         let nowPlayingInfo: [String: Any] = [
-            MPMediaItemPropertyTitle: "思考快与慢",
-            MPMediaItemPropertyArtist: "丹尼尔·卡尼曼",
-            MPNowPlayingInfoPropertyPlaybackRate: self.isReading ? 1.0 : 0.0,
+            MPMediaItemPropertyTitle: bookTitle,
+            MPNowPlayingInfoPropertyPlaybackRate: isReading ? 1.0 : 0.0,
         ]
-
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+
+    private func setupAudioSession() {
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("设置音频会话失败: \(error)")
+        }
     }
 
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
-        
-        commandCenter.playCommand.isEnabled = true;
-        commandCenter.pauseCommand.isEnabled = true;
+
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.pauseCommand.isEnabled = true
 
         commandCenter.pauseCommand.addTarget { [weak self] _ in
-            guard let self = self else { return .commandFailed }
-            self.stopReading()
-            self.updateNowPlayingInfo()
+            self?.stopReading()
+            self?.updateNowPlayingInfo()
             return .success
         }
 
         commandCenter.playCommand.addTarget { [weak self] _ in
-            guard let self = self else { return .commandFailed }
-            self.readCurrentPage()
-            self.updateNowPlayingInfo()
+            self?.readCurrentPage()
+            self?.updateNowPlayingInfo()
             return .success
         }
-
-        // commandCenter.togglePlayPauseCommand.addTarget { [weak self] _ in
-        //     guard let self = self else { return .commandFailed }
-        //     if self.isReading {
-        //         self.stopReading()
-        //     } else {
-        //         self.readCurrentPage()
-        //     }
-        //     return .success
-        // }
     }
 }
 
