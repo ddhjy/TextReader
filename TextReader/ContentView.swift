@@ -15,17 +15,19 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                Color.white.edgesIgnoringSafeArea(.all)
+                Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
 
                 if model.isContentLoaded {
                     VStack(spacing: 0) {
                         TopBar(showingBookList: $showingBookList, showingSearchView: $showingSearchView)
+                            .background(Color(UIColor.secondarySystemBackground))
                         ContentDisplay(model: model)
                         ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
-                            .padding()
+                            .background(Color(UIColor.secondarySystemBackground))
                     }
                 } else {
                     ProgressView()
+                        .scaleEffect(1.5)
                 }
             }
             .navigationBarHidden(true)
@@ -54,10 +56,18 @@ struct TopBar: View {
         HStack {
             Button(action: { showingBookList = true }) {
                 Image(systemName: "book")
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(22)
             }
             Spacer()
             Button(action: { showingSearchView = true }) {
                 Image(systemName: "magnifyingglass")
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(22)
             }
         }
         .padding()
@@ -73,7 +83,7 @@ struct ContentDisplay: View {
             ScrollView {
                 Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
                     .padding()
-                    .font(.body)
+                    .font(.system(size: 18, weight: .regular, design: .serif))
                     .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
                     .id(model.currentPageIndex)
             }
@@ -141,8 +151,10 @@ struct PageControl: View {
         HStack {
             Button(action: { model.previousPage() }) {
                 Image(systemName: "chevron.left")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
                     .frame(width: 60, height: 60)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(30)
             }
             .disabled(model.currentPageIndex == 0)
 
@@ -162,8 +174,10 @@ struct PageControl: View {
 
             Button(action: { model.nextPage() }) {
                 Image(systemName: "chevron.right")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.primary)
                     .frame(width: 60, height: 60)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(30)
             }
             .disabled(model.currentPageIndex >= model.pages.count - 1)
         }
