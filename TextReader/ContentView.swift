@@ -87,6 +87,43 @@ struct ControlPanel: View {
     }
 }
 
+// RepeatButton 组件
+struct RepeatButton<Label: View>: View {
+    let action: () -> Void
+    let longPressAction: () -> Void
+    let label: () -> Label
+
+    @State private var isPressed = false
+    @State private var timer: Timer?
+
+    var body: some View {
+        label()
+            .buttonStyle(PressableButtonStyle())
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .onLongPressGesture(minimumDuration: 0.2, pressing: { pressing in
+                self.isPressed = pressing
+                if pressing {
+                    // 开始定时器，每0.1秒调用一次长按操作
+                    self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+                        self.longPressAction()
+                    }
+                } else {
+                    // 停止定时器
+                    self.timer?.invalidate()
+                    self.timer = nil
+                }
+            }, perform: {
+                // 长按手势完成后的操作（可留空）
+            })
+            .simultaneousGesture(
+                TapGesture()
+                    .onEnded {
+                        self.action()
+                    }
+            )
+    }
+}
+
 struct PageControl: View {
     @ObservedObject var model: ContentModel
 
@@ -97,10 +134,20 @@ struct PageControl: View {
                 .foregroundColor(.secondary)
 
             HStack {
-                Button(action: { model.previousPage() }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title)
-                }
+                // 上一页按钮
+                RepeatButton(
+                    action: { model.previousPage() },
+                    longPressAction: {
+                        // 长按时持续调用 previousPage
+                        if model.currentPageIndex > 0 {
+                            model.previousPage()
+                        }
+                    },
+                    label: {
+                        Image(systemName: "chevron.left")
+                            .font(.title)
+                    }
+                )
                 .disabled(model.currentPageIndex == 0)
 
                 Spacer()
@@ -112,10 +159,20 @@ struct PageControl: View {
 
                 Spacer()
 
-                Button(action: { model.nextPage() }) {
-                    Image(systemName: "chevron.right")
-                        .font(.title)
-                }
+                // 下一页按钮
+                RepeatButton(
+                    action: { model.nextPage() },
+                    longPressAction: {
+                        // 长按时持续调用 nextPage
+                        if model.currentPageIndex < model.pages.count - 1 {
+                            model.nextPage()
+                        }
+                    },
+                    label: {
+                        Image(systemName: "chevron.right")
+                            .font(.title)
+                    }
+                )
                 .disabled(model.currentPageIndex >= model.pages.count - 1)
             }
             .padding(.horizontal)
@@ -547,6 +604,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     func showErrorAlert(message: String) {
         // 在这里实现显示错误警告的逻辑
+        // 例如，您可以使用通知或绑定一个 @Published 属性来触发视图中的 Alert
     }
 
     private func loadBookProgress(for book: Book) {
