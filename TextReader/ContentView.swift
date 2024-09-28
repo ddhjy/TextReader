@@ -14,126 +14,73 @@ struct ContentView: View {
 
     var body: some View {
         NavigationView {
-            ZStack {
-                Color(UIColor.systemBackground).edgesIgnoringSafeArea(.all)
-
-                if model.isContentLoaded {
-                    VStack(spacing: 0) {
-                        TopBar(showingBookList: $showingBookList, showingSearchView: $showingSearchView)
-                            .background(Color(UIColor.secondarySystemBackground))
-                        ContentDisplay(model: model)
-                        ControlPanel(model: model, showingBookList: $showingBookList, showingDocumentPicker: $showingDocumentPicker)
-                            .background(Color(UIColor.secondarySystemBackground))
-                    }
-                } else {
-                    ProgressView()
-                        .scaleEffect(1.5)
+            if model.isContentLoaded {
+                VStack(spacing: 0) {
+                    ContentDisplay(model: model)
+                    ControlPanel(model: model)
+                        .background(Color(UIColor.secondarySystemBackground))
                 }
+                .navigationTitle(model.currentBook?.title ?? "TextReader")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: { showingBookList = true }) {
+                            Image(systemName: "book")
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: { showingSearchView = true }) {
+                            Image(systemName: "magnifyingglass")
+                        }
+                    }
+                }
+            } else {
+                ProgressView()
+                    .scaleEffect(1.5)
+                    .navigationTitle("加载中...")
             }
-            .navigationBarHidden(true)
-            .sheet(isPresented: $showingBookList) {
+        }
+        .navigationViewStyle(StackNavigationViewStyle())
+        .sheet(isPresented: $showingBookList) {
+            NavigationView {
                 BookListView(model: model)
             }
-            .sheet(isPresented: $showingDocumentPicker) {
-                DocumentPicker(model: model)
-            }
-            .sheet(isPresented: $showingSearchView) {
+        }
+        .sheet(isPresented: $showingDocumentPicker) {
+            DocumentPicker(model: model)
+        }
+        .sheet(isPresented: $showingSearchView) {
+            NavigationView {
                 SearchView(model: model)
             }
-            .onDisappear {
-                model.saveCurrentBook()
-            }
+        }
+        .onDisappear {
+            model.saveCurrentBook()
         }
     }
 }
 
-// 分离顶栏视图
-struct TopBar: View {
-    @Binding var showingBookList: Bool
-    @Binding var showingSearchView: Bool
-
-    var body: some View {
-        HStack {
-            Button(action: { showingBookList = true }) {
-                Image(systemName: "book")
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(22)
-            }
-            Spacer()
-            Button(action: { showingSearchView = true }) {
-                Image(systemName: "magnifyingglass")
-                    .foregroundColor(.primary)
-                    .frame(width: 44, height: 44)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(22)
-            }
-        }
-        .padding()
-    }
-}
-
-// 分离内容显示视图
 struct ContentDisplay: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
-                    .padding()
-                    .font(.system(size: 18, weight: .regular, design: .serif))
-                    .frame(width: geometry.size.width, height: geometry.size.height, alignment: .center)
-                    .id(model.currentPageIndex)
-            }
-        }
-    }
-}
-
-// 新增 SearchView
-struct SearchView: View {
-    @ObservedObject var model: ContentModel
-    @State private var searchText = ""
-    @Environment(\.presentationMode) var presentationMode
-
-    var body: some View {
-        NavigationView {
-            VStack {
-                SearchBar(text: $searchText, onCommit: {
-                    model.searchContent(searchText)
-                })
+        ScrollView {
+            Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
                 .padding()
-
-                List(model.searchResults, id: \.0) { index, preview in
-                    Button(action: {
-                        model.currentPageIndex = index
-                        presentationMode.wrappedValue.dismiss()
-                    }) {
-                        VStack(alignment: .leading) {
-                            Text("第 \(index + 1) 页").font(.headline)
-                            Text(preview).lineLimit(2)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("搜索")
-            .navigationBarItems(trailing: Button("取消") {
-                presentationMode.wrappedValue.dismiss()
-            })
+                .font(.system(size: 18, weight: .regular, design: .serif))
+                .multilineTextAlignment(.leading)
         }
     }
 }
 
-// 控制面板视图
 struct ControlPanel: View {
     @ObservedObject var model: ContentModel
-    @Binding var showingBookList: Bool
-    @Binding var showingDocumentPicker: Bool
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
+            Divider()
             PageControl(model: model)
+            Divider()
             ReadingControl(model: model)
         }
         .padding()
@@ -144,44 +91,35 @@ struct PageControl: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
-        Text("\(model.currentPageIndex + 1) / \(model.pages.count)")
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding()
-        HStack {
-            Button(action: { model.previousPage() }) {
-                Image(systemName: "chevron.left")
-                    .foregroundColor(.primary)
-                    .frame(width: 60, height: 60)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(30)
+        VStack(spacing: 8) {
+            Text("\(model.currentPageIndex + 1) / \(model.pages.count)")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            HStack {
+                Button(action: { model.previousPage() }) {
+                    Image(systemName: "chevron.left")
+                        .font(.title)
+                }
+                .disabled(model.currentPageIndex == 0)
+
+                Spacer()
+
+                Button(action: { model.toggleReading() }) {
+                    Image(systemName: model.isReading ? "pause.circle.fill" : "play.circle.fill")
+                        .font(.largeTitle)
+                }
+
+                Spacer()
+
+                Button(action: { model.nextPage() }) {
+                    Image(systemName: "chevron.right")
+                        .font(.title)
+                }
+                .disabled(model.currentPageIndex >= model.pages.count - 1)
             }
-            .disabled(model.currentPageIndex == 0)
-
-            Spacer()
-
-            Button(action: {
-                model.toggleReading()
-            }) {
-                Image(systemName: model.isReading ? "stop.fill" : "play.fill")
-                    .foregroundColor(.white)
-                    .frame(width: 60, height: 60)
-                    .background(model.isReading ? Color.red : Color.green)
-                    .clipShape(Circle())
-            }
-
-            Spacer()
-
-            Button(action: { model.nextPage() }) {
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.primary)
-                    .frame(width: 60, height: 60)
-                    .background(Color(UIColor.tertiarySystemBackground))
-                    .cornerRadius(30)
-            }
-            .disabled(model.currentPageIndex >= model.pages.count - 1)
+            .padding(.horizontal)
         }
-        .padding()
     }
 }
 
@@ -189,26 +127,95 @@ struct ReadingControl: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
-        HStack {
-            Picker("音色", selection: $model.selectedVoice) {
-                ForEach(model.availableVoices, id: \.identifier) { voice in
-                    Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+        VStack(spacing: 8) {
+            HStack {
+                Text("音色")
+                Spacer()
+                Picker("音色", selection: $model.selectedVoice) {
+                    ForEach(model.availableVoices, id: \.identifier) { voice in
+                        Text(voice.name).tag(voice as AVSpeechSynthesisVoice?)
+                    }
+                }
+                .pickerStyle(MenuPickerStyle())
+            }
+
+            HStack {
+                Text("速度")
+                Spacer()
+                Picker("速度", selection: $model.readingSpeed) {
+                    Text("1x").tag(1.0 as Float)
+                    Text("1.5x").tag(1.5 as Float)
+                    Text("2x").tag(2.0 as Float)
+                    Text("3x").tag(3.0 as Float)
+                }
+                .pickerStyle(MenuPickerStyle())
+            }
+        }
+        .padding(.horizontal)
+    }
+}
+
+struct SearchView: View {
+    @ObservedObject var model: ContentModel
+    @State private var searchText = ""
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        VStack {
+            SearchBar(text: $searchText, onCommit: {
+                model.searchContent(searchText)
+            })
+            .padding()
+
+            List(model.searchResults, id: \.0) { index, preview in
+                Button(action: {
+                    model.currentPageIndex = index
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    VStack(alignment: .leading) {
+                        Text("第 \(index + 1) 页").font(.headline)
+                        Text(preview).lineLimit(2)
+                    }
                 }
             }
-            .pickerStyle(MenuPickerStyle())
-
-            Picker("速度", selection: $model.readingSpeed) {
-                Text("1x").tag(1.0 as Float)
-                Text("1.5x").tag(1.5 as Float)
-                Text("2x").tag(2.0 as Float)
-                Text("3x").tag(3.0 as Float)
+        }
+        .navigationTitle("搜索")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("取消") {
+                    presentationMode.wrappedValue.dismiss()
+                }
             }
-            .pickerStyle(MenuPickerStyle())
         }
     }
 }
 
-// 搜索栏视图
+struct BookListView: View {
+    @ObservedObject var model: ContentModel
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        List(model.books) { book in
+            Button(action: {
+                model.loadBook(book)
+                presentationMode.wrappedValue.dismiss()
+            }) {
+                Text(book.title)
+            }
+        }
+        .navigationTitle("选择书本")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button("完成") {
+                    presentationMode.wrappedValue.dismiss()
+                }
+            }
+        }
+    }
+}
+
 struct SearchBar: View {
     @Binding var text: String
     var onCommit: () -> Void
@@ -235,6 +242,7 @@ struct SearchBar: View {
                     .padding(.vertical, 8)
             }
         }
+        .padding(.horizontal)
     }
 }
 
@@ -611,24 +619,6 @@ struct Book: Identifiable {
     var id: String { fileName }
     let title: String
     let fileName: String
-}
-
-
-struct BookListView: View {
-    @ObservedObject var model: ContentModel
-    @Environment(\.presentationMode) var presentationMode
-    
-    var body: some View {
-        List(model.books) { book in
-            Button(action: {
-                model.loadBook(book)
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text(book.title)
-            }
-        }
-        .navigationTitle("选择书本")
-    }
 }
 
 // 新增 DocumentPicker 视图
