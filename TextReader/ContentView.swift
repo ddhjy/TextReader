@@ -64,12 +64,13 @@ struct ContentDisplay: View {
     @ObservedObject var model: ContentModel
 
     var body: some View {
-        ScrollView {
+        VStack {
             Text(model.pages.isEmpty ? "无内容" : model.pages[model.currentPageIndex])
                 .padding()
                 .font(.system(size: 18, weight: .regular, design: .serif))
                 .multilineTextAlignment(.leading)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
 
