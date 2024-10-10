@@ -7,7 +7,6 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
-* **Markdown File Import**: 用户现在可以从iCloud Drive或本地存储导入`.md`(Markdown)文件。Markdown文件将被视为纯文本处理。
 * **Book List Sorting**: Books in the list are now sorted by the last accessed time, with the most recently opened book appearing first. Unopened books appear at the end.
 * **Track Last Accessed Time**: The application now records when each book was last opened.
 * **Last Access Display**: Shows the last time a book was accessed in a user-friendly format (e.g., "刚刚阅读", "5分钟前阅读", "昨天阅读").
