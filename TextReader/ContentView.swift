@@ -28,6 +28,11 @@ struct ContentView: View {
                             Image(systemName: "book")
                         }
                     }
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: { showingDocumentPicker = true }) {
+                            Image(systemName: "square.and.arrow.down")
+                        }
+                    }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { showingSearchView = true }) {
                             Image(systemName: "magnifyingglass")
@@ -512,37 +517,56 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func importBookFromiCloud(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            print("无法访问文件")
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        do {
-            let content = try String(contentsOf: url, encoding: .utf8)
-            let fileName = url.lastPathComponent
-            let bookTitle = url.deletingPathExtension().lastPathComponent
-
-            // 保存文件到应用的文档目录
-            let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let savedURL = documentsURL.appendingPathComponent(fileName)
-            try content.write(to: savedURL, atomically: true, encoding: .utf8)
-
-            // 创建新书本并添加到列表
-            let newBook = Book(title: bookTitle, fileName: fileName)
-            DispatchQueue.main.async {
+        // 确保在主线程处理 UI 相关操作
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            do {
+                // 1. 检查文件是否可访问
+                guard url.startAccessingSecurityScopedResource() else {
+                    print("无法访问文件：权限被拒绝")
+                    return
+                }
+                defer { url.stopAccessingSecurityScopedResource() }
+                
+                // 2. 读取文件内容
+                let content = try String(contentsOf: url, encoding: .utf8)
+                let fileName = url.lastPathComponent
+                let bookTitle = url.deletingPathExtension().lastPathComponent
+                
+                // 3. 保存到应用沙盒
+                let documentsURL = try FileManager.default.url(
+                    for: .documentDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true
+                )
+                let savedURL = documentsURL.appendingPathComponent(fileName)
+                
+                // 4. 如果文件已存在，先删除
+                if FileManager.default.fileExists(atPath: savedURL.path) {
+                    try FileManager.default.removeItem(at: savedURL)
+                }
+                
+                // 5. 写入新文件
+                try content.write(to: savedURL, atomically: true, encoding: .utf8)
+                
+                // 6. 创建新书本
+                let newBook = Book(title: bookTitle, fileName: fileName)
+                
+                // 7. 更新 UI
                 self.books.append(newBook)
                 self.currentBook = newBook
-            }
-
-            // 加载新书本内容
-            loadContent(from: savedURL)
-
-            print("成功导入书本：\(bookTitle)")
-        } catch {
-            print("导入书本时出错：\(error.localizedDescription)")
-            DispatchQueue.main.async {
-                self.showErrorAlert(message: "导入书本时出错：\(error.localizedDescription)")
+                self.isContentLoaded = false
+                
+                // 8. 加载新书本内容
+                self.loadContent(from: savedURL)
+                
+                print("成功导入书本：\(bookTitle)")
+                
+            } catch let error {
+                print("导入书本时出错：\(error.localizedDescription)")
+                // 可以在这里添加错误提示UI
             }
         }
     }
@@ -686,9 +710,13 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.text], asCopy: true)
+        // 修改为支持所有文本类型
+        let supportedTypes: [UTType] = [.text, .plainText]
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
         picker.delegate = context.coordinator
         picker.shouldShowFileExtensions = true
+        // 允许多选
+        picker.allowsMultipleSelection = false
         return picker
     }
     
