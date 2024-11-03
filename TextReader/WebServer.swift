@@ -9,6 +9,23 @@ class WebServer: NSObject {
         let parameters = NWParameters.tcp
         listener = try? NWListener(using: parameters, on: 8080)
         
+        listener?.newConnectionHandler = { [weak self] connection in
+            connection.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    print("客户端已连接")
+                case .failed(let error):
+                    print("连接失败: \(error)")
+                case .cancelled:
+                    print("连接已取消")
+                default:
+                    break
+                }
+            }
+            
+            connection.start(queue: .main)
+        }
+        
         listener?.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
