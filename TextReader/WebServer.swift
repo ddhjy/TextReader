@@ -51,13 +51,18 @@ class WebServer: NSObject {
                             let boundary = String(request[boundaryStart.upperBound...]).components(separatedBy: "\r\n").first!
                             let body = String(request[headerEnd.upperBound...])
                             
+                            print("收到文件上传请求")
+                            print("boundary: \(boundary)")
+                            
                             if let filenameRange = request.range(of: "filename=\""),
                                let filenameEnd = request[filenameRange.upperBound...].range(of: "\"") {
                                 let filename = String(request[filenameRange.upperBound..<filenameEnd.lowerBound])
+                                print("文件名: \(filename)")
                                 
                                 if let fileStart = body.range(of: "\r\n\r\n"),
                                    let fileEnd = body.range(of: "--\(boundary)--") {
                                     let fileContent = String(body[fileStart.upperBound..<fileEnd.lowerBound])
+                                    print("文件内容长度: \(fileContent.count)")
                                     
                                     DispatchQueue.main.async {
                                         self?.onFileReceived?(filename, fileContent)
@@ -65,12 +70,28 @@ class WebServer: NSObject {
                                     
                                     let successResponse = """
                                     HTTP/1.1 200 OK\r
-                                    Content-Type: text/html\r
+                                    Content-Type: text/html; charset=utf-8\r
                                     Connection: close\r
                                     \r
-                                    <html><body><h1>文件上传成功！</h1></body></html>
+                                    <html>
+                                        <head><meta charset="utf-8"></head>
+                                        <body>
+                                            <h1>文件上传成功！</h1>
+                                            <p>文件名: \(filename)</p>
+                                            <script>setTimeout(function() { window.location.href = '/'; }, 2000);</script>
+                                        </body>
+                                    </html>
                                     """
                                     connection.send(content: successResponse.data(using: .utf8), completion: .idempotent)
+                                } else {
+                                    let errorResponse = """
+                                    HTTP/1.1 400 Bad Request\r
+                                    Content-Type: text/html; charset=utf-8\r
+                                    Connection: close\r
+                                    \r
+                                    <html><body><h1>文件上传失败：无法解析文件内容</h1></body></html>
+                                    """
+                                    connection.send(content: errorResponse.data(using: .utf8), completion: .idempotent)
                                 }
                             }
                         }
