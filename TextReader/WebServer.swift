@@ -54,36 +54,54 @@ class WebServer: NSObject {
     
     private func receiveData(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
-            if let data = data, let request = String(data: data, encoding: .utf8) {
-                self?.processRequest(request, on: connection)
+            if let error = error {
+                print("接收数据错误: \(error)")
             }
             
-            if error != nil || isComplete {
+            if let data = data {
+                print("接收到数据大小: \(data.count) 字节")
+                if let request = String(data: data, encoding: .utf8) {
+                    self?.processRequest(request, on: connection)
+                } else {
+                    print("数据转换为字符串失败")
+                }
+            }
+            
+            if isComplete {
+                print("数据接收完成")
                 connection.cancel()
-            } else {
+            } else if error == nil {
                 self?.receiveData(on: connection)
             }
         }
     }
     
     private func processRequest(_ request: String, on connection: NWConnection) {
+        print("收到请求:\n\(request.prefix(200))...")
+        
         if request.contains("Content-Type: multipart/form-data") {
+            print("检测到文件上传请求")
             guard let boundaryStart = request.range(of: "boundary="),
                   let headerEnd = request.range(of: "\r\n\r\n") else {
+                print("解析失败: 未找到boundary或请求头结束标记")
                 sendErrorResponse(on: connection, message: "无法找到boundary")
                 return
             }
+            
             let boundary = "--" + request[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
+            print("解析到boundary: \(boundary)")
             let body = String(request[headerEnd.upperBound...])
             
             if let filenameRange = request.range(of: "filename=\""),
                let filenameEnd = request[filenameRange.upperBound...].range(of: "\"") {
                 let filename = String(request[filenameRange.upperBound..<filenameEnd.lowerBound])
+                print("解析到文件名: \(filename)")
                 
                 let boundaryEnd = "\(boundary)--"
                 if let fileContentStart = body.range(of: "\r\n\r\n"),
                    let fileContentEnd = body.range(of: boundaryEnd) {
                     let fileContent = String(body[fileContentStart.upperBound..<fileContentEnd.lowerBound])
+                    print("成功提取文件内容，长度: \(fileContent.count) 字符")
                     
                     DispatchQueue.main.async {
                         self.onFileReceived?(filename, fileContent)
@@ -91,12 +109,16 @@ class WebServer: NSObject {
                     
                     sendSuccessResponse(on: connection, filename: filename)
                 } else {
+                    print("解析失败: 无法在请求体中找到文件内容的起始或结束位置")
+                    print("请求体片段:\n\(body.prefix(200))...")
                     sendErrorResponse(on: connection, message: "文件内容解析失败")
                 }
             } else {
+                print("解析失败: 未找到filename字段")
                 sendErrorResponse(on: connection, message: "文件名解析失败")
             }
         } else {
+            print("普通请求，发送上传表单")
             sendUploadForm(on: connection)
         }
     }
