@@ -559,12 +559,11 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func loadBook(_ book: Book) {
+        stopReading()
         currentBook = book
         isContentLoaded = false
         loadBookProgress(for: book)
-        if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
-            loadContent(from: url)
-        }
+        loadBookContent(book)
     }
 
     // AVSpeechSynthesizerDelegate 方法
@@ -632,15 +631,17 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 
             } catch let error {
                 print("导入书本时出错：\(error.localizedDescription)")
-                // 可以在这里添加错误提示UI
+                // 可以在��里添加错误提示UI
             }
         }
     }
 
     private func loadContent(from url: URL) {
+        print("开始加载内容：\(url.lastPathComponent)")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
+                print("成功读取文件内容，长度：\(content.count)")
                 let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
                     .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
@@ -673,6 +674,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 }
 
                 DispatchQueue.main.async {
+                    print("内容处理完成，页数：\(pages.count)")
                     self?.pages = pages
                     self?.isContentLoaded = true
 
@@ -685,8 +687,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                     self?.savedPageIndex = nil
                 }
             } catch {
-                print("加载内容时出错：\(error.localizedDescription)")
+                print("加载内容失败：\(error.localizedDescription)")
                 DispatchQueue.main.async {
+                    self?.isContentLoaded = true  // 即使失败也要更新状态
+                    self?.pages = []  // 清空页面
                     self?.showErrorAlert(message: "加载内容时出错：\(error.localizedDescription)")
                 }
             }
@@ -694,7 +698,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func showErrorAlert(message: String) {
-        // ��这里实现显示错误警告的逻辑
+        // 这里实现显示错误警告的逻辑
         // 例如，您可以使用通知或绑定一个 @Published 属性来触发视图中的 Alert
     }
 
@@ -821,7 +825,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
     
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        // 修改为支持所有文本类型
+        // 修改为支持所有文类型
         let supportedTypes: [UTType] = [.text, .plainText]
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
         picker.delegate = context.coordinator
