@@ -99,17 +99,55 @@ class WebServer: NSObject {
                 
                 if isComplete {
                     print("文件数据接收完成，开始处理")
-                    if let request = String(data: buffer, encoding: .utf8) {
-                        self?.processRequest(request, on: connection)
-                    } else {
-                        print("UTF-8转换失败，尝试其他编码...")
-                        if let request = String(data: buffer, encoding: .isoLatin1) {
-                            self?.processRequest(request, on: connection)
-                        } else {
-                            print("所有编码转换都失败了")
-                            print("文件数据前100个字节: \(buffer.prefix(100).map { String(format: "%02x", $0) }.joined())")
-                            connection.cancel()
+                    // 尝试将整个数据转换为字符串
+                    if let requestString = String(data: buffer, encoding: .utf8) {
+                        print("数据成功转换为字符串，长度: \(requestString.count)")
+                        print("请求头部分:\n\(requestString.prefix(500))")
+                        
+                        // 解析boundary
+                        guard let boundaryStart = requestString.range(of: "boundary="),
+                              let headerEnd = requestString.range(of: "\r\n\r\n") else {
+                            print("无法找到boundary或请求头结束标记")
+                            self?.sendErrorResponse(on: connection, message: "请求格式错误")
+                            return
                         }
+                        
+                        let boundary = "--" + requestString[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
+                        print("解析到boundary: \(boundary)")
+                        
+                        // 解析文件名
+                        guard let filenameRange = requestString.range(of: "filename=\""),
+                              let filenameEnd = requestString[filenameRange.upperBound...].range(of: "\"") else {
+                            print("无法找到文件名")
+                            self?.sendErrorResponse(on: connection, message: "无法获取文件名")
+                            return
+                        }
+                        
+                        let filename = String(requestString[filenameRange.upperBound..<filenameEnd.lowerBound])
+                        print("解析到文件名: \(filename)")
+                        
+                        // 解析文件内容
+                        let boundaryEnd = "\(boundary)--"
+                        guard let contentStart = requestString.range(of: "\r\n\r\n", range: headerEnd.upperBound..<requestString.endIndex),
+                              let contentEnd = requestString.range(of: boundaryEnd) else {
+                            print("无法找到文件内容边界")
+                            self?.sendErrorResponse(on: connection, message: "无法解析文件内容")
+                            return
+                        }
+                        
+                        let fileContent = String(requestString[contentStart.upperBound..<contentEnd.lowerBound])
+                        print("成功提取文件内容，长度: \(fileContent.count)")
+                        print("文件内容前100个字符: \(fileContent.prefix(100))")
+                        
+                        DispatchQueue.main.async {
+                            self?.onFileReceived?(filename, fileContent)
+                        }
+                        
+                        self?.sendSuccessResponse(on: connection, filename: filename)
+                    } else {
+                        print("数据转换为字符串失败")
+                        print("数据前100字节: \(buffer.prefix(100).map { String(format: "%02x", $0) }.joined())")
+                        self?.sendErrorResponse(on: connection, message: "数据编码错误")
                     }
                 } else if error == nil {
                     receive()
