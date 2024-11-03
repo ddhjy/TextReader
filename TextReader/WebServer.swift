@@ -1,4 +1,5 @@
 import Network
+import Foundation
 
 class WebServer: NSObject {
     private var listener: NWListener?
@@ -53,27 +54,70 @@ class WebServer: NSObject {
     }
     
     private func receiveData(on connection: NWConnection) {
+        // 第一次接收数据，判断请求类型
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
             if let error = error {
                 print("接收数据错误: \(error)")
+                return
             }
             
-            if let data = data {
+            if let data = data, let request = String(data: data, encoding: .utf8) {
                 print("接收到数据大小: \(data.count) 字节")
-                if let request = String(data: data, encoding: .utf8) {
-                    self?.processRequest(request, on: connection)
+                
+                // 如果是文件上传请求，使用缓冲区模式接收
+                if request.contains("Content-Type: multipart/form-data") {
+                    print("检测到文件上传请求，切换到缓冲区模式")
+                    self?.receiveFileUpload(connection: connection, initialData: data)
                 } else {
-                    print("数据转换为字符串失败")
+                    // 普通请求直接处理
+                    print("普通请求，直接处理")
+                    self?.processRequest(request, on: connection)
                 }
-            }
-            
-            if isComplete {
-                print("数据接收完成")
+            } else {
+                print("初始数据转换失败")
                 connection.cancel()
-            } else if error == nil {
-                self?.receiveData(on: connection)
             }
         }
+    }
+    
+    // 新增方法处理文件上传
+    private func receiveFileUpload(connection: NWConnection, initialData: Data) {
+        var buffer = initialData
+        
+        func receive() {
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
+                if let error = error {
+                    print("接收文件数据错误: \(error)")
+                    return
+                }
+                
+                if let data = data {
+                    print("接收到文件数据片段大小: \(data.count) 字节")
+                    buffer.append(data)
+                    print("当前文件总数据大小: \(buffer.count) 字节")
+                }
+                
+                if isComplete {
+                    print("文件数据接收完成，开始处理")
+                    if let request = String(data: buffer, encoding: .utf8) {
+                        self?.processRequest(request, on: connection)
+                    } else {
+                        print("UTF-8转换失败，尝试其他编码...")
+                        if let request = String(data: buffer, encoding: .isoLatin1) {
+                            self?.processRequest(request, on: connection)
+                        } else {
+                            print("所有编码转换都失败了")
+                            print("文件数据前100个字节: \(buffer.prefix(100).map { String(format: "%02x", $0) }.joined())")
+                            connection.cancel()
+                        }
+                    }
+                } else if error == nil {
+                    receive()
+                }
+            }
+        }
+        
+        receive()
     }
     
     private func processRequest(_ request: String, on connection: NWConnection) {
