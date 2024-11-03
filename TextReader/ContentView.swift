@@ -296,7 +296,22 @@ struct BookListView: View {
                     model.loadBook(book)
                     presentationMode.wrappedValue.dismiss()
                 }) {
-                    Text(book.title)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(book.title)
+                                .foregroundColor(.primary)
+                            if let progress = model.getBookProgress(book) {
+                                Text("已读 \(progress.currentPage + 1)/\(progress.totalPages) 页")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        Spacer()
+                        if model.currentBook?.id == book.id {
+                            Image(systemName: "checkmark")
+                                .foregroundColor(.blue)
+                        }
+                    }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button(role: .destructive) {
@@ -709,6 +724,9 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                         self?.currentPageIndex = 0
                     }
                     self?.savedPageIndex = nil
+
+                    // 在这里添加保存总页数的调用
+                    self?.saveTotalPages()
                 }
             } catch {
                 print("加载内容失败：\(error.localizedDescription)")
@@ -869,6 +887,37 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             
         } catch {
             print("删除书籍失败: \(error)")
+        }
+    }
+
+    struct BookProgress {
+        let currentPage: Int
+        let totalPages: Int
+    }
+    
+    func getBookProgress(_ book: Book) -> BookProgress? {
+        let key = "bookProgress_\(book.id)"
+        let currentPage = UserDefaults.standard.integer(forKey: key)
+        
+        // 如果是当前加载的书，使用实时页数
+        if book.id == currentBook?.id {
+            return BookProgress(currentPage: currentPageIndex, totalPages: pages.count)
+        }
+        
+        // 否则从缓存中获取总页数
+        let totalPagesKey = "totalPages_\(book.id)"
+        if let totalPages = UserDefaults.standard.object(forKey: totalPagesKey) as? Int {
+            return BookProgress(currentPage: currentPage, totalPages: totalPages)
+        }
+        
+        return nil
+    }
+    
+    // 在加载内容完成后保存总页数
+    private func saveTotalPages() {
+        if let book = currentBook {
+            let key = "totalPages_\(book.id)"
+            UserDefaults.standard.set(pages.count, forKey: key)
         }
     }
 }
