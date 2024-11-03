@@ -23,6 +23,67 @@ class WebServer: NSObject {
                 }
             }
             
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
+                if let data = data, let request = String(data: data, encoding: .utf8) {
+                    let response = """
+                    HTTP/1.1 200 OK\r
+                    Content-Type: text/html\r
+                    Connection: close\r
+                    \r
+                    <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <title>文件上传</title>
+                        </head>
+                        <body>
+                            <h1>选择要上传的电子书</h1>
+                            <form action="/upload" method="post" enctype="multipart/form-data">
+                                <input type="file" name="book" accept=".epub,.pdf,.txt">
+                                <input type="submit" value="上传">
+                            </form>
+                        </body>
+                    </html>
+                    """
+                    
+                    if request.contains("Content-Type: multipart/form-data") {
+                        if let boundaryStart = request.range(of: "boundary="),
+                           let headerEnd = request.range(of: "\r\n\r\n") {
+                            let boundary = String(request[boundaryStart.upperBound...]).components(separatedBy: "\r\n").first!
+                            let body = String(request[headerEnd.upperBound...])
+                            
+                            if let filenameRange = request.range(of: "filename=\""),
+                               let filenameEnd = request[filenameRange.upperBound...].range(of: "\"") {
+                                let filename = String(request[filenameRange.upperBound..<filenameEnd.lowerBound])
+                                
+                                if let fileStart = body.range(of: "\r\n\r\n"),
+                                   let fileEnd = body.range(of: "--\(boundary)--") {
+                                    let fileContent = String(body[fileStart.upperBound..<fileEnd.lowerBound])
+                                    
+                                    DispatchQueue.main.async {
+                                        self?.onFileReceived?(filename, fileContent)
+                                    }
+                                    
+                                    let successResponse = """
+                                    HTTP/1.1 200 OK\r
+                                    Content-Type: text/html\r
+                                    Connection: close\r
+                                    \r
+                                    <html><body><h1>文件上传成功！</h1></body></html>
+                                    """
+                                    connection.send(content: successResponse.data(using: .utf8), completion: .idempotent)
+                                }
+                            }
+                        }
+                    } else {
+                        connection.send(content: response.data(using: .utf8), completion: .idempotent)
+                    }
+                }
+                
+                if error != nil || isComplete {
+                    connection.cancel()
+                }
+            }
+            
             connection.start(queue: .main)
         }
         
