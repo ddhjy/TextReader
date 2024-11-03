@@ -286,14 +286,26 @@ struct SearchView: View {
 struct BookListView: View {
     @ObservedObject var model: ContentModel
     @Environment(\.presentationMode) var presentationMode
+    @State private var showingDeleteAlert = false
+    @State private var bookToDelete: Book?
 
     var body: some View {
-        List(model.books) { book in
-            Button(action: {
-                model.loadBook(book)
-                presentationMode.wrappedValue.dismiss()
-            }) {
-                Text(book.title)
+        List {
+            ForEach(model.books) { book in
+                Button(action: {
+                    model.loadBook(book)
+                    presentationMode.wrappedValue.dismiss()
+                }) {
+                    Text(book.title)
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        bookToDelete = book
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("删除", systemImage: "trash")
+                    }
+                }
             }
         }
         .navigationTitle("选择书本")
@@ -303,6 +315,18 @@ struct BookListView: View {
                 Button("完成") {
                     presentationMode.wrappedValue.dismiss()
                 }
+            }
+        }
+        .alert("确认删除", isPresented: $showingDeleteAlert) {
+            Button("取消", role: .cancel) {}
+            Button("删除", role: .destructive) {
+                if let book = bookToDelete {
+                    model.deleteBook(book)
+                }
+            }
+        } message: {
+            if let book = bookToDelete {
+                Text("确定要删除《\(book.title)》吗？此操作不可恢复。")
             }
         }
     }
@@ -631,7 +655,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 
             } catch let error {
                 print("导入书本时出错：\(error.localizedDescription)")
-                // 可以在��里添加错误提示UI
+                // 可以在这里添加错误提示UI
             }
         }
     }
@@ -808,6 +832,43 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             }
         } catch {
             print("保存文件失败: \(error)")
+        }
+    }
+
+    func deleteBook(_ book: Book) {
+        // 如果是当前正在阅读的书，先停止朗读
+        if book.id == currentBook?.id {
+            stopReading()
+            currentBook = nil
+            pages = []
+            currentPageIndex = 0
+        }
+        
+        do {
+            // 删除文件
+            let documentsURL = try FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            let fileURL = documentsURL.appendingPathComponent(book.fileName)
+            try FileManager.default.removeItem(at: fileURL)
+            
+            // 删除进度记录
+            let progressKey = "bookProgress_\(book.id)"
+            UserDefaults.standard.removeObject(forKey: progressKey)
+            
+            // 从书籍列表中移除
+            books.removeAll { $0.id == book.id }
+            
+            // 如果删除的是当前书籍，加载第一本可用的书
+            if currentBook == nil, let firstBook = books.first {
+                loadBook(firstBook)
+            }
+            
+        } catch {
+            print("删除书籍失败: \(error)")
         }
     }
 }
