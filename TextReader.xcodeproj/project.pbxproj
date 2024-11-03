@@ -208,6 +208,9 @@
 			);
 			mainGroup = 0C9E2AC52CA01AEF00302914;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0C0E84D22CD7CD16007F0EA7 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0C9E2ACF2CA01AEF00302914 /* Products */;
 			projectDirPath = "";
@@ -581,6 +584,17 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0C0E84D22CD7CD16007F0EA7 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/robbiehanson/CocoaAsyncSocket";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 7.6.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
 	};
 	rootObject = 0C9E2AC62CA01AEF00302914 /* Project object */;
 }
