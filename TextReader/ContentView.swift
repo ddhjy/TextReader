@@ -38,7 +38,36 @@ struct ContentView: View {
                             Image(systemName: "magnifyingglass")
                         }
                     }
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            if model.isServerRunning {
+                                model.stopWiFiTransfer()
+                            } else {
+                                model.startWiFiTransfer()
+                            }
+                        }) {
+                            Image(systemName: model.isServerRunning ? "wifi.slash" : "wifi")
+                        }
+                    }
                 }
+                .overlay(
+                    Group {
+                        if let address = model.serverAddress {
+                            VStack {
+                                Text("WiFi 传输已开启")
+                                    .font(.headline)
+                                Text("请在浏览器中访问：")
+                                Text(address)
+                                    .font(.system(.body, design: .monospaced))
+                            }
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .cornerRadius(10)
+                            .shadow(radius: 5)
+                            .transition(.move(edge: .top))
+                        }
+                    }
+                )
             } else {
                 ProgressView()
                     .scaleEffect(1.5)
@@ -372,6 +401,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
 
+    private var webServer: WebServer?
+    @Published var serverAddress: String?
+    @Published var isServerRunning = false
+
     override init() {
         super.init()
         synthesizer.delegate = self
@@ -694,6 +727,50 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             self?.readCurrentPage()
             self?.updateNowPlayingInfo()
             return .success
+        }
+    }
+
+    func startWiFiTransfer() {
+        webServer = WebServer()
+        webServer?.onFileReceived = { [weak self] (fileName, content) in
+            self?.handleReceivedFile(fileName: fileName, content: content)
+        }
+        
+        if let address = webServer?.start() {
+            serverAddress = "http://\(address):8080"
+            isServerRunning = true
+        }
+    }
+    
+    func stopWiFiTransfer() {
+        webServer?.stop()
+        serverAddress = nil
+        isServerRunning = false
+    }
+    
+    private func handleReceivedFile(fileName: String, content: String) {
+        // 处理接收到的文件
+        let bookTitle = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+        let newBook = Book(title: bookTitle, fileName: fileName)
+        
+        // 保存文件到本地
+        do {
+            let documentsURL = try FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            let fileURL = documentsURL.appendingPathComponent(fileName)
+            try content.write(to: fileURL, atomically: true, encoding: .utf8)
+            
+            DispatchQueue.main.async {
+                self.books.append(newBook)
+                self.currentBook = newBook
+                self.loadContent(from: fileURL)
+            }
+        } catch {
+            print("保存文件失败: \(error)")
         }
     }
 }
