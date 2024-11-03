@@ -416,21 +416,53 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     private func loadBooks() {
-        // 从 main bundle 中加载已有的书本
-        let bookFiles = [
+        var allBooks: [Book] = []
+        
+        // 1. 从 main bundle 中加载预置书本
+        let bundleBookFiles = [
             ("思考快与慢", "思考快与慢"),
             ("罗素作品集", "罗素作品集"),
             ("哲学研究", "哲学研究")
         ]
 
-        books = bookFiles.compactMap { (title, fileName) in
+        let bundleBooks = bundleBookFiles.compactMap { (title, fileName) in
             if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
-                return Book(title: title, fileName: fileName)
+                return Book(title: title, fileName: fileName, isBuiltIn: true)
             }
             return nil
         }
-
-        // 加载上次阅读的书籍
+        allBooks.append(contentsOf: bundleBooks)
+        
+        // 2. 从文档目录加载 WiFi 导入的书籍
+        do {
+            let documentsURL = try FileManager.default.url(
+                for: .documentDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: documentsURL,
+                includingPropertiesForKeys: nil,
+                options: .skipsHiddenFiles
+            )
+            
+            // 只处理 .txt 文件
+            let txtFiles = fileURLs.filter { $0.pathExtension.lowercased() == "txt" }
+            let importedBooks = txtFiles.map { url in
+                let title = URL(fileURLWithPath: url.path).deletingPathExtension().lastPathComponent
+                let fileName = url.lastPathComponent
+                return Book(title: title, fileName: fileName, isBuiltIn: false)
+            }
+            allBooks.append(contentsOf: importedBooks)
+        } catch {
+            print("读取文档目录失败: \(error)")
+        }
+        
+        // 3. 更新 books 数组
+        books = allBooks
+        
+        // 4. 加载上次阅读的书籍
         if let savedBookFileName = UserDefaults.standard.string(forKey: "currentBookID"),
            let savedBook = books.first(where: { $0.id == savedBookFileName }) {
             currentBook = savedBook
@@ -442,8 +474,25 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     private func loadBookContent(_ book: Book) {
-        if let url = Bundle.main.url(forResource: book.fileName, withExtension: "txt") {
-            loadContent(from: url)
+        if book.isBuiltIn {
+            // 从主包加载预置书籍
+            if let url = Bundle.main.url(forResource: URL(fileURLWithPath: book.fileName).deletingPathExtension().lastPathComponent, withExtension: "txt") {
+                loadContent(from: url)
+            }
+        } else {
+            // 从文档目录加载导入书籍
+            do {
+                let documentsURL = try FileManager.default.url(
+                    for: .documentDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: true
+                )
+                let fileURL = documentsURL.appendingPathComponent(book.fileName)
+                loadContent(from: fileURL)
+            } catch {
+                print("加载导入书籍失败: \(error)")
+            }
         }
     }
 
@@ -565,7 +614,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 // 2. 读取文件内容
                 let content = try String(contentsOf: url, encoding: .utf8)
                 let fileName = url.lastPathComponent
-                let bookTitle = url.deletingPathExtension().lastPathComponent
+                let bookTitle = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
                 
                 // 3. 保存到应用沙盒
                 let documentsURL = try FileManager.default.url(
@@ -585,7 +634,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 try content.write(to: savedURL, atomically: true, encoding: .utf8)
                 
                 // 6. 创建新书本
-                let newBook = Book(title: bookTitle, fileName: fileName)
+                let newBook = Book(title: bookTitle, fileName: fileName, isBuiltIn: false)
                 
                 // 7. 更新 UI
                 self.books.append(newBook)
@@ -661,7 +710,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     }
 
     func showErrorAlert(message: String) {
-        // 在这里实现显示错误警告的逻辑
+        // ��这里实现显示错误警告的逻辑
         // 例如，您可以使用通知或绑定一个 @Published 属性来触发视图中的 Alert
     }
 
@@ -751,7 +800,7 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
     private func handleReceivedFile(fileName: String, content: String) {
         // 处理接收到的文件
         let bookTitle = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
-        let newBook = Book(title: bookTitle, fileName: fileName)
+        let newBook = Book(title: bookTitle, fileName: fileName, isBuiltIn: false)
         
         // 保存文件到本地
         do {
@@ -779,6 +828,7 @@ struct Book: Identifiable {
     var id: String { fileName }
     let title: String
     let fileName: String
+    let isBuiltIn: Bool
 }
 
 // 新增 DocumentPicker 视图
