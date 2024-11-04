@@ -674,15 +674,27 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             }
         }
     }
-
+    
     private func loadContent(from url: URL) {
         print("开始加载内容：\(url.lastPathComponent)")
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             do {
                 let content = try String(contentsOf: url, encoding: .utf8)
-                print("成功读取文件内容，长度：\(content.count)")
-                let sentences = content.components(separatedBy: CharacterSet(charactersIn: "。！？.!?"))
-                    .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+                // 优化分页逻辑，避免句子开头是标点符号
+                var sentences = [String]()
+                var currentSentence = ""
+                for char in content {
+                    currentSentence.append(char)
+                    if "。！？.!?；;：:\"\"''\\\"\\\"“”‘’".contains(char) {
+                        // 当前句子结束，添加到数组中
+                        sentences.append(currentSentence.trimmingCharacters(in: .whitespacesAndNewlines))
+                        currentSentence = ""
+                    }
+                }
+                // 添加剩余的内容
+                if !currentSentence.isEmpty {
+                    sentences.append(currentSentence.trimmingCharacters(in: .whitespacesAndNewlines))
+                }
 
                 var pages = [String]()
                 var currentPage = ""
@@ -692,22 +704,29 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
                 for sentence in sentences {
                     let sentenceSize = sentence.count
 
-                    if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
-                        pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                    // 如果当前句子超过最大页面大小，单独作为一页
+                    if sentenceSize > maxPageSize {
+                        if !currentPage.isEmpty {
+                            pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
+                        }
+                        pages.append(sentence.trimmingCharacters(in: .whitespacesAndNewlines))
                         currentPage = ""
                         currentPageSize = 0
+                        continue
                     }
 
-                    currentPage += sentence + "。"
-                    currentPageSize += sentenceSize + 1
-
-                    if currentPageSize >= maxPageSize {
+                    // 如果加上当前句子会超过页面大小，创建新页面
+                    if currentPageSize + sentenceSize > maxPageSize && !currentPage.isEmpty {
                         pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
-                        currentPage = ""
-                        currentPageSize = 0
+                        currentPage = sentence
+                        currentPageSize = sentenceSize
+                    } else {
+                        currentPage += sentence
+                        currentPageSize += sentenceSize
                     }
                 }
 
+                // 添加最后一页
                 if !currentPage.isEmpty {
                     pages.append(currentPage.trimmingCharacters(in: .whitespacesAndNewlines))
                 }
