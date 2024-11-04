@@ -83,76 +83,102 @@ class WebServer: NSObject {
     // 新增方法处理文件上传
     private func receiveFileUpload(connection: NWConnection, initialData: Data) {
         var buffer = initialData
+        print("开始接收文件上传，初始数据大小: \(initialData.count)")
+        
+        // 添加一个计时器来检测传输是否结束
+        var lastReceiveTime = Date()
+        var noDataTimer: Timer?
+        
+        func checkDataComplete() {
+            // 如果3秒内没有新数据，认为传输结束
+            if Date().timeIntervalSince(lastReceiveTime) >= 3.0 {
+                print("检测到传输可能已结束，开始处理数据")
+                processReceivedData()
+                noDataTimer?.invalidate()
+                noDataTimer = nil
+            }
+        }
+        
+        func processReceivedData() {
+            print("数据接收完成，开始处理文件内容，总大小: \(buffer.count)字节")
+            // 尝试检测文件编码
+            let encodings: [String.Encoding] = [.utf8]
+            var fileContent: String?
+            
+            for encoding in encodings {
+                if let content = String(data: buffer, encoding: encoding) {
+                    fileContent = content
+                    print("成功使用编码 \(encoding) 转换文件内容")
+                    break
+                }
+            }
+            
+            if let content = fileContent {
+                if let boundaryStart = content.range(of: "boundary="),
+                   let headerEnd = content.range(of: "\r\n\r\n") {
+                    let boundary = "--" + content[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
+                    print("解析到boundary: \(boundary)")
+                    
+                    if let filenameRange = content.range(of: "filename=\""),
+                       let filenameEnd = content[filenameRange.upperBound...].range(of: "\"") {
+                        let filename = String(content[filenameRange.upperBound..<filenameEnd.lowerBound])
+                        print("解析到文件名: \(filename)")
+                        
+                        let boundaryEnd = "\(boundary)--"
+                        if let contentStart = content.range(of: "\r\n\r\n", range: headerEnd.upperBound..<content.endIndex),
+                           let contentEnd = content.range(of: boundaryEnd) {
+                            let fileContent = String(content[contentStart.upperBound..<contentEnd.lowerBound])
+                            print("成功提取文件内容，长度: \(fileContent.count)")
+                            
+                            DispatchQueue.main.async { [weak self] in
+                                self?.onFileReceived?(filename, fileContent)
+                            }
+                            
+                            sendSuccessResponse(on: connection, filename: filename)
+                            return
+                        }
+                    }
+                }
+                sendErrorResponse(on: connection, message: "文件格式解析失败")
+            } else {
+                print("尝试过的编码都无法解析文件内容")
+                sendErrorResponse(on: connection, message: "不支持的文件编码格式")
+            }
+        }
         
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
                 if let error = error {
                     print("接收文件数据错误: \(error)")
+                    self?.sendErrorResponse(on: connection, message: "接收数据时发生错误")
                     return
                 }
                 
                 if let data = data {
-                    print("接收到文件数据片段大小: \(data.count) 字节")
                     buffer.append(data)
-                    print("当前文件总数据大小: \(buffer.count) 字节")
+                    lastReceiveTime = Date()
+                    print("接收到新数据片段: \(data.count)字节，当前总大小: \(buffer.count)字节")
+                    
+                    // 重置计时器
+                    noDataTimer?.invalidate()
+                    noDataTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+                        checkDataComplete()
+                    }
                 }
                 
                 if isComplete {
-                    print("文件数据接收完成，开始处理")
-                    // 尝试将整个数据转换为字符串
-                    if let requestString = String(data: buffer, encoding: .utf8) {
-                        print("数据成功转换为字符串，长度: \(requestString.count)")
-                        print("请求头部分:\n\(requestString.prefix(500))")
-                        
-                        // 解析boundary
-                        guard let boundaryStart = requestString.range(of: "boundary="),
-                              let headerEnd = requestString.range(of: "\r\n\r\n") else {
-                            print("无法找到boundary或请求头结束标记")
-                            self?.sendErrorResponse(on: connection, message: "请求格式错误")
-                            return
-                        }
-                        
-                        let boundary = "--" + requestString[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
-                        print("解析到boundary: \(boundary)")
-                        
-                        // 解析文件名
-                        guard let filenameRange = requestString.range(of: "filename=\""),
-                              let filenameEnd = requestString[filenameRange.upperBound...].range(of: "\"") else {
-                            print("无法找到文件名")
-                            self?.sendErrorResponse(on: connection, message: "无法获取文件名")
-                            return
-                        }
-                        
-                        let filename = String(requestString[filenameRange.upperBound..<filenameEnd.lowerBound])
-                        print("解析到文件名: \(filename)")
-                        
-                        // 解析文件内容
-                        let boundaryEnd = "\(boundary)--"
-                        guard let contentStart = requestString.range(of: "\r\n\r\n", range: headerEnd.upperBound..<requestString.endIndex),
-                              let contentEnd = requestString.range(of: boundaryEnd) else {
-                            print("无法找到文件内容边界")
-                            self?.sendErrorResponse(on: connection, message: "无法解析文件内容")
-                            return
-                        }
-                        
-                        let fileContent = String(requestString[contentStart.upperBound..<contentEnd.lowerBound])
-                        print("成功提取文件内容，长度: \(fileContent.count)")
-                        print("文件内容前100个字符: \(fileContent.prefix(100))")
-                        
-                        DispatchQueue.main.async {
-                            self?.onFileReceived?(filename, fileContent)
-                        }
-                        
-                        self?.sendSuccessResponse(on: connection, filename: filename)
-                    } else {
-                        print("数据转换为字符串失败")
-                        print("数据前100字节: \(buffer.prefix(100).map { String(format: "%02x", $0) }.joined())")
-                        self?.sendErrorResponse(on: connection, message: "数据编码错误")
-                    }
+                    print("收到完成标志，开始处理数据")
+                    noDataTimer?.invalidate()
+                    processReceivedData()
                 } else if error == nil {
                     receive()
                 }
             }
+        }
+        
+        // 启动初始计时器
+        noDataTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+            checkDataComplete()
         }
         
         receive()
