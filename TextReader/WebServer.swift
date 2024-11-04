@@ -214,14 +214,103 @@ class WebServer: NSObject {
         <html>
             <head>
                 <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
                 <title>文件上传</title>
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .upload-form {
+                        border: 2px dashed #ccc;
+                        border-radius: 10px;
+                        padding: 20px;
+                        margin: 20px 0;
+                    }
+                    .file-input {
+                        display: none;
+                    }
+                    .upload-button {
+                        background: #007AFF;
+                        color: white;
+                        padding: 10px 20px;
+                        border: none;
+                        border-radius: 5px;
+                        font-size: 16px;
+                        cursor: pointer;
+                    }
+                    .file-label {
+                        display: block;
+                        margin: 10px 0;
+                        color: #666;
+                    }
+                    #selected-file {
+                        margin: 10px 0;
+                        color: #333;
+                    }
+                    .error {
+                        color: #FF3B30;
+                        margin: 10px 0;
+                        display: none;
+                    }
+                </style>
             </head>
             <body>
-                <h1>选择要上传的电子书</h1>
-                <form action="/upload" method="post" enctype="multipart/form-data">
-                    <input type="file" name="book" accept=".epub,.pdf,.txt">
-                    <input type="submit" value="上传">
-                </form>
+                <h1>WiFi 传书</h1>
+                <div class="upload-form">
+                    <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+                        <label class="file-label">支持的格式：TXT</label>
+                        <input type="file" name="book" accept=".txt" class="file-input" id="file-input" onchange="updateFileName()">
+                        <button type="button" class="upload-button" onclick="document.getElementById('file-input').click()">
+                            选择文件
+                        </button>
+                        <div id="selected-file"></div>
+                        <div class="error" id="error-message">请选择有效的文本文件</div>
+                        <button type="submit" class="upload-button" style="margin-top: 10px;">上传</button>
+                    </form>
+                </div>
+                <script>
+                    function updateFileName() {
+                        const input = document.getElementById('file-input');
+                        const fileInfo = document.getElementById('selected-file');
+                        const errorMsg = document.getElementById('error-message');
+                        
+                        if (input.files.length > 0) {
+                            const file = input.files[0];
+                            fileInfo.textContent = file.name;
+                            
+                            if (!file.name.toLowerCase().endsWith('.txt')) {
+                                errorMsg.style.display = 'block';
+                                return false;
+                            }
+                            errorMsg.style.display = 'none';
+                        } else {
+                            fileInfo.textContent = '';
+                            errorMsg.style.display = 'none';
+                        }
+                    }
+                    
+                    function validateForm() {
+                        const input = document.getElementById('file-input');
+                        const errorMsg = document.getElementById('error-message');
+                        
+                        if (input.files.length === 0) {
+                            errorMsg.style.display = 'block';
+                            return false;
+                        }
+                        
+                        const file = input.files[0];
+                        if (!file.name.toLowerCase().endsWith('.txt')) {
+                            errorMsg.style.display = 'block';
+                            return false;
+                        }
+                        
+                        return true;
+                    }
+                </script>
             </body>
         </html>
         """
@@ -237,10 +326,53 @@ class WebServer: NSObject {
         Connection: close\r
         \r
         <html>
-            <head><meta charset="utf-8"></head>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .success-icon {
+                        color: #34C759;
+                        font-size: 48px;
+                        margin: 20px 0;
+                    }
+                    .file-name {
+                        color: #666;
+                        margin: 10px 0;
+                    }
+                    .progress {
+                        width: 100%;
+                        height: 4px;
+                        background: #E5E5EA;
+                        border-radius: 2px;
+                        overflow: hidden;
+                        margin: 20px 0;
+                    }
+                    .progress-bar {
+                        width: 0%;
+                        height: 100%;
+                        background: #34C759;
+                        animation: progress 2s ease-in-out forwards;
+                    }
+                    @keyframes progress {
+                        to { width: 100%; }
+                    }
+                </style>
+            </head>
             <body>
-                <h1>文件上传成功！</h1>
-                <p>文件名: \(filename)</p>
+                <div class="success-icon">✓</div>
+                <h1>上传成功！</h1>
+                <p class="file-name">文件名：\(filename)</p>
+                <div class="progress">
+                    <div class="progress-bar"></div>
+                </div>
+                <p>正在返回首页...</p>
                 <script>setTimeout(function() { window.location.href = '/'; }, 2000);</script>
             </body>
         </html>
@@ -256,7 +388,46 @@ class WebServer: NSObject {
         Content-Type: text/html; charset=utf-8\r
         Connection: close\r
         \r
-        <html><body><h1>\(message)</h1></body></html>
+        <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1">
+                <style>
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        text-align: center;
+                    }
+                    .error-icon {
+                        color: #FF3B30;
+                        font-size: 48px;
+                        margin: 20px 0;
+                    }
+                    .error-message {
+                        color: #666;
+                        margin: 10px 0;
+                    }
+                    .back-button {
+                        display: inline-block;
+                        background: #007AFF;
+                        color: white;
+                        padding: 10px 20px;
+                        border-radius: 5px;
+                        text-decoration: none;
+                        margin-top: 20px;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="error-icon">✕</div>
+                <h1>上传失败</h1>
+                <p class="error-message">\(message)</p>
+                <a href="/" class="back-button">返回重试</a>
+                <script>setTimeout(function() { window.location.href = '/'; }, 3000);</script>
+            </body>
+        </html>
         """
         connection.send(content: errorResponse.data(using: .utf8), completion: .contentProcessed({ _ in
             connection.cancel()
