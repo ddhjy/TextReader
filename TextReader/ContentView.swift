@@ -844,7 +844,10 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
             
             DispatchQueue.main.async {
-                self.books.append(newBook)
+                // 检查是否已存在相同 ID 的书籍
+                if !self.books.contains(where: { $0.id == newBook.id }) {
+                    self.books.append(newBook)
+                }
                 self.currentBook = newBook
                 self.loadContent(from: fileURL)
             }
