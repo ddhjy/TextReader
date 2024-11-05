@@ -237,6 +237,7 @@ struct ReadingControl: View {
                 Picker("速度", selection: $model.readingSpeed) {
                     Text("1x").tag(1.0 as Float)
                     Text("1.5x").tag(1.5 as Float)
+                    Text("1.75").tag(1.75 as Float)
                     Text("2x").tag(2.0 as Float)
                     Text("3x").tag(3.0 as Float)
                 }
