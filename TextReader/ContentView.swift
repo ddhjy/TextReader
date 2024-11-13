@@ -13,7 +13,7 @@ struct ContentView: View {
     @State private var showingSearchView = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             if model.isContentLoaded {
                 VStack(spacing: 0) {
                     ContentDisplay(model: model)
@@ -76,7 +76,7 @@ struct ContentView: View {
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $showingBookList) {
-            NavigationView {
+            NavigationStack {
                 BookListView(model: model)
             }
         }
@@ -84,7 +84,7 @@ struct ContentView: View {
             DocumentPicker(model: model)
         }
         .sheet(isPresented: $showingSearchView) {
-            NavigationView {
+            NavigationStack {
                 SearchView(model: model)
             }
         }
@@ -251,7 +251,7 @@ struct ReadingControl: View {
 struct SearchView: View {
     @ObservedObject var model: ContentModel
     @State private var searchText = ""
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack {
@@ -263,7 +263,7 @@ struct SearchView: View {
             List(model.searchResults, id: \.0) { index, preview in
                 Button(action: {
                     model.currentPageIndex = index
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }) {
                     VStack(alignment: .leading) {
                         Text("第 \(index + 1) 页").font(.headline)
@@ -277,7 +277,7 @@ struct SearchView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("取消") {
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }
             }
         }
@@ -286,7 +286,7 @@ struct SearchView: View {
 
 struct BookListView: View {
     @ObservedObject var model: ContentModel
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false
     @State private var bookToDelete: Book?
 
@@ -295,7 +295,7 @@ struct BookListView: View {
             ForEach(model.books) { book in
                 Button(action: {
                     model.loadBook(book)
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }) {
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
@@ -329,7 +329,7 @@ struct BookListView: View {
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button("完成") {
-                    presentationMode.wrappedValue.dismiss()
+                    dismiss()
                 }
             }
         }
