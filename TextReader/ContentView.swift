@@ -451,6 +451,8 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         loadBooks()
         loadSavedSettings()
         loadAvailableVoices()
+        
+        // 设置音频会话和远程控制
         setupAudioSession()
         setupRemoteCommandCenter()
     }
@@ -569,15 +571,18 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         let utterance = AVSpeechUtterance(string: pages[currentPageIndex])
         utterance.voice = selectedVoice ?? AVSpeechSynthesisVoice(language: "zh-CN")
         utterance.rate = readingSpeed * AVSpeechUtteranceDefaultSpeechRate
-
+        
         startBackgroundTask()
         synthesizer.speak(utterance)
+        
+        updateNowPlayingInfo()
     }
 
     func stopReading() {
         synthesizer.stopSpeaking(at: .immediate)
         isReading = false
         endBackgroundTask()
+        updateNowPlayingInfo()
     }
 
     private func restartReading() {
@@ -797,13 +802,21 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
         let nowPlayingInfo: [String: Any] = [
             MPMediaItemPropertyTitle: bookTitle,
             MPNowPlayingInfoPropertyPlaybackRate: isReading ? 1.0 : 0.0,
+            MPMediaItemPropertyArtist: "TextReader",
+            MPMediaItemPropertyPlaybackDuration: 0,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime: 0
         ]
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
     private func setupAudioSession() {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            // 设置音频会话类别为 playback,允许后台播放
+            try AVAudioSession.sharedInstance().setCategory(
+                .playback,
+                mode: .spokenAudio,
+                options: [.allowAirPlay, .allowBluetooth]
+            )
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
             print("设置音频会话失败: \(error)")
@@ -812,19 +825,20 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     private func setupRemoteCommandCenter() {
         let commandCenter = MPRemoteCommandCenter.shared()
-
+        
+        // 启用播放/暂停命令
         commandCenter.playCommand.isEnabled = true
         commandCenter.pauseCommand.isEnabled = true
-
+        
+        // 处理暂停命令
         commandCenter.pauseCommand.addTarget { [weak self] _ in
             self?.stopReading()
-            self?.updateNowPlayingInfo()
             return .success
         }
-
+        
+        // 处理播放命令
         commandCenter.playCommand.addTarget { [weak self] _ in
             self?.readCurrentPage()
-            self?.updateNowPlayingInfo()
             return .success
         }
     }
@@ -952,7 +966,7 @@ struct Book: Identifiable {
     let isBuiltIn: Bool
 }
 
-// 新增 DocumentPicker 视图
+// 新 DocumentPicker 视图
 struct DocumentPicker: UIViewControllerRepresentable {
     @ObservedObject var model: ContentModel
     @Environment(\.presentationMode) var presentationMode
