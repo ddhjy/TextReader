@@ -9,7 +9,6 @@ import MediaPlayer
 struct ContentView: View {
     @StateObject private var model = ContentModel()
     @State private var showingBookList = false
-    @State private var showingDocumentPicker = false
     @State private var showingSearchView = false
 
     var body: some View {
@@ -26,11 +25,6 @@ struct ContentView: View {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: { showingBookList = true }) {
                             Image(systemName: "book")
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: { showingDocumentPicker = true }) {
-                            Image(systemName: "square.and.arrow.down")
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -79,9 +73,6 @@ struct ContentView: View {
             NavigationStack {
                 BookListView(model: model)
             }
-        }
-        .sheet(isPresented: $showingDocumentPicker) {
-            DocumentPicker(model: model)
         }
         .sheet(isPresented: $showingSearchView) {
             NavigationStack {
