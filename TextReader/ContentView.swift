@@ -459,6 +459,20 @@ class ContentModel: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
 
     private func loadBooks() {
         var allBooks: [Book] = []
+        
+        // 1. 从 main bundle 中加载预置书本
+        let bundleBookFiles = [
+            ("使用说明", "使用说明"),
+        ]
+
+        let bundleBooks = bundleBookFiles.compactMap { (title, fileName) in
+            if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
+                return Book(title: title, fileName: fileName, isBuiltIn: true)
+            }
+            return nil
+        }
+        allBooks.append(contentsOf: bundleBooks)
+        
         // 从文档目录加载 WiFi 导入的书籍
         do {
             let documentsURL = try FileManager.default.url(
