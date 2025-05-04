@@ -16,11 +16,12 @@ class ContentViewModel: ObservableObject {
     @Published var books: [Book] = []
     @Published var currentBookId: String? // Track current book by ID
     @Published var searchResults: [(Int, String)] = []
-    @Published var serverAddress: String?
-    @Published var isServerRunning: Bool = false
+    @Published var serverAddress: String? = nil
+    @Published var isServerRunning = false
     @Published var showingBookList = false // State for sheets/navigation
     @Published var showingSearchView = false
     @Published var showingDocumentPicker = false // For file import
+    @Published var showingWiFiTransferView = false // 控制 WiFi 传输页面的显示状态
     @Published var bookProgressText: String? // For display in BookListView
 
     // --- Dependencies ---
