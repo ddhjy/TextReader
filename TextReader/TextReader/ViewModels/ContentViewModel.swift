@@ -54,16 +54,37 @@ class ContentViewModel: ObservableObject {
 
         // --- Setup Bindings & Load Initial Data ---
         loadInitialData()
-        setupBindings()
-        setupWiFiTransferCallbacks()
-        setupSpeechCallbacks()
+        
+        // 注册viewModel到audioSessionManager以处理中断
+        audioSessionManager.registerViewModel(self)
+        
+        // 设置音频会话
         audioSessionManager.setupAudioSession()
+        
+        // 设置远程控制中心
         audioSessionManager.setupRemoteCommandCenter(
             playAction: { [weak self] in self?.readCurrentPage() },
             pauseAction: { [weak self] in self?.stopReading() },
             nextAction: { [weak self] in self?.nextPage() },
             previousAction: { [weak self] in self?.previousPage() }
         )
+        
+        setupBindings()
+        setupWiFiTransferCallbacks()
+        setupSpeechCallbacks()
+        
+        // 添加isReading状态变化的监听，确保系统状态始终同步
+        $isReading
+            .dropFirst() // 忽略初始值
+            .sink { [weak self] isReading in
+                guard let self = self else { return }
+                // 状态发生变化时，强制同步
+                DispatchQueue.main.async {
+                    print("isReading状态变化: \(isReading)")
+                    self.audioSessionManager.synchronizePlaybackState(force: true)
+                }
+            }
+            .store(in: &cancellables)
     }
 
     // --- Loading ---
@@ -114,6 +135,51 @@ class ContentViewModel: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+            
+        // 设置定期同步定时器
+        setupSyncTimer()
+    }
+
+    // 定期检查和同步系统状态
+    private func setupSyncTimer() {
+        // 创建一个每秒触发一次的定时器，用于同步状态
+        Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                
+                // 检查语音管理器状态
+                let speechManagerActive = speechManager.isSpeaking
+                
+                // 如果状态不一致，进行修正
+                if self.isReading != speechManagerActive {
+                    print("检测到状态不一致: UI显示\(self.isReading ? "正在播放" : "已停止")，但语音管理器\(speechManagerActive ? "正在播放" : "已停止")")
+                    
+                    // 如果UI显示正在播放但语音管理器已停止，尝试恢复播放
+                    if self.isReading && !speechManagerActive {
+                        print("尝试恢复播放")
+                        // 在某些情况下可能需要重新开始播放
+                        DispatchQueue.main.async {
+                            self.speechManager.retryLastReading()
+                        }
+                    } 
+                    // 如果UI显示已停止但语音管理器仍在播放，强制停止
+                    else if !self.isReading && speechManagerActive {
+                        print("强制停止播放")
+                        DispatchQueue.main.async {
+                            self.speechManager.stopReading()
+                        }
+                    }
+                }
+                
+                // 每5秒强制同步一次控制中心状态
+                let now = Date().timeIntervalSince1970
+                if Int(now) % 5 == 0 {
+                    print("定期同步控制中心状态")
+                    self.audioSessionManager.synchronizePlaybackState()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     private func setupWiFiTransferCallbacks() {
@@ -128,24 +194,68 @@ class ContentViewModel: ObservableObject {
 
     private func setupSpeechCallbacks() {
         speechManager.onSpeechFinish = { [weak self] in
-            guard let self = self, self.isReading else { return }
-            // Auto-advance to next page
-            if self.currentPageIndex < self.pages.count - 1 {
-                self.currentPageIndex += 1
-                self.readCurrentPage()
-            } else {
-                self.isReading = false // Reached end of book
-                self.audioSessionManager.updateNowPlayingInfo(title: self.currentBookTitle, isPlaying: false)
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                guard self.isReading else { return }
+                
+                // Auto-advance to next page
+                if self.currentPageIndex < self.pages.count - 1 {
+                    self.currentPageIndex += 1
+                    self.readCurrentPage()
+                } else {
+                    self.isReading = false // Reached end of book
+                    // 确保最后一页播放完成后更新状态
+                    self.updateNowPlayingInfo()
+                }
             }
         }
+        
         speechManager.onSpeechStart = { [weak self] in
-            // Optional: Handle speech start event if needed
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // 确保语音开始时状态为正在播放
+                if !self.isReading {
+                    self.isReading = true
+                    self.updateNowPlayingInfo()
+                }
+            }
         }
+        
         speechManager.onSpeechPause = { [weak self] in
-            // Optional: Handle speech pause event if needed
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // 确保语音暂停时状态为暂停
+                if self.isReading {
+                    self.isReading = false
+                    self.updateNowPlayingInfo()
+                }
+            }
         }
+        
         speechManager.onSpeechResume = { [weak self] in
-            // Optional: Handle speech resume event if needed
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // 确保语音恢复时状态为播放
+                if !self.isReading {
+                    self.isReading = true
+                    self.updateNowPlayingInfo()
+                }
+            }
+        }
+        
+        // 处理语音合成错误
+        speechManager.onSpeechError = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                // 发生错误时重置状态
+                if self.isReading {
+                    self.isReading = false
+                    self.updateNowPlayingInfo()
+                    // 可以在这里添加错误提示
+                    print("语音合成出错，已停止播放")
+                }
+            }
         }
     }
 
@@ -362,24 +472,56 @@ class ContentViewModel: ObservableObject {
 
     func readCurrentPage() {
         guard !pages.isEmpty, currentPageIndex < pages.count else { return }
+        
+        print("开始朗读当前页")
         let textToRead = pages[currentPageIndex]
         let voice = availableVoices.first { $0.identifier == selectedVoiceIdentifier }
-        speechManager.startReading(text: textToRead, voice: voice, rate: readingSpeed)
+        
+        // 先设置状态为播放
         isReading = true
-        updateNowPlayingInfo()
+        
+        // 确保状态同步
+        DispatchQueue.main.async {
+            // 立即更新播放信息
+            self.updateNowPlayingInfo()
+            
+            // 然后开始语音播放
+            self.speechManager.startReading(text: textToRead, voice: voice, rate: self.readingSpeed)
+        }
     }
 
     func stopReading() {
+        print("停止朗读")
+        
+        // 确保语音合成器立即停止
         speechManager.stopReading()
+        
+        // 先设置状态为停止
         isReading = false
-        updateNowPlayingInfo()
+        
+        // 确保状态同步 - 强制执行两次更新以确保控制中心状态更新
+        DispatchQueue.main.async {
+            // 立即更新播放信息
+            self.updateNowPlayingInfo()
+            
+            // 额外再次清空播放信息
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                self.audioSessionManager.clearNowPlayingInfo()
+            }
+            
+            // 再次更新播放信息确保状态为暂停
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.updateNowPlayingInfo()
+            }
+        }
     }
 
     private func restartReading() {
         if isReading {
+            print("重新开始朗读")
             stopReading()
             // Add a small delay before restarting to ensure synthesizer is fully stopped
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.readCurrentPage()
             }
         }
@@ -432,7 +574,16 @@ class ContentViewModel: ObservableObject {
 
     // --- Now Playing Info ---
     private func updateNowPlayingInfo() {
-        audioSessionManager.updateNowPlayingInfo(title: currentBookTitle, isPlaying: isReading, currentPage: currentPageIndex + 1, totalPages: pages.count)
+        // 在主线程更新Now Playing信息并确保状态同步
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.audioSessionManager.updateNowPlayingInfo(
+                title: self.currentBookTitle,
+                isPlaying: self.isReading,
+                currentPage: self.currentPageIndex + 1,
+                totalPages: self.pages.count
+            )
+        }
     }
 
     // --- Cleanup ---
