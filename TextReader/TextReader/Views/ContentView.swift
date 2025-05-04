@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = ContentViewModel()
+    @State private var isCopied = false
 
     var body: some View {
         NavigationStack {
@@ -32,13 +33,14 @@ struct ContentView: View {
                         }
                     }
                 }
-                .overlay(
+                .overlay(alignment: .top) {
                     Group {
                         if let address = viewModel.serverAddress {
-                            VStack {
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text("WiFi 传输已开启")
                                     .font(.headline)
                                 Text("请在浏览器中访问：")
+                                    .font(.subheadline)
                                 HStack {
                                     Text(address)
                                         .font(.system(.body, design: .monospaced))
@@ -50,22 +52,31 @@ struct ContentView: View {
                                     Button {
                                         UIPasteboard.general.string = address
                                         print("地址已复制: \(address)")
+                                        withAnimation {
+                                            isCopied = true
+                                        }
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                                            withAnimation {
+                                                isCopied = false
+                                            }
+                                        }
                                     } label: {
-                                        Image(systemName: "doc.on.doc")
-                                            .foregroundColor(.blue)
+                                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                                            .foregroundColor(.accentColor)
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
                             .padding()
-                            .background(Color(.systemBackground))
+                            .background(.thinMaterial)
                             .cornerRadius(10)
                             .shadow(radius: 5)
-                            .transition(.move(edge: .top))
+                            .padding(.horizontal)
+                            .transition(.move(edge: .top).combined(with: .opacity))
                         }
                     }
-                    .animation(.spring(), value: viewModel.serverAddress)
-                )
+                    .animation(.spring(), value: viewModel.serverAddress != nil)
+                }
             } else {
                 ProgressView()
                     .scaleEffect(1.5)
