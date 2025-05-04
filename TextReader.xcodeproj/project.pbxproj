@@ -34,6 +34,8 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				"TextReader/Resources/使用说明.txt",
+				"TextReader/Supporting Files/Info.plist",
 			);
 			target = 0C9E2ACD2CA01AEF00302914 /* TextReader */;
 		};
