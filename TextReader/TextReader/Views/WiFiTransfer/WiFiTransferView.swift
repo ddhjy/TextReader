@@ -46,14 +46,15 @@ struct WiFiTransferView: View {
                             Button {
                                 UIPasteboard.general.string = address
                                 print("地址已复制: \(address)")
-                                withAnimation { isCopied = true }
+                                isCopied = true
                                 // 1.5 秒后自动隐藏"已复制"提示
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    withAnimation { isCopied = false }
+                                    isCopied = false
                                 }
                             } label: {
                                 Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
                                     .foregroundColor(isCopied ? .green : .accentColor) // 复制成功显示绿色对勾
+                                    .frame(width: 22, height: 22)
                             }
                             .buttonStyle(.plain) // 使用简洁按钮样式
                             .padding(.trailing)
