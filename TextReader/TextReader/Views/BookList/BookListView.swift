@@ -17,10 +17,23 @@ struct BookListView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(book.title)
                                 .foregroundColor(.primary)
-                            if let progressText = viewModel.getBookProgressDisplay(book: book) {
-                                Text(progressText)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                .font(.headline)
+                                .lineLimit(1)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                if let progressText = viewModel.getBookProgressDisplay(book: book) {
+                                    Text(progressText)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                                
+                                if let lastAccessedText = viewModel.getLastAccessedTimeDisplay(book: book) {
+                                    Text(lastAccessedText)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
                             }
                         }
                         Spacer()
