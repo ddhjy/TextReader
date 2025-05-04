@@ -69,9 +69,13 @@ class ContentViewModel: ObservableObject {
     // --- Loading ---
     private func loadInitialData() {
         self.books = libraryManager.loadBooks()
-        let lastBookId = settingsManager.getLastOpenedBookId() ?? books.first?.id
+        sortBooks() // 对书籍列表进行排序
+        
+        let lastBookId = settingsManager.getLastOpenedBookId()
         if let bookId = lastBookId, let bookToLoad = books.first(where: { $0.id == bookId }) {
             loadBook(bookToLoad)
+        } else if let firstBook = books.first { // 如果找不到上次的书，加载排序后的第一本
+            loadBook(firstBook)
         } else {
             isContentLoaded = true // No book to load
         }
@@ -146,12 +150,44 @@ class ContentViewModel: ObservableObject {
     }
 
     // --- Book Management ---
+    
+    // 添加排序方法
+    private func sortBooks() {
+        let sortedBooks = books.sorted { book1, book2 in
+            // 获取两本书的最后访问时间
+            let lastAccessed1 = libraryManager.getBookProgress(bookId: book1.id)?.lastAccessed
+            let lastAccessed2 = libraryManager.getBookProgress(bookId: book2.id)?.lastAccessed
+
+            // 排序逻辑：
+            // 1. 如果 book1 有访问时间，book2 没有，则 book1 在前
+            // 2. 如果 book1 没有，book2 有，则 book2 在前
+            // 3. 如果都有，按时间降序排列（最近的在前）
+            // 4. 如果都没有，保持原始相对顺序（或按标题等其他方式排序，这里保持稳定）
+            switch (lastAccessed1, lastAccessed2) {
+            case (let date1?, let date2?):
+                return date1 > date2 // 按时间降序
+            case (.some, .none):
+                return true // 有时间的在前
+            case (.none, .some):
+                return false // 没时间的在后
+            case (.none, .none):
+                // 两者都没有访问时间，可以按标题排序以保持稳定
+                return book1.title.localizedCompare(book2.title) == .orderedAscending
+            }
+        }
+        // 更新 @Published 属性以触发 UI 刷新
+        self.books = sortedBooks
+    }
+    
     func loadBook(_ book: Book) {
         stopReading() // Stop reading before changing book
         isContentLoaded = false
         currentBookId = book.id
         currentBookTitle = book.title
         settingsManager.saveLastOpenedBookId(book.id) // Save as last opened
+        
+        // 更新最后访问时间
+        libraryManager.updateLastAccessed(bookId: book.id)
 
         libraryManager.loadBookContent(book: book) { [weak self] result in
             DispatchQueue.main.async {
@@ -189,6 +225,7 @@ class ContentViewModel: ObservableObject {
             }
             // Update the books list
             self.books = self.libraryManager.loadBooks()
+            self.sortBooks() // 对书籍列表进行排序
 
             if wasCurrentBook {
                 // If the deleted book was the current one, load the first available book or clear the view
@@ -213,6 +250,7 @@ class ContentViewModel: ObservableObject {
             case .success(let newBook):
                 // Update book list and load the new book
                 self.books = self.libraryManager.loadBooks()
+                self.sortBooks() // 对书籍列表进行排序
                 self.loadBook(newBook)
                 // Optional: Show success message
             case .failure(let error):
@@ -237,6 +275,7 @@ class ContentViewModel: ObservableObject {
                 switch result {
                 case .success(let newBook):
                     self.books = self.libraryManager.loadBooks()
+                    self.sortBooks() // 对书籍列表进行排序
                     self.loadBook(newBook)
                     // Optional: Show success message
                 case .failure(let error):
@@ -254,6 +293,49 @@ class ContentViewModel: ObservableObject {
         return nil
     }
 
+    func getLastAccessedTimeDisplay(book: Book) -> String? {
+        guard let progress = libraryManager.getBookProgress(bookId: book.id),
+              let lastAccessed = progress.lastAccessed else {
+            return nil
+        }
+        
+        let now = Date()
+        let calendar = Calendar.current
+        
+        // 判断日期
+        if calendar.isDateInToday(lastAccessed) {
+            // 今天内的时间
+            let components = calendar.dateComponents([.minute, .hour], from: lastAccessed, to: now)
+            let totalMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+            
+            if totalMinutes < 5 {
+                return "刚刚阅读"
+            } else if totalMinutes < 60 {
+                return "\(totalMinutes)分钟前阅读"
+            } else {
+                return "\(components.hour ?? 0)小时前阅读"
+            }
+        } else if calendar.isDateInYesterday(lastAccessed) {
+            return "昨天阅读"
+        } else {
+            // 获取今年的范围
+            let currentYear = calendar.component(.year, from: now)
+            let accessedYear = calendar.component(.year, from: lastAccessed)
+            
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "zh_CN")
+            
+            if currentYear == accessedYear {
+                // 如果是今年，只显示月和日
+                formatter.dateFormat = "M月d日阅读"
+            } else {
+                // 不是今年，显示年月日
+                formatter.dateFormat = "yyyy年M月d日阅读"
+            }
+            
+            return formatter.string(from: lastAccessed)
+        }
+    }
 
     // --- Reading Control ---
     func nextPage() {

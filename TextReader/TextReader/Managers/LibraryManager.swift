@@ -161,14 +161,41 @@ class LibraryManager {
         return metadata.progress[bookId]
     }
     
+    func updateLastAccessed(bookId: String) {
+        var metadata = loadMetadata()
+        let now = Date() // 获取当前时间
+
+        // 检查该书的进度记录是否存在
+        if var progress = metadata.progress[bookId] {
+            // 如果存在，更新 lastAccessed 时间
+            progress.lastAccessed = now
+            metadata.progress[bookId] = progress
+            print("Updated lastAccessed for bookId: \(bookId) to \(now)")
+        } else {
+            // 如果不存在（理论上不太可能在访问时发生，但作为健壮性考虑），
+            // 可以选择创建一个新的记录，或者打印一个警告。
+            print("Warning: Attempting to update lastAccessed for bookId (\(bookId)) with no existing progress record. Timestamp not saved.")
+            // 如果一定要创建，则：
+            // metadata.progress[bookId] = BookProgress(currentPageIndex: 0, totalPages: 0, lastAccessed: now)
+        }
+
+        saveMetadata(metadata)
+    }
+    
     func saveBookProgress(bookId: String, pageIndex: Int) {
         var metadata = loadMetadata()
         
         // Get total pages (or use 0 if not available yet)
         let totalPages = metadata.progress[bookId]?.totalPages ?? 0
+        // 保留上次访问时间，如果有的话
+        let lastAccessed = metadata.progress[bookId]?.lastAccessed
         
         // Create or update progress
-        metadata.progress[bookId] = BookProgress(currentPageIndex: pageIndex, totalPages: totalPages)
+        metadata.progress[bookId] = BookProgress(
+            currentPageIndex: pageIndex,
+            totalPages: totalPages,
+            lastAccessed: lastAccessed
+        )
         
         saveMetadata(metadata)
     }
@@ -178,9 +205,15 @@ class LibraryManager {
         
         // Get current page (or use 0 if not available)
         let currentPage = metadata.progress[bookId]?.currentPageIndex ?? 0
+        // 保留上次访问时间，如果有的话
+        let lastAccessed = metadata.progress[bookId]?.lastAccessed
         
         // Update progress with new total
-        metadata.progress[bookId] = BookProgress(currentPageIndex: currentPage, totalPages: totalPages)
+        metadata.progress[bookId] = BookProgress(
+            currentPageIndex: currentPage,
+            totalPages: totalPages,
+            lastAccessed: lastAccessed
+        )
         
         saveMetadata(metadata)
     }

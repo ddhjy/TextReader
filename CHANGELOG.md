@@ -6,6 +6,9 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
+* **Book List Sorting**: Books in the list are now sorted by the last accessed time, with the most recently opened book appearing first. Unopened books appear at the end.
+* **Track Last Accessed Time**: The application now records when each book was last opened.
+* **Last Access Display**: Shows the last time a book was accessed in a user-friendly format (e.g., "刚刚阅读", "5分钟前阅读", "昨天阅读").
 * **File Import Button**: Added an 'Import' button to the `BookListView` to allow users to import `.txt` files using the system's document picker (`DocumentPicker` view).
 * **Copy WiFi URL**: Added a button to the Wi-Fi transfer overlay to allow users to copy the server URL directly to the clipboard.
 * **WiFi Transfer Page**: Created a dedicated page (`WiFiTransferView`) for managing WiFi file transfers, accessible via a toolbar button. Allows users to start/stop the transfer service and view/copy the access URL.
@@ -27,6 +30,7 @@
 
 ### Changed
 * Refactored core components like `LibraryManager`, `SpeechManager`, and `ContentViewModel` for better separation of concerns.
+* **Book List Sorting Mechanism**: Implemented sorting logic within `ContentViewModel` based on the new `lastAccessed` timestamp managed by `LibraryManager`.
 
 ## [0.1.0] - 2024-07-20
 
