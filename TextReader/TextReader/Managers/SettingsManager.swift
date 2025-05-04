@@ -28,9 +28,9 @@ class SettingsManager {
         return defaults.string(forKey: Keys.selectedVoiceIdentifier)
     }
 
-    // Last Opened Book
-    func saveLastOpenedBookId(_ bookId: String) {
-        defaults.set(bookId, forKey: Keys.lastOpenedBookId)
+    // Last Opened Book (fileName)
+    func saveLastOpenedBookId(_ bookFileName: String) {
+        defaults.set(bookFileName, forKey: Keys.lastOpenedBookId)
     }
 
     func getLastOpenedBookId() -> String? {
