@@ -39,8 +39,23 @@ struct ContentView: View {
                                 Text("WiFi 传输已开启")
                                     .font(.headline)
                                 Text("请在浏览器中访问：")
-                                Text(address)
-                                    .font(.system(.body, design: .monospaced))
+                                HStack {
+                                    Text(address)
+                                        .font(.system(.body, design: .monospaced))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+
+                                    Spacer()
+
+                                    Button {
+                                        UIPasteboard.general.string = address
+                                        print("地址已复制: \(address)")
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                            .foregroundColor(.blue)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
                             }
                             .padding()
                             .background(Color(.systemBackground))
@@ -49,6 +64,7 @@ struct ContentView: View {
                             .transition(.move(edge: .top))
                         }
                     }
+                    .animation(.spring(), value: viewModel.serverAddress)
                 )
             } else {
                 ProgressView()
