@@ -15,17 +15,17 @@ struct RepeatButton<Label: View>: View {
             .onLongPressGesture(minimumDuration: 0.2, pressing: { pressing in
                 self.isPressed = pressing
                 if pressing {
-                    // 开始定时器，每0.1秒调用一次长按操作
+                    // Start timer, call longPressAction every 0.1 seconds
                     self.timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
                         self.longPressAction()
                     }
                 } else {
-                    // 停止定时器
+                    // Stop timer
                     self.timer?.invalidate()
                     self.timer = nil
                 }
             }, perform: {
-                // 长按手势完成后的操作（可留空）
+                // Action after long press gesture completes (can be empty)
             })
             .simultaneousGesture(
                 TapGesture()

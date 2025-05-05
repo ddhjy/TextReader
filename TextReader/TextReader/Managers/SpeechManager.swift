@@ -41,10 +41,10 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     }
 
     func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) {
-        print("SpeechManager: 开始朗读请求")
+        print("SpeechManager: Start reading request")
         
         guard !text.isEmpty else {
-            print("SpeechManager: 无法朗读空文本")
+            print("SpeechManager: Cannot read empty text")
             didEncounterError = true
             onSpeechError?()
             return 
@@ -70,14 +70,14 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
             utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
             utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
             
-            print("SpeechManager: 开始语音合成")
+            print("SpeechManager: Starting speech synthesis")
             self.synthesizer.speak(utterance)
             
             // Check if playback actually started successfully
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 guard let self = self else { return }
                 if !self.synthesizer.isSpeaking && !self.didEncounterError {
-                    print("SpeechManager: 检测到播放没有成功开始")
+                    print("SpeechManager: Detected playback did not start successfully")
                     self.didEncounterError = true
                     self.onSpeechError?()
                 }
@@ -86,10 +86,10 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     }
 
     func stopReading() {
-        print("SpeechManager: 停止朗读请求")
+        print("SpeechManager: Stop reading request")
         
         if synthesizer.isSpeaking || synthesizer.isPaused {
-            print("SpeechManager: 停止当前语音")
+            print("SpeechManager: Stopping current speech")
             synthesizer.stopSpeaking(at: .immediate)
         }
         
@@ -101,7 +101,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
 
     func pauseReading() {
         if synthesizer.isSpeaking {
-            print("SpeechManager: 暂停朗读")
+            print("SpeechManager: Pausing reading")
             synthesizer.pauseSpeaking(at: .word)
             isSpeaking = false
             onSpeechPause?()
@@ -111,7 +111,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
 
     func resumeReading() {
         if synthesizer.isPaused {
-            print("SpeechManager: 恢复朗读")
+            print("SpeechManager: Resuming reading")
             synthesizer.continueSpeaking()
             isSpeaking = true
             onSpeechResume?()
@@ -121,7 +121,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     /// Attempts to retry reading the last text that was played
     func retryLastReading() {
         if let text = lastText, let voice = lastVoice {
-            print("SpeechManager: 重试上次朗读")
+            print("SpeechManager: Retrying last reading")
             startReading(text: text, voice: voice, rate: lastRate)
         }
     }
@@ -131,7 +131,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: 朗读完成")
+            print("SpeechManager: Reading finished")
             self.isSpeaking = false
             self.endBackgroundTask()
             self.onSpeechFinish?()
@@ -141,7 +141,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: 朗读被取消")
+            print("SpeechManager: Reading cancelled")
             self.isSpeaking = false
             self.endBackgroundTask()
         }
@@ -150,7 +150,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: 朗读已暂停")
+            print("SpeechManager: Reading paused")
             self.isSpeaking = false
             self.onSpeechPause?()
         }
@@ -159,7 +159,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: 朗读已恢复")
+            print("SpeechManager: Reading resumed")
             self.isSpeaking = true
             self.onSpeechResume?()
         }
@@ -168,7 +168,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: 朗读已开始")
+            print("SpeechManager: Reading started")
             self.isSpeaking = true
             self.onSpeechStart?()
         }
@@ -177,7 +177,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, 
                            willSpeakRangeOfSpeechString characterRange: NSRange, 
                            utterance: AVSpeechUtterance) {
-        // Monitor reading progress to ensure it's ongoing
+        
     }
 
     // MARK: - Background Task Management
@@ -187,7 +187,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
         endBackgroundTask() // End any previous task first
         backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
             // Handle task timeout
-            print("SpeechManager: 后台任务即将超时")
+            print("SpeechManager: Background task about to timeout")
             self?.endBackgroundTask()
             
             // Report error if still speaking when task times out
@@ -197,13 +197,13 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
             }
         }
         
-        print("SpeechManager: 开始后台任务 ID=\(backgroundTask.rawValue)")
+        print("SpeechManager: Started background task ID=\(backgroundTask.rawValue)")
     }
 
     /// Ends the current background task if one exists
     private func endBackgroundTask() {
         if backgroundTask != .invalid {
-            print("SpeechManager: 结束后台任务 ID=\(backgroundTask.rawValue)")
+            print("SpeechManager: Ended background task ID=\(backgroundTask.rawValue)")
             UIApplication.shared.endBackgroundTask(backgroundTask)
             backgroundTask = .invalid
         }

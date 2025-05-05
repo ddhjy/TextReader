@@ -10,11 +10,11 @@ struct PageControl: View {
                 .foregroundColor(.secondary)
 
             HStack {
-                // 上一页按钮
+                // Previous page button
                 RepeatButton(
                     action: { viewModel.previousPage() },
                     longPressAction: {
-                        // 长按时持续调用 previousPage
+                        // Continuously call previousPage on long press
                         if viewModel.currentPageIndex > 0 {
                             viewModel.previousPage()
                         }
@@ -35,11 +35,11 @@ struct PageControl: View {
 
                 Spacer()
 
-                // 下一页按钮
+                // Next page button
                 RepeatButton(
                     action: { viewModel.nextPage() },
                     longPressAction: {
-                        // 长按时持续调用 nextPage
+                        // Continuously call nextPage on long press
                         if viewModel.currentPageIndex < viewModel.pages.count - 1 {
                             viewModel.nextPage()
                         }

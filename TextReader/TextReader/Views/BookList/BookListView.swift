@@ -48,12 +48,12 @@ struct BookListView: View {
                         bookToDelete = book
                         showingDeleteAlert = true
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label("Delete", systemImage: "trash")
                     }
                 }
             }
         }
-        .navigationTitle("选择书本")
+        .navigationTitle("Select Book")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { 
@@ -65,7 +65,7 @@ struct BookListView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("完成") {
+                Button("Done") {
                     dismiss()
                 }
             }
@@ -73,16 +73,16 @@ struct BookListView: View {
         .sheet(isPresented: $viewModel.showingDocumentPicker) {
             DocumentPicker(viewModel: viewModel)
         }
-        .alert("确认删除", isPresented: $showingDeleteAlert) {
-            Button("取消", role: .cancel) {}
-            Button("删除", role: .destructive) {
+        .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
                 if let book = bookToDelete {
                     viewModel.deleteBook(book)
                 }
             }
         } message: {
             if let book = bookToDelete {
-                Text("确定要删除《\(book.title)》吗？此操作不可恢复。")
+                Text("Are you sure you want to delete \"\(book.title)\"? This action cannot be undone.")
             }
         }
     }

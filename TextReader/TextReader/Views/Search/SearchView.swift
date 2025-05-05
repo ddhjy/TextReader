@@ -17,17 +17,17 @@ struct SearchView: View {
                     viewModel.jumpToSearchResult(pageIndex: index)
                 }) {
                     VStack(alignment: .leading) {
-                        Text("第 \(index + 1) 页").font(.headline)
+                        Text("Page \(index + 1)").font(.headline)
                         Text(preview).lineLimit(2)
                     }
                 }
             }
         }
-        .navigationTitle("搜索")
+        .navigationTitle("Search")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("取消") {
+                Button("Cancel") {
                     dismiss()
                 }
             }
