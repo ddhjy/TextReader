@@ -287,10 +287,15 @@ class LibraryManager {
         if var progress = metadata.progress[bookId] {
             progress.lastAccessed = now
             metadata.progress[bookId] = progress
-            print("Updated lastAccessed for bookId: \(bookId) to \(now)")
+            print("[LibraryManager] Updated lastAccessed for bookId: \(bookId) to \(now)")
         } else {
-            // For robustness, handle the case where no progress record exists yet
-            print("Warning: Attempting to update lastAccessed for bookId (\(bookId)) with no existing progress record. Timestamp not saved.")
+            // 创建新的进度记录，而不只是发出警告
+            print("[LibraryManager] Creating new progress record with lastAccessed for bookId: \(bookId)")
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: 0,
+                totalPages: 0,
+                lastAccessed: now
+            )
         }
 
         saveMetadata(metadata)
