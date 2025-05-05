@@ -46,41 +46,33 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
         guard !text.isEmpty else {
             print("SpeechManager: Cannot read empty text")
             didEncounterError = true
-            onSpeechError?()
+            DispatchQueue.main.async {
+                self.onSpeechError?()
+            }
             return 
         }
         
         lastText = text
         lastVoice = voice
         lastRate = rate
-
         didEncounterError = false
-        
-        // Ensure any ongoing playback is stopped
-        stopReading()
         
         // Start background task to allow speech synthesis to continue in background
         startBackgroundTask()
 
-        // Add a short delay to ensure previous operations are completed
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
+        
+        print("SpeechManager: Starting speech synthesis")
+        self.synthesizer.speak(utterance)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self else { return }
-            
-            let utterance = AVSpeechUtterance(string: text)
-            utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
-            utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
-            
-            print("SpeechManager: Starting speech synthesis")
-            self.synthesizer.speak(utterance)
-            
-            // Check if playback actually started successfully
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                if !self.synthesizer.isSpeaking && !self.didEncounterError {
-                    print("SpeechManager: Detected playback did not start successfully")
-                    self.didEncounterError = true
-                    self.onSpeechError?()
-                }
+            if !self.synthesizer.isSpeaking && !self.didEncounterError {
+                print("SpeechManager: Detected playback did not start successfully")
+                self.didEncounterError = true
+                self.onSpeechError?()
             }
         }
     }

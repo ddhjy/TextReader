@@ -425,16 +425,51 @@ class ContentViewModel: ObservableObject {
     // MARK: - Reading Control
     func nextPage() {
         guard currentPageIndex < pages.count - 1 else { return }
-        stopReadingIfActive()
-        currentPageIndex += 1
-        startReadingIfWasActive()
+        
+        let wasReading = self.isReading // 记录翻页前的朗读状态
+
+        if wasReading {
+            // 如果在朗读，立即停止当前页的朗读，但不需要完全执行 stopReading() 中的所有 UI 更新和延迟操作
+            // 只需要停止 SpeechManager 即可
+            speechManager.stopReading()
+            // 不立即设置 isReading = false，因为马上可能就要开始读下一页
+            // 也不在这里调用 updateNowPlayingInfo，因为 index 还没更新
+        }
+
+        currentPageIndex += 1 // 更新页面索引
+
+        if wasReading {
+            // 如果翻页前在朗读，立即开始朗读新页面
+            // 使用 DispatchQueue.main.async 确保在 UI 更新后执行朗读，避免潜在冲突
+            DispatchQueue.main.async {
+                self.readCurrentPage() // readCurrentPage 内部会设置 isReading = true 并更新 NowPlayingInfo
+            }
+        } else {
+            // 如果翻页前没有朗读，只需要更新 NowPlayingInfo 的页码信息
+            updateNowPlayingInfo()
+        }
     }
 
     func previousPage() {
         guard currentPageIndex > 0 else { return }
-        stopReadingIfActive()
-        currentPageIndex -= 1
-        startReadingIfWasActive()
+        
+        let wasReading = self.isReading // 记录翻页前的朗读状态
+
+        if wasReading {
+            // 同 nextPage 的逻辑
+            speechManager.stopReading()
+        }
+
+        currentPageIndex -= 1 // 更新页面索引
+
+        if wasReading {
+            // 同 nextPage 的逻辑
+            DispatchQueue.main.async {
+                self.readCurrentPage()
+            }
+        } else {
+            updateNowPlayingInfo()
+        }
     }
 
     func toggleReading() {
@@ -471,21 +506,12 @@ class ContentViewModel: ObservableObject {
         speechManager.stopReading()
         
         // Set state to stopped
-        isReading = false
-        
-        // Force multiple updates to ensure control center updates properly
-        DispatchQueue.main.async {
-            self.updateNowPlayingInfo()
-            
-            // Additional clearing of playing info
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                self.audioSessionManager.clearNowPlayingInfo()
-            }
-            
-            // Final update to ensure paused state
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                self.updateNowPlayingInfo()
-            }
+        let needsUpdate = isReading // Only update NowPlaying if state actually changes
+        if needsUpdate {
+            isReading = false
+            // Update Now Playing info ONCE immediately to reflect the stopped state
+            // The AudioSessionManager's periodic sync will handle further consistency checks.
+            updateNowPlayingInfo()
         }
     }
 
@@ -498,27 +524,6 @@ class ContentViewModel: ObservableObject {
                 self?.readCurrentPage()
             }
         }
-    }
-
-    // Helper methods to manage reading state during page turns
-    private var wasReadingBeforePageTurn: Bool = false
-    
-    private func stopReadingIfActive() {
-        if isReading {
-            wasReadingBeforePageTurn = true
-            stopReading()
-        } else {
-            wasReadingBeforePageTurn = false
-        }
-    }
-    
-    private func startReadingIfWasActive() {
-        if wasReadingBeforePageTurn {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.readCurrentPage()
-            }
-        }
-        wasReadingBeforePageTurn = false
     }
 
     // MARK: - Search
