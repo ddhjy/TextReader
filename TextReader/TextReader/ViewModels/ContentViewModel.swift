@@ -153,9 +153,17 @@ class ContentViewModel: ObservableObject {
                 
                 // 如果状态不一致，进行修正
                 if self.isReading != speechManagerActive {
-                    print("检测到状态不一致: UI显示\(self.isReading ? "正在播放" : "已停止")，但语音管理器\(speechManagerActive ? "正在播放" : "已停止")")
+                    print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
                     
-                    // 如果UI显示正在播放但语音管理器已停止，尝试恢复播放
+                    // 如果UI显示已停止但语音管理器仍在播放，强制停止
+                    if !self.isReading && speechManagerActive {
+                        print("强制停止播放")
+                        DispatchQueue.main.async {
+                            self.speechManager.stopReading()
+                        }
+                    }
+                    // 移除尝试恢复播放的逻辑，因为它会与 onSpeechFinish 冲突
+                    /*
                     if self.isReading && !speechManagerActive {
                         print("尝试恢复播放")
                         // 在某些情况下可能需要重新开始播放
@@ -163,19 +171,14 @@ class ContentViewModel: ObservableObject {
                             self.speechManager.retryLastReading()
                         }
                     } 
-                    // 如果UI显示已停止但语音管理器仍在播放，强制停止
-                    else if !self.isReading && speechManagerActive {
-                        print("强制停止播放")
-                        DispatchQueue.main.async {
-                            self.speechManager.stopReading()
-                        }
-                    }
+                    */
                 }
                 
                 // 每5秒强制同步一次控制中心状态
                 let now = Date().timeIntervalSince1970
                 if Int(now) % 5 == 0 {
-                    print("定期同步控制中心状态")
+                    // 可以考虑减少日志频率或移除 "定期同步控制中心状态" 的打印
+                    // print("定期同步控制中心状态")
                     self.audioSessionManager.synchronizePlaybackState()
                 }
             }
@@ -196,8 +199,18 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechFinish = { [weak self] in
             guard let self = self else { return }
             
+            // 保存完成朗读时的页面索引，用于后续校验
+            let finishedPageIndex = self.currentPageIndex
+            
             DispatchQueue.main.async {
                 guard self.isReading else { return }
+                
+                // 添加页面索引校验，确保当前页面索引与完成朗读时的页面索引一致
+                // 这可以防止用户手动翻页与自动翻页产生竞态条件
+                guard self.currentPageIndex == finishedPageIndex else {
+                    print("页面已经改变，不执行自动翻页")
+                    return
+                }
                 
                 // Auto-advance to next page
                 if self.currentPageIndex < self.pages.count - 1 {
