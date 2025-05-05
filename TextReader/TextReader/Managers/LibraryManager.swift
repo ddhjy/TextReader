@@ -41,8 +41,12 @@ class LibraryManager {
                 options: .skipsHiddenFiles
             )
             
-            let txtFiles = fileURLs.filter { $0.pathExtension.lowercased() == "txt" }
-            let importedBooks = txtFiles.map { url in
+            let allowedExtensions = ["txt", "md"]
+            let importedFiles = fileURLs.filter { url in
+                allowedExtensions.contains(url.pathExtension.lowercased())
+            }
+            
+            let importedBooks = importedFiles.map { url in
                 let title = url.deletingPathExtension().lastPathComponent
                 let fileName = url.lastPathComponent
                 return Book(title: title, fileName: fileName, isBuiltIn: false)

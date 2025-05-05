@@ -6,7 +6,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) var presentationMode
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
-        let supportedTypes: [UTType] = [.text, .plainText]
+        let supportedTypes: [UTType] = [.text, .plainText, .markdown]
         let picker = UIDocumentPickerViewController(forOpeningContentTypes: supportedTypes, asCopy: true)
         picker.delegate = context.coordinator
         picker.shouldShowFileExtensions = true
