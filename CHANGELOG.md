@@ -1,10 +1,10 @@
 ## [Unreleased]
 
 ### Refactor
+* **Optimized Code Comments**: Removed redundant and outdated comments (including one in `SpeechManager`), clarified important logic with improved documentation comments, and converted remaining Chinese comments to English across multiple files (e.g., `AudioSessionManager`, `SpeechManager`, `ContentViewModel`, `WiFiTransferView`) for better maintainability and internationalization.
 * **Decomposed `ContentModel`**: Extracted business logic from `ContentView` into a dedicated `ContentViewModel` to improve separation of concerns and testability.
 * **Introduced ViewModel**: Implemented `ContentViewModel` as an `@StateObject` to manage the state and logic for `ContentView`, including text loading, page navigation, settings, search, and Wi-Fi transfer.
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
-* **Optimized Code Comments**: Removed redundant and outdated comments, clarified important logic with improved documentation comments, and converted Chinese comments to English for better maintainability.
 
 ### Added
 * **Book List Sorting**: Books in the list are now sorted by the last accessed time, with the most recently opened book appearing first. Unopened books appear at the end.

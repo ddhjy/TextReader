@@ -6,9 +6,9 @@ struct ReadingControl: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
-                Text("音色")
+                Text("Voice")
                 Spacer()
-                Picker("音色", selection: $viewModel.selectedVoiceIdentifier) {
+                Picker("Voice", selection: $viewModel.selectedVoiceIdentifier) {
                     ForEach(viewModel.availableVoices, id: \.identifier) { voice in
                         Text(voice.name).tag(voice.identifier as String?)
                     }
@@ -17,9 +17,9 @@ struct ReadingControl: View {
             }
 
             HStack {
-                Text("速度")
+                Text("Speed")
                 Spacer()
-                Picker("速度", selection: $viewModel.readingSpeed) {
+                Picker("Speed", selection: $viewModel.readingSpeed) {
                     Text("1x").tag(1.0 as Float)
                     Text("1.5x").tag(1.5 as Float)
                     Text("1.75").tag(1.75 as Float)

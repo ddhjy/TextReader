@@ -1,8 +1,8 @@
 import SwiftUI
 import Combine
-import AVFoundation // 仅用于 Voice 类型
+import AVFoundation // For Voice type only
 
-// 依赖注入各个 Service/Manager
+// Inject dependencies (Services/Managers)
 class ContentViewModel: ObservableObject {
     // MARK: - Published Properties for UI Binding
     @Published var pages: [String] = []
