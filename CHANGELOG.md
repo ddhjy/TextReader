@@ -23,9 +23,11 @@
 * **Remote Controls**: Added support for controlling playback (play/pause, next/previous page) via remote controls (e.g., headphones, Control Center).
 
 ### Fixed
+* **朗读自动翻页跳页**: 修复了在朗读自动翻页时可能一次翻两页的问题。此问题可能由两个原因引起：1) 用户手动翻页与自动翻页回调的竞态条件；2) `ContentViewModel` 中状态同步定时器与自动翻页回调之间的冲突。通过在 `onSpeechFinish` 回调中增加页面索引校验，并移除定时器中不必要的自动重试播放逻辑，解决了这些冲突。
 * Improved handling of reading state transitions when changing pages or settings.
-* Corrected issues with page calculation and display when font size or other settings are modified.
-* Enhanced error handling for file loading and processing.
+* Enhanced robustness of text pagination for edge cases (e.g., very long sentences, text without standard sentence structure).
+* Improved background audio task management in `SpeechManager`.
+* Correctly saves and restores total page count for books in `LibraryManager`.
 * **Reading Progress Loss**: Fixed an issue where reading progress was lost after restarting the app. This was caused by unstable book identifiers (UUIDs generated on each launch). The fix implements stable identifiers based on filenames, ensuring progress is correctly associated with each book and persists across sessions.
 
 ### Changed
