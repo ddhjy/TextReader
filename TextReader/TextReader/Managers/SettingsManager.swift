@@ -9,7 +9,7 @@ class SettingsManager {
         static let lastOpenedBookId = "currentBookID" // Keep old key for compatibility or migrate
     }
 
-    // Reading Speed
+    // MARK: - Reading Speed
     func saveReadingSpeed(_ speed: Float) {
         defaults.set(speed, forKey: Keys.readingSpeed)
     }
@@ -19,7 +19,7 @@ class SettingsManager {
         return speed == 0 ? 1.0 : speed // Return 1.0 if not set or invalid
     }
 
-    // Selected Voice
+    // MARK: - Selected Voice
     func saveSelectedVoiceIdentifier(_ identifier: String) {
         defaults.set(identifier, forKey: Keys.selectedVoiceIdentifier)
     }
@@ -28,7 +28,7 @@ class SettingsManager {
         return defaults.string(forKey: Keys.selectedVoiceIdentifier)
     }
 
-    // Last Opened Book (fileName)
+    // MARK: - Last Opened Book
     func saveLastOpenedBookId(_ bookFileName: String) {
         defaults.set(bookFileName, forKey: Keys.lastOpenedBookId)
     }

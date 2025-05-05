@@ -1,11 +1,16 @@
 import Foundation
 
 class TextPaginator {
-    // Keep the existing logic, but encapsulated
+    /// Splits text into pages based on character count.
+    /// - Parameters:
+    ///   - text: The text content to paginate
+    ///   - maxPageSize: Maximum number of characters per page (default: 100)
+    /// - Returns: Array of string pages
     func paginate(text: String, maxPageSize: Int = 100) -> [String] { // Default kept for consistency, maybe make configurable later
         print("Paginating text...")
         var sentences = [String]()
         var currentSentence = ""
+        
         // Use String.enumerateSubstrings for more robust sentence splitting
         text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: [.bySentences, .localized]) { substring, _, _, _ in
             if let sentence = substring {
@@ -13,10 +18,10 @@ class TextPaginator {
             }
         }
         
-        if sentences.isEmpty && !text.isEmpty { // Handle case where enumeration finds no sentences (e.g., no punctuation)
+        // Handle case where enumeration finds no sentences (e.g., no punctuation)
+        if sentences.isEmpty && !text.isEmpty {
             sentences = text.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         }
-
 
         var pages = [String]()
         var currentPageContent = ""
@@ -27,13 +32,13 @@ class TextPaginator {
             let sentenceCharCount = sentence.count
 
             if sentenceCharCount > maxPageSize {
-                // If a single sentence is too long, add the current page (if any) and then add the long sentence as its own page(s)
+                // Handle very long sentences by splitting them across multiple pages
                 if !currentPageContent.isEmpty {
                     pages.append(currentPageContent)
                     currentPageContent = ""
                     currentPageCharCount = 0
                 }
-                // Simple split for very long sentences (could be improved)
+                
                 var remainingSentence = sentence
                 while remainingSentence.count > maxPageSize {
                     let splitIndex = remainingSentence.index(remainingSentence.startIndex, offsetBy: maxPageSize)
@@ -41,14 +46,14 @@ class TextPaginator {
                     remainingSentence = String(remainingSentence[splitIndex...])
                 }
                 if !remainingSentence.isEmpty {
-                    pages.append(remainingSentence) // Add the remainder
+                    pages.append(remainingSentence)
                 }
 
             } else if currentPageCharCount + sentenceCharCount <= maxPageSize {
                 // Add sentence to the current page
                 if !currentPageContent.isEmpty {
-                    // Add spacing if needed (consider if sentences already end with space/newline)
-                    currentPageContent += " " // Or potentially "\n" depending on desired formatting
+                    // Add spacing between sentences
+                    currentPageContent += " "
                     currentPageCharCount += 1
                 }
                 currentPageContent += sentence
@@ -67,6 +72,7 @@ class TextPaginator {
         if !currentPageContent.isEmpty {
             pages.append(currentPageContent)
         }
+        
         print("Pagination complete. \(pages.count) pages.")
         return pages.isEmpty ? ["无内容"] : pages // Ensure there's always at least one element for the UI
     }

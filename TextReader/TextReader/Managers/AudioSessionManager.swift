@@ -5,12 +5,11 @@ class AudioSessionManager: NSObject {
     private weak var contentViewModel: ContentViewModel?
     private var isAudioSessionActive = false
     
-    // 记录播放状态，以确保与系统状态一致
+    /// Tracks the playback state according to system events (remote commands, interruptions) to ensure consistency.
     private var isSystemPlaybackActive = false
 
     override init() {
         super.init()
-        // 注册更多相关通知
         setupNotifications()
     }
     
@@ -18,6 +17,7 @@ class AudioSessionManager: NSObject {
         NotificationCenter.default.removeObserver(self)
     }
     
+    /// Sets up observers for audio session notifications like interruptions and route changes.
     private func setupNotifications() {
         // 音频会话中断通知
         NotificationCenter.default.addObserver(
@@ -52,7 +52,7 @@ class AudioSessionManager: NSObject {
         )
     }
     
-    // 使用此方法注册ContentViewModel引用
+    /// Registers the ContentViewModel to allow callbacks on audio events.
     func registerViewModel(_ viewModel: ContentViewModel) {
         self.contentViewModel = viewModel
     }
@@ -82,27 +82,22 @@ class AudioSessionManager: NSObject {
         
         let commandCenter = MPRemoteCommandCenter.shared()
 
-        // 播放命令
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] event in
             print("Remote command: PLAY")
-            // 首先更新我们内部记录的状态
             self?.isSystemPlaybackActive = true
             playAction()
             return .success
         }
 
-        // 暂停命令
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] event in
             print("Remote command: PAUSE")
-            // 首先更新我们内部记录的状态
             self?.isSystemPlaybackActive = false
             pauseAction()
             return .success
         }
 
-        // 下一页命令
         if let next = nextAction {
             commandCenter.nextTrackCommand.isEnabled = true
             commandCenter.nextTrackCommand.addTarget { _ in 
@@ -114,7 +109,6 @@ class AudioSessionManager: NSObject {
             commandCenter.nextTrackCommand.isEnabled = false
         }
 
-        // 上一页命令
         if let prev = previousAction {
             commandCenter.previousTrackCommand.isEnabled = true
             commandCenter.previousTrackCommand.addTarget { _ in 
@@ -129,7 +123,7 @@ class AudioSessionManager: NSObject {
         print("Remote command center configured.")
     }
     
-    // 清理现有的远程控制目标
+    /// Removes existing targets from remote command center commands.
     private func clearRemoteCommandTargets() {
         let commandCenter = MPRemoteCommandCenter.shared()
         commandCenter.playCommand.removeTarget(nil)
@@ -138,7 +132,7 @@ class AudioSessionManager: NSObject {
         commandCenter.previousTrackCommand.removeTarget(nil)
     }
 
-    // 核心方法：更新系统播放信息
+    /// Updates the MPNowPlayingInfoCenter with current book title, page, and playback state.
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
         // 如果状态是停止播放，先尝试清除现有信息，以确保控制中心刷新状态
         if !isPlaying {
@@ -152,7 +146,6 @@ class AudioSessionManager: NSObject {
             nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
             nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
             
-            // 使用更多属性强化播放状态
             nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = false
             
             // 添加一个小的虚拟播放时长和进度，帮助控制中心更好地识别状态
@@ -171,7 +164,6 @@ class AudioSessionManager: NSObject {
             // 更新我们内部记录的系统播放状态
             self.isSystemPlaybackActive = isPlaying
             
-            // 确保内部状态与控制中心状态一致
             print("Updating NowPlayingInfo: \(isPlaying ? "PLAYING" : "PAUSED") - 强制更新")
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
             
@@ -185,7 +177,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 额外的方法，强制系统识别暂停状态
+    /// Attempts to force the system (Control Center, Lock Screen) to recognize the paused state.
     private func forceSystemToRecognizePausedState() {
         do {
             // 暂时停用然后重新激活音频会话，帮助系统识别状态变化
@@ -208,7 +200,7 @@ class AudioSessionManager: NSObject {
         }
     }
 
-    // 确保音频会话活跃状态与播放状态一致
+    /// Ensures the audio session is active only when playback is expected.
     private func updateAudioSessionIfNeeded(isPlaying: Bool) {
         if isPlaying && !isAudioSessionActive {
             do {
@@ -221,8 +213,8 @@ class AudioSessionManager: NSObject {
         }
     }
 
+    /// Clears the MPNowPlayingInfoCenter.
     func clearNowPlayingInfo() {
-        // 确保完全清除播放信息
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
         isSystemPlaybackActive = false
         
@@ -232,7 +224,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 强制同步播放状态 - 可以在出现不一致时调用
+    /// Synchronizes the app's internal playback state with the Now Playing info, especially when discrepancies are detected or forced.
     func synchronizePlaybackState(force: Bool = false) {
         guard let viewModel = contentViewModel else { return }
         
@@ -252,7 +244,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 处理音频中断
+    /// Handles audio session interruptions (e.g., phone calls).
     @objc private func handleAudioSessionInterruption(notification: Notification) {
         guard let userInfo = notification.userInfo,
               let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
@@ -306,7 +298,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 处理音频路由变化
+    /// Handles audio route changes (e.g., headphones unplugged).
     @objc private func handleAudioRouteChange(notification: Notification) {
         guard let userInfo = notification.userInfo,
               let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
@@ -338,7 +330,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 应用回到前台时，同步播放状态
+    /// Synchronizes playback state when the app becomes active.
     @objc private func handleAppDidBecomeActive(notification: Notification) {
         print("应用回到前台，同步播放状态")
         DispatchQueue.main.async {
@@ -346,7 +338,7 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // 应用进入后台时，确保后台播放状态正确
+    /// Ensures the Now Playing info is correctly updated when the app enters the background.
     @objc private func handleAppDidEnterBackground(notification: Notification) {
         print("应用进入后台，确保播放状态正确")
         DispatchQueue.main.async {

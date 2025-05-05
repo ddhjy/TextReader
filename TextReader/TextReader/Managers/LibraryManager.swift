@@ -41,7 +41,6 @@ class LibraryManager {
                 options: .skipsHiddenFiles
             )
             
-            // Only process .txt files
             let txtFiles = fileURLs.filter { $0.pathExtension.lowercased() == "txt" }
             let importedBooks = txtFiles.map { url in
                 let title = url.deletingPathExtension().lastPathComponent
@@ -96,10 +95,8 @@ class LibraryManager {
                 try fileManager.removeItem(at: fileURL)
             }
             
-            // Write file
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
             
-            // Create book object
             let title = fileURL.deletingPathExtension().lastPathComponent
             let newBook = Book(title: title, fileName: fileName, isBuiltIn: false)
             
@@ -156,41 +153,37 @@ class LibraryManager {
     
     // MARK: - Book Progress Management
     
+    /// Returns the progress for a specific book
     func getBookProgress(bookId: String) -> BookProgress? {
         let metadata = loadMetadata()
         return metadata.progress[bookId]
     }
     
+    /// Updates the last accessed timestamp for a book
     func updateLastAccessed(bookId: String) {
         var metadata = loadMetadata()
-        let now = Date() // 获取当前时间
+        let now = Date()
 
-        // 检查该书的进度记录是否存在
+        // Check if progress record exists for the book
         if var progress = metadata.progress[bookId] {
-            // 如果存在，更新 lastAccessed 时间
             progress.lastAccessed = now
             metadata.progress[bookId] = progress
             print("Updated lastAccessed for bookId: \(bookId) to \(now)")
         } else {
-            // 如果不存在（理论上不太可能在访问时发生，但作为健壮性考虑），
-            // 可以选择创建一个新的记录，或者打印一个警告。
+            // For robustness, handle the case where no progress record exists yet
             print("Warning: Attempting to update lastAccessed for bookId (\(bookId)) with no existing progress record. Timestamp not saved.")
-            // 如果一定要创建，则：
-            // metadata.progress[bookId] = BookProgress(currentPageIndex: 0, totalPages: 0, lastAccessed: now)
         }
 
         saveMetadata(metadata)
     }
     
+    /// Saves the current page index for a book
     func saveBookProgress(bookId: String, pageIndex: Int) {
         var metadata = loadMetadata()
         
-        // Get total pages (or use 0 if not available yet)
         let totalPages = metadata.progress[bookId]?.totalPages ?? 0
-        // 保留上次访问时间，如果有的话
         let lastAccessed = metadata.progress[bookId]?.lastAccessed
         
-        // Create or update progress
         metadata.progress[bookId] = BookProgress(
             currentPageIndex: pageIndex,
             totalPages: totalPages,
@@ -200,15 +193,13 @@ class LibraryManager {
         saveMetadata(metadata)
     }
     
+    /// Saves the total number of pages for a book
     func saveTotalPages(bookId: String, totalPages: Int) {
         var metadata = loadMetadata()
         
-        // Get current page (or use 0 if not available)
         let currentPage = metadata.progress[bookId]?.currentPageIndex ?? 0
-        // 保留上次访问时间，如果有的话
         let lastAccessed = metadata.progress[bookId]?.lastAccessed
         
-        // Update progress with new total
         metadata.progress[bookId] = BookProgress(
             currentPageIndex: currentPage,
             totalPages: totalPages,
@@ -218,6 +209,7 @@ class LibraryManager {
         saveMetadata(metadata)
     }
     
+    /// Removes progress information for a book
     private func removeBookProgress(bookId: String) {
         var metadata = loadMetadata()
         metadata.progress.removeValue(forKey: bookId)
@@ -226,6 +218,7 @@ class LibraryManager {
     
     // MARK: - Helpers
     
+    /// Returns the Documents directory URL
     private func getDocumentsDirectory() throws -> URL {
         return try fileManager.url(
             for: .documentDirectory,
@@ -237,10 +230,12 @@ class LibraryManager {
     
     // MARK: - Metadata Storage
     
+    /// Structure for storing book progress information
     private struct LibraryMetadata: Codable {
         var progress: [String: BookProgress] = [:]
     }
     
+    /// Loads metadata from disk, returns empty metadata if file doesn't exist
     private func loadMetadata() -> LibraryMetadata {
         do {
             let documentsURL = try getDocumentsDirectory()
@@ -259,6 +254,7 @@ class LibraryManager {
         }
     }
     
+    /// Saves metadata to disk
     private func saveMetadata(_ metadata: LibraryMetadata) {
         do {
             let documentsURL = try getDocumentsDirectory()
