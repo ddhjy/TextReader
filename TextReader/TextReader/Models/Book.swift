@@ -12,3 +12,8 @@ struct Book: Identifiable {
         self.isBuiltIn = isBuiltIn
     }
 } 
+
+// 添加对 GB18030 编码的支持
+extension String.Encoding {
+    static let gb_18030_2000 = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
+} 

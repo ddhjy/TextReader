@@ -9,9 +9,11 @@ class LibraryManager {
         case fileNotFound
         case directoryAccessFailed
         case saveError
-        case readError
-        case fileImportError
+        case readError(String)
+        case fileImportError(String)
         case deleteError
+        case securityAccessError
+        case unsupportedEncoding
     }
     
     // MARK: - Book Management
@@ -90,42 +92,155 @@ class LibraryManager {
     }
     
     func importBook(fileName: String, content: String, completion: @escaping (Result<Book, Error>) -> Void) {
+        // 增加日志：记录开始保存导入的内容
+        print("[LibraryManager] Attempting to save imported content to filename: \(fileName)")
         do {
             let documentsURL = try getDocumentsDirectory()
             let fileURL = documentsURL.appendingPathComponent(fileName)
-            
-            // Check if file exists and remove if needed
+            print("[LibraryManager] Destination path: \(fileURL.path)")
+
+            // 检查文件是否存在，如果存在则先删除（避免写入错误）
             if fileManager.fileExists(atPath: fileURL.path) {
-                try fileManager.removeItem(at: fileURL)
+                print("[LibraryManager] Destination file already exists. Removing old version.")
+                do {
+                    try fileManager.removeItem(at: fileURL)
+                    print("[LibraryManager] Successfully removed existing file at destination.")
+                } catch {
+                    print("[LibraryManager][Error] Failed to remove existing file at \(fileURL.path): \(error.localizedDescription)")
+                    // 根据策略决定是否继续（覆盖写入）或失败
+                    // 这里选择继续尝试写入
+                }
             }
-            
+
+            print("[LibraryManager] Writing content to destination using UTF-8 encoding.")
+            // 始终使用 UTF-8 编码保存到应用内部存储，确保一致性
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
-            
+            print("[LibraryManager] Successfully wrote content to destination.")
+
             let title = fileURL.deletingPathExtension().lastPathComponent
             let newBook = Book(title: title, fileName: fileName, isBuiltIn: false)
-            
+            print("[LibraryManager] Created Book object: Title='\(title)', FileName='\(fileName)'")
+
             completion(.success(newBook))
         } catch {
-            completion(.failure(error))
+            print("[LibraryManager][Error] Failed to save imported book content for \(fileName): \(error.localizedDescription)")
+            completion(.failure(LibraryError.saveError))
         }
     }
     
     func importBookFromURL(_ url: URL, completion: @escaping (Result<Book, Error>) -> Void) {
-        guard url.startAccessingSecurityScopedResource() else {
-            completion(.failure(LibraryError.fileImportError))
-            return
+        // 增加日志：记录 LibraryManager 开始处理 URL
+        print("[LibraryManager] Starting import process for URL: \(url.absoluteString)")
+        print("[LibraryManager] URL scheme: \(url.scheme ?? "nil"), is File URL: \(url.isFileURL)")
+
+        // 检查是否是应用临时 Inbox 目录中的文件
+        let isInInboxDirectory = url.path.contains("/tmp/") && url.path.contains("-Inbox/")
+        if isInInboxDirectory {
+            print("[LibraryManager] File is in app's Inbox directory, skipping security scope access")
         }
-        
-        defer { url.stopAccessingSecurityScopedResource() }
-        
-        do {
-            let content = try String(contentsOf: url, encoding: .utf8)
-            let fileName = url.lastPathComponent
+
+        // 尝试获取安全作用域访问权限（对于非 Inbox 文件）
+        var securityAccessGranted = false
+        if !isInInboxDirectory {
+            securityAccessGranted = url.startAccessingSecurityScopedResource()
+            print("[LibraryManager] Attempting to start security access for \(url.lastPathComponent)... Success: \(securityAccessGranted)")
             
-            importBook(fileName: fileName, content: content, completion: completion)
-        } catch {
-            completion(.failure(error))
+            // 如果成功获取权限，确保在函数退出时停止访问
+            if securityAccessGranted {
+                defer {
+                    url.stopAccessingSecurityScopedResource()
+                    print("[LibraryManager] Stopped accessing security-scoped resource for: \(url.lastPathComponent)")
+                }
+            } else {
+                print("[LibraryManager] Failed to access as security-scoped resource, will try direct access")
+            }
         }
+
+        // 无论安全访问是否成功，都尝试读取文件内容
+        do {
+            print("[LibraryManager] Attempting to read content from: \(url.path)")
+
+            // 尝试使用多种编码读取文件内容
+            var fileContent: String?
+            var usedEncoding: String.Encoding?
+            // 常用编码顺序：UTF-8，然后是 GBK/GB18030
+            let encodingsToTry: [String.Encoding] = [.utf8, .gb_18030_2000] // .gb_18030_2000 兼容 GBK 和 GB2312
+
+            for encoding in encodingsToTry {
+                print("[LibraryManager] Trying encoding: \(encoding)")
+                if let content = try? String(contentsOf: url, encoding: encoding) {
+                    fileContent = content
+                    usedEncoding = encoding
+                    print("[LibraryManager] Successfully read content using encoding: \(encoding)")
+                    break // 找到合适的编码后跳出循环
+                } else {
+                    print("[LibraryManager] Failed to read with encoding: \(encoding)")
+                }
+            }
+
+            // 如果所有尝试的编码都失败，尝试复制文件到临时目录再读取
+            if fileContent == nil {
+                print("[LibraryManager] All direct reading attempts failed. Trying to copy file first...")
+                if let (content, encoding) = tryReadingByCopyingFirst(url: url, encodingsToTry: encodingsToTry) {
+                    fileContent = content
+                    usedEncoding = encoding
+                    print("[LibraryManager] Successfully read content after copying. Encoding: \(encoding)")
+                }
+            }
+
+            // 如果仍然无法读取
+            guard let content = fileContent, let encoding = usedEncoding else {
+                print("[LibraryManager][Error] Failed to read content from \(url.path) with supported encodings.")
+                completion(.failure(LibraryError.unsupportedEncoding))
+                return
+            }
+
+            let fileName = url.lastPathComponent
+            print("[LibraryManager] Successfully read content (Encoding: \(encoding)). Original filename: \(fileName)")
+
+            // 调用内部方法将内容写入应用文档目录
+            importBook(fileName: fileName, content: content, completion: completion)
+
+        } catch {
+            print("[LibraryManager][Error] Unexpected error during file access for \(url.absoluteString): \(error.localizedDescription)")
+            completion(.failure(LibraryError.readError("Unexpected error during file access: \(error.localizedDescription)")))
+        }
+    }
+    
+    /// 通过先复制文件到临时目录再读取的方式尝试获取内容
+    private func tryReadingByCopyingFirst(url: URL, encodingsToTry: [String.Encoding]) -> (String, String.Encoding)? {
+        do {
+            // 创建临时文件URL
+            let tempDirURL = FileManager.default.temporaryDirectory
+            let tempFileURL = tempDirURL.appendingPathComponent(UUID().uuidString + "-" + url.lastPathComponent)
+            
+            print("[LibraryManager] Copying file to temporary location: \(tempFileURL.path)")
+            
+            // 尝试复制文件
+            try FileManager.default.copyItem(at: url, to: tempFileURL)
+            print("[LibraryManager] File copied successfully")
+            
+            // 尝试从临时位置读取
+            for encoding in encodingsToTry {
+                if let content = try? String(contentsOf: tempFileURL, encoding: encoding) {
+                    print("[LibraryManager] Successfully read temp file with encoding: \(encoding)")
+                    
+                    // 完成后删除临时文件
+                    try? FileManager.default.removeItem(at: tempFileURL)
+                    
+                    return (content, encoding)
+                }
+            }
+            
+            // 没有成功读取，删除临时文件
+            try? FileManager.default.removeItem(at: tempFileURL)
+            print("[LibraryManager] Failed to read temp file with any encoding, removed temp file")
+            
+        } catch {
+            print("[LibraryManager] Error copying file to temp location: \(error.localizedDescription)")
+        }
+        
+        return nil
     }
     
     func deleteBook(_ book: Book, completion: @escaping (Bool) -> Void) {

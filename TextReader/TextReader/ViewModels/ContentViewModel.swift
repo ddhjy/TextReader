@@ -351,22 +351,26 @@ class ContentViewModel: ObservableObject {
 
     /// Imports a book from a URL (used with DocumentPicker)
     func importBookFromURL(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else {
-            print("Permission denied for URL: \(url)")
-            return
-        }
-        defer { url.stopAccessingSecurityScopedResource() }
+        // 增加日志：记录 ViewModel 开始处理导入请求
+        print("[ContentViewModel] Received import request for URL: \(url.absoluteString)")
 
+        // 调用 LibraryManager 进行导入，传递原始 URL
         libraryManager.importBookFromURL(url) { [weak self] result in
             guard let self = self else { return }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { // 确保 UI 更新在主线程
                 switch result {
                 case .success(let newBook):
+                    // 增加日志：记录导入成功
+                    print("[ContentViewModel] Successfully imported book: \(newBook.title) (ID: \(newBook.id))")
                     self.books = self.libraryManager.loadBooks()
                     self.sortBooks()
-                    self.loadBook(newBook)
+                    self.loadBook(newBook) // 加载新导入的书籍
                 case .failure(let error):
-                    print("Error importing from URL: \(error)")
+                    // 增加日志：记录导入失败及错误详情
+                    print("[ContentViewModel][Error] Failed to import book from URL: \(url.absoluteString). Error: \(error.localizedDescription)")
+                    if let nsError = error as NSError? {
+                        print("[ContentViewModel][Error] Underlying error details: \(nsError.userInfo)")
+                    }
                 }
             }
         }
