@@ -26,4 +26,28 @@ class SearchService {
         // Fallback if range not found (shouldn't happen if called after contains check)
         return String(page.prefix(maxLength)) + (page.count > maxLength ? "..." : "")
     }
+
+    // MARK: - Page Summary
+    /// 生成分页摘要；至多 sampleLimit 条
+    func pageSummaries(pages: [String],
+                       sampleLimit: Int = 100,
+                       previewLength: Int = 60) -> [(Int, String)] {
+        guard !pages.isEmpty else { return [] }
+        let step = max(1, pages.count / sampleLimit)
+        
+        return stride(from: 0, to: pages.count, by: step).map { index -> (Int, String) in
+            let page = pages[index]
+            // 截取前 previewLength 个可视字符
+            let preview: String
+            if page.count <= previewLength {
+                preview = page
+            } else {
+                let endIdx = page.index(page.startIndex,
+                                         offsetBy: previewLength,
+                                         limitedBy: page.endIndex) ?? page.endIndex
+                preview = String(page[..<endIdx]) + "..."
+            }
+            return (index, preview)
+        }
+    }
 } 
