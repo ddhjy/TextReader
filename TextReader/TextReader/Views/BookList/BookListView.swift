@@ -5,6 +5,7 @@ struct BookListView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingDeleteAlert = false
     @State private var bookToDelete: Book?
+    @State private var showingPasteImport = false
 
     var body: some View {
         List {
@@ -57,10 +58,20 @@ struct BookListView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { 
-                Button {
-                    viewModel.showingDocumentPicker = true
+                Menu {
+                    Button {
+                        viewModel.showingDocumentPicker = true    // 原文件导入
+                    } label: {
+                        Label("从文件导入", systemImage: "doc")
+                    }
+
+                    Button {
+                        showingPasteImport = true                 // 打开粘贴导入
+                    } label: {
+                        Label("粘贴文本", systemImage: "doc.on.clipboard")
+                    }
                 } label: {
-                    Image(systemName: "plus.circle") 
+                    Image(systemName: "plus.circle")
                 }
             }
             
@@ -72,6 +83,9 @@ struct BookListView: View {
         }
         .sheet(isPresented: $viewModel.showingDocumentPicker) {
             DocumentPicker(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingPasteImport) {
+            PasteImportView(viewModel: viewModel)
         }
         .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {}
