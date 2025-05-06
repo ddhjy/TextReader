@@ -70,6 +70,12 @@ struct BookListView: View {
                     } label: {
                         Label("粘贴文本", systemImage: "doc.on.clipboard")
                     }
+                    
+                    Button {
+                        viewModel.showingWiFiTransferView = true   // 触发 Sheet
+                    } label: {
+                        Label("WiFi 传输", systemImage: "wifi")     // 系统图标
+                    }
                 } label: {
                     Image(systemName: "plus.circle")
                 }
@@ -86,6 +92,9 @@ struct BookListView: View {
         }
         .sheet(isPresented: $showingPasteImport) {
             PasteImportView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showingWiFiTransferView) {
+            WiFiTransferView(viewModel: viewModel)
         }
         .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {}
