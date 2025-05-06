@@ -39,6 +39,11 @@ struct ContentView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .onOpenURL { url in
+            print("[ContentView] Received URL via onOpenURL: \(url.absoluteString)")
+            // 调用 ViewModel 处理接收到的 URL
+            viewModel.handleImportedURL(url)
+        }
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
                 BookListView(viewModel: viewModel)

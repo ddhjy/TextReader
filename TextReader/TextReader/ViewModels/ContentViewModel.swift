@@ -568,6 +568,28 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    // MARK: - URL Handling
+    /**
+     * 处理通过 onOpenURL 传入的 URL，通常来自文件应用、AirDrop 或其他应用的分享。
+     * 对于分享的纯文本，系统可能会将其保存为临时文件并通过 URL 传递。
+     */
+    func handleImportedURL(_ url: URL) {
+        print("[ContentViewModel] Handling imported URL: \(url.absoluteString)")
+
+        // 基本检查：确保是文件 URL (file:// scheme)
+        // 系统分享的临时文件通常也是 file URL
+        guard url.isFileURL else {
+            print("[ContentViewModel][Warning] Received URL is not a file URL. Scheme: \(url.scheme ?? "nil"). Ignoring.")
+            // 这里可以根据需要添加对其他 scheme 的处理逻辑
+            return
+        }
+
+        // 复用现有的导入逻辑
+        // importBookFromURL 内部已经处理了安全作用域、文件读取（包括编码检测）和书籍保存
+        print("[ContentViewModel] URL is a file URL, attempting to import via importBookFromURL...")
+        importBookFromURL(url)
+    }
+
     // MARK: - Cleanup
     deinit {
         stopReading()
