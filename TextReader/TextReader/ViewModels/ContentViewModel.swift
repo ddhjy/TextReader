@@ -16,6 +16,7 @@ class ContentViewModel: ObservableObject {
     @Published var books: [Book] = []
     @Published var currentBookId: String?
     @Published var searchResults: [(Int, String)] = []
+    @Published var pageSummaries: [(Int, String)] = []
     @Published var serverAddress: String? = nil
     @Published var isServerRunning = false
     @Published var showingBookList = false
@@ -335,6 +336,7 @@ class ContentViewModel: ObservableObject {
                     let savedProgress = self.libraryManager.getBookProgress(bookId: book.id)
                     self.currentPageIndex = savedProgress?.currentPageIndex ?? 0
                     self.libraryManager.saveTotalPages(bookId: book.id, totalPages: self.pages.count)
+                    self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                     self.isContentLoaded = true
                     self.updateNowPlayingInfo()
                 case .failure(let error):
@@ -584,8 +586,10 @@ class ContentViewModel: ObservableObject {
 
     // MARK: - Search
     func searchContent(_ query: String) {
-        guard !query.isEmpty, !pages.isEmpty else {
+        guard !query.isEmpty else {
             searchResults = []
+            // 显示默认摘要
+            pageSummaries = searchService.pageSummaries(pages: pages)
             return
         }
         searchResults = searchService.search(query: query, in: pages)

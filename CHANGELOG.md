@@ -7,6 +7,9 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
+* **SearchView 默认分页摘要**  
+  * 当搜索框为空时展示分页摘要（≤100 等分），包含页码与预览。
+  * 点击摘要可快速跳转至对应页面。
 * **Haptic Feedback on Page Slider**: Added `UISelectionFeedbackGenerator` in `PageControl` so that a subtle vibration is fired whenever the user changes pages via the progress slider.
 * **Interactive Page Slider**: Default progress bar now transforms into a draggable slider on tap/drag, allowing quick page jumps. The slider auto-hides after 1.5 s of inactivity.
 * **Quick Page Jump**: Progress bar upgraded to an interactive slider that supports dragging to jump to any page instantly.
