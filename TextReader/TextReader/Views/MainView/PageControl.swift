@@ -73,6 +73,7 @@ struct PageControl: View {
             
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
                 .font(.caption)
+                .monospacedDigit()
                 .foregroundColor(.secondary)
             
             // —— 原有翻页 / 播放按钮保持不变 ——
