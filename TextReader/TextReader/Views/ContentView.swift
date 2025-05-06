@@ -19,13 +19,6 @@ struct ContentView: View {
                             Image(systemName: "book")
                         }
                     }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            viewModel.showingWiFiTransferView = true
-                        }) {
-                            Image(systemName: "wifi")
-                        }
-                    }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: { viewModel.showingSearchView = true }) {
                             Image(systemName: "magnifyingglass")
@@ -56,9 +49,6 @@ struct ContentView: View {
         }
         .sheet(isPresented: $viewModel.showingDocumentPicker) {
             DocumentPicker(viewModel: viewModel)
-        }
-        .sheet(isPresented: $viewModel.showingWiFiTransferView) {
-            WiFiTransferView(viewModel: viewModel)
         }
     }
 } 
