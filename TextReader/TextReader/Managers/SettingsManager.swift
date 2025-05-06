@@ -7,6 +7,7 @@ class SettingsManager {
         static let readingSpeed = "readingSpeed"
         static let selectedVoiceIdentifier = "selectedVoiceIdentifier"
         static let lastOpenedBookId = "currentBookID" // Keep old key for compatibility or migrate
+        static let isDarkMode = "isDarkMode"
     }
 
     // MARK: - Reading Speed
@@ -35,5 +36,14 @@ class SettingsManager {
 
     func getLastOpenedBookId() -> String? {
         return defaults.string(forKey: Keys.lastOpenedBookId)
+    }
+    
+    // MARK: - Dark Mode
+    func saveDarkMode(_ enabled: Bool) {
+        defaults.set(enabled, forKey: Keys.isDarkMode)
+    }
+    
+    func getDarkMode() -> Bool {
+        return defaults.bool(forKey: Keys.isDarkMode)
     }
 } 

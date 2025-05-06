@@ -9,6 +9,16 @@ struct ControlPanel: View {
             PageControl(viewModel: viewModel)
             Divider()
             ReadingControl(viewModel: viewModel)
+            Divider()
+            HStack {
+                Spacer()
+                Toggle(isOn: $viewModel.darkModeEnabled) {
+                    Image(systemName: viewModel.darkModeEnabled ? "moon.fill" : "sun.max.fill")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .accentColor))
+                .accessibilityLabel("夜间模式")
+            }
+            .padding(.horizontal)
         }
         .padding()
     }

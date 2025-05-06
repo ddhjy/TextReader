@@ -26,6 +26,12 @@
 * **Persistence**: Book progress and settings are now saved across app launches.
 * **Now Playing Info**: Displays current book title, page, and playback controls on the lock screen and control center.
 * **Remote Controls**: Added support for controlling playback (play/pause, next/previous page) via remote controls (e.g., headphones, Control Center).
+* **UI/UX Enhancement**:
+  * Paragraph/letter spacing, larger base font.
+  * Linear progress bar for page progress.
+  * Prominent "Play / Pause" circular button.
+  * Segmented speed selector.
+  * Manual Dark-Mode toggle with persistence.
 
 ### Fixed
 * **实时更新阅读时间和排序**:
@@ -39,10 +45,12 @@
 * Improved background audio task management in `SpeechManager`.
 * Correctly saves and restores total page count for books in `LibraryManager`.
 * **Reading Progress Loss**: Fixed an issue where reading progress was lost after restarting the app. This was caused by unstable book identifiers (UUIDs generated on each launch). The fix implements stable identifiers based on filenames, ensuring progress is correctly associated with each book and persists across sessions.
+* Enlarged button hit-area to comply with iOS HIG (≥44pt).
 
 ### Changed
 * Refactored core components like `LibraryManager`, `SpeechManager`, and `ContentViewModel` for better separation of concerns.
 * **Book List Sorting Mechanism**: Implemented sorting logic within `ContentViewModel` based on the new `lastAccessed` timestamp managed by `LibraryManager`.
+* Top navigation bar now uses subtle light background to highlight page title.
 
 ## [0.1.0] - 2024-07-20
 

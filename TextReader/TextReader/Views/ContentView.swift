@@ -13,6 +13,7 @@ struct ContentView: View {
                 }
                 .navigationTitle(viewModel.currentBookTitle)
                 .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(Color(UIColor.systemGray6), for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: { viewModel.showingBookList = true }) {
@@ -25,6 +26,7 @@ struct ContentView: View {
                         }
                     }
                 }
+                .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
             } else {
                 ProgressView()
                     .scaleEffect(1.5)
