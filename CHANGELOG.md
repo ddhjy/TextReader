@@ -7,6 +7,7 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
+* **Share to Import**: Added the ability to import text content shared from other applications (e.g., Notes, Safari) via the iOS Share Sheet. The app now handles URLs pointing to shared text data (`public.plain-text`, `public.text`).
 * **Book List Sorting**: Books in the list are now sorted by the last accessed time, with the most recently opened book appearing first. Unopened books appear at the end.
 * **Track Last Accessed Time**: The application now records when each book was last opened.
 * **Last Access Display**: Shows the last time a book was accessed in a user-friendly format (e.g., "刚刚阅读", "5分钟前阅读", "昨天阅读").
