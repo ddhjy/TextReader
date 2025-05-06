@@ -26,6 +26,10 @@ class ContentViewModel: ObservableObject {
     @Published var showingPasteImport = false
     @Published var bookProgressText: String?
     @Published var darkModeEnabled: Bool = false
+    // BigBang 相关状态
+    @Published var showingBigBang = false
+    @Published var tokens: [Token] = []
+    @Published var selectedTokenIDs: Set<UUID> = []
 
     // MARK: - Dependencies
     private let libraryManager: LibraryManager
@@ -35,6 +39,8 @@ class ContentViewModel: ObservableObject {
     private let wiFiTransferService: WiFiTransferService
     private let audioSessionManager: AudioSessionManager
     private let settingsManager: SettingsManager
+    // BigBang 工具依赖
+    private let tokenizer = Tokenizer()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -708,6 +714,34 @@ class ContentViewModel: ObservableObject {
         } else {
             print("[ContentViewModel][Warning] No valid text parameter found in URL")
         }
+    }
+
+    // MARK: - Big Bang
+    func triggerBigBang() {
+        guard currentPageIndex < pages.count else { return }
+        let text = pages[currentPageIndex]
+        self.tokens = tokenizer.tokenize(text: text)
+        self.selectedTokenIDs = []          // reset
+        self.showingBigBang = true
+    }
+
+    func toggleToken(_ id: UUID) {          // 供单点选择
+        if selectedTokenIDs.contains(id) { selectedTokenIDs.remove(id) }
+        else { selectedTokenIDs.insert(id) }
+    }
+
+    func slideSelect(from startID: UUID, to endID: UUID) {   // 供滑动选择
+        guard let s = tokens.firstIndex(where: {$0.id == startID}),
+              let e = tokens.firstIndex(where: {$0.id == endID}) else { return }
+        let range = s <= e ? s...e : e...s
+        selectedTokenIDs.formUnion(tokens[range].map(\.id))
+    }
+
+    func copySelected() {
+        let text = tokens.filter { selectedTokenIDs.contains($0.id) }
+                         .map(\.value).joined()
+        UIPasteboard.general.string = text
+        showingBigBang = false
     }
 
     // MARK: - Cleanup

@@ -38,6 +38,12 @@
   * Prominent "Play / Pause" circular button.
   * Segmented speed selector.
   * Manual Dark-Mode toggle with persistence.
+* **Big Bang 拆词与滑动选词**
+  * 长按阅读页触发「大爆炸」；基于 `NLTokenizer` 智能分词。
+  * `BigBangView` 以砖块形式展示 Token，支持拖拽连续高亮并一键复制。
+
+### Changed
+* `ContentDisplay` 支持长按手势，调用 ViewModel 的 `triggerBigBang()`。
 
 ### Fixed
 * **Share Sheet Text Import**  

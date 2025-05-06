@@ -14,6 +14,12 @@ struct ContentDisplay: View {
                 .padding(.vertical, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .contentShape(Rectangle())
+        .gesture(
+            LongPressGesture(minimumDuration: 0.3)
+                .onEnded { _ in
+                    viewModel.triggerBigBang()
+                })
     }
     
     private var currentPageText: String {

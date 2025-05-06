@@ -47,5 +47,8 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingDocumentPicker) {
             DocumentPicker(viewModel: viewModel)
         }
+        .sheet(isPresented: $viewModel.showingBigBang) {
+            BigBangView(vm: viewModel)
+        }
     }
 } 
