@@ -34,6 +34,11 @@
   * Manual Dark-Mode toggle with persistence.
 
 ### Fixed
+* **Share Sheet Text Import**  
+  * 将 `CFBundleDocumentTypes` 正确添加到主 `Info.plist`，声明 `public.plain-text` / `public.text`，使应用出现在系统分享面板。  
+  * 在 `TextReaderApp` 级别集中处理 `.onOpenURL`，保证冷启动时也能接收并导入分享的 TXT/纯文本。
+  * 新增 `TextReaderExtension` 分享扩展，可从任意应用中共享文本到 TextReader。
+  * 实现了自定义 URL Scheme（`textreader://`）处理，在 `ContentViewModel` 中支持从其他应用接收文本内容。
 * **实时更新阅读时间和排序**:
     * 现在翻页 (`nextPage`, `previousPage`) 时也会更新书籍的 `lastAccessed` 时间戳，而不仅仅是在选择书籍时。 (涉及 `ContentViewModel`)
     * 在 `lastAccessed` 时间戳更新后（包括选择书籍和翻页操作），立即对内部书籍列表进行重新排序，确保 `BookListView` 打开时能展示基于最近访问时间的正确顺序，无需重启应用。 (涉及 `ContentViewModel`)
