@@ -25,6 +25,9 @@
 * **Remote Controls**: Added support for controlling playback (play/pause, next/previous page) via remote controls (e.g., headphones, Control Center).
 
 ### Fixed
+* **实时更新阅读时间和排序**:
+    * 现在翻页 (`nextPage`, `previousPage`) 时也会更新书籍的 `lastAccessed` 时间戳，而不仅仅是在选择书籍时。 (涉及 `ContentViewModel`)
+    * 在 `lastAccessed` 时间戳更新后（包括选择书籍和翻页操作），立即对内部书籍列表进行重新排序，确保 `BookListView` 打开时能展示基于最近访问时间的正确顺序，无需重启应用。 (涉及 `ContentViewModel`)
 * **修复 iCloud 文件导入失败**: 解决了从"文件"应用或 iCloud Drive 导入文件时因权限问题导致的失败。通过确保在实际读取文件时正确处理安全作用域 URL (`startAccessingSecurityScopedResource`/`stopAccessingSecurityScopedResource`)，并在文件导入流程的关键步骤（选择、权限获取、读取、写入）中添加了详细的调试日志，以帮助诊断未来的相关问题。同时增加了对 GBK/GB18030 编码文件的读取支持。 (涉及 `DocumentPicker`, `ContentViewModel`, `LibraryManager`)
 * **朗读翻页卡顿**: 优化了朗读状态下手动或自动翻页的逻辑。移除了翻页操作中不必要的延迟 (`asyncAfter`) 和冗余的朗读停止 (`stopReading`) 调用，显著减少了翻页时的处理时间，改善了卡顿感。 (主要涉及 `ContentViewModel` 的 `nextPage`, `previousPage`, `stopReading` 方法和 `SpeechManager` 的 `startReading` 方法)。
 * **朗读自动翻页跳页**: 修复了在朗读自动翻页时可能一次翻两页的问题。此问题可能由两个原因引起：1) 用户手动翻页与自动翻页回调的竞态条件；2) `ContentViewModel` 中状态同步定时器与自动翻页回调之间的冲突。通过在 `onSpeechFinish` 回调中增加页面索引校验，并移除定时器中不必要的自动重试播放逻辑，解决了这些冲突。
