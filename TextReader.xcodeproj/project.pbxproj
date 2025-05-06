@@ -6,7 +6,18 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0C0260CD2DCA490C00257087 /* TextReaderExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0C0260C32DCA490C00257087 /* TextReaderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
+		0C0260CB2DCA490C00257087 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 0C9E2AC62CA01AEF00302914 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 0C0260C22DCA490C00257087;
+			remoteInfo = TextReaderExtension;
+		};
 		0C9E2ADF2CA01AF100302914 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 0C9E2AC62CA01AEF00302914 /* Project object */;
@@ -23,25 +34,54 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		0C0260D22DCA490C00257087 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				0C0260CD2DCA490C00257087 /* TextReaderExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		0C0260C32DCA490C00257087 /* TextReaderExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TextReaderExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C9E2ACE2CA01AEF00302914 /* TextReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TextReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C9E2ADE2CA01AF100302914 /* TextReaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TextReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0C9E2AE82CA01AF100302914 /* TextReaderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TextReaderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0C0260D12DCA490C00257087 /* Exceptions for "TextReaderExtension" folder in "TextReaderExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 0C0260C22DCA490C00257087 /* TextReaderExtension */;
+		};
 		0C9E2B0B2CA087FA00302914 /* Exceptions for "TextReader" folder in "TextReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 				"TextReader/Resources/使用说明.txt",
-				"TextReader/Supporting Files/Info.plist",
 			);
 			target = 0C9E2ACD2CA01AEF00302914 /* TextReader */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0C0260C42DCA490C00257087 /* TextReaderExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0C0260D12DCA490C00257087 /* Exceptions for "TextReaderExtension" folder in "TextReaderExtension" target */,
+			);
+			path = TextReaderExtension;
+			sourceTree = "<group>";
+		};
 		0C9E2AD02CA01AEF00302914 /* TextReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -63,6 +103,13 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		0C0260C02DCA490C00257087 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C9E2ACB2CA01AEF00302914 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -93,6 +140,7 @@
 				0C9E2AD02CA01AEF00302914 /* TextReader */,
 				0C9E2AE12CA01AF100302914 /* TextReaderTests */,
 				0C9E2AEB2CA01AF100302914 /* TextReaderUITests */,
+				0C0260C42DCA490C00257087 /* TextReaderExtension */,
 				0C9E2ACF2CA01AEF00302914 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -103,6 +151,7 @@
 				0C9E2ACE2CA01AEF00302914 /* TextReader.app */,
 				0C9E2ADE2CA01AF100302914 /* TextReaderTests.xctest */,
 				0C9E2AE82CA01AF100302914 /* TextReaderUITests.xctest */,
+				0C0260C32DCA490C00257087 /* TextReaderExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -110,6 +159,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		0C0260C22DCA490C00257087 /* TextReaderExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0C0260CE2DCA490C00257087 /* Build configuration list for PBXNativeTarget "TextReaderExtension" */;
+			buildPhases = (
+				0C0260BF2DCA490C00257087 /* Sources */,
+				0C0260C02DCA490C00257087 /* Frameworks */,
+				0C0260C12DCA490C00257087 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				0C0260C42DCA490C00257087 /* TextReaderExtension */,
+			);
+			name = TextReaderExtension;
+			packageProductDependencies = (
+			);
+			productName = TextReaderExtension;
+			productReference = 0C0260C32DCA490C00257087 /* TextReaderExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		0C9E2ACD2CA01AEF00302914 /* TextReader */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 0C9E2AF22CA01AF100302914 /* Build configuration list for PBXNativeTarget "TextReader" */;
@@ -117,10 +188,12 @@
 				0C9E2ACA2CA01AEF00302914 /* Sources */,
 				0C9E2ACB2CA01AEF00302914 /* Frameworks */,
 				0C9E2ACC2CA01AEF00302914 /* Resources */,
+				0C0260D22DCA490C00257087 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				0C0260CC2DCA490C00257087 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				0C9E2AD02CA01AEF00302914 /* TextReader */,
@@ -185,9 +258,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1600;
+				LastSwiftUpdateCheck = 1610;
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
+					0C0260C22DCA490C00257087 = {
+						CreatedOnToolsVersion = 16.1;
+					};
 					0C9E2ACD2CA01AEF00302914 = {
 						CreatedOnToolsVersion = 16.0;
 					};
@@ -221,11 +297,19 @@
 				0C9E2ACD2CA01AEF00302914 /* TextReader */,
 				0C9E2ADD2CA01AF100302914 /* TextReaderTests */,
 				0C9E2AE72CA01AF100302914 /* TextReaderUITests */,
+				0C0260C22DCA490C00257087 /* TextReaderExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		0C0260C12DCA490C00257087 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C9E2ACC2CA01AEF00302914 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -250,6 +334,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		0C0260BF2DCA490C00257087 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		0C9E2ACA2CA01AEF00302914 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -274,6 +365,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0C0260CC2DCA490C00257087 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 0C0260C22DCA490C00257087 /* TextReaderExtension */;
+			targetProxy = 0C0260CB2DCA490C00257087 /* PBXContainerItemProxy */;
+		};
 		0C9E2AE02CA01AF100302914 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 0C9E2ACD2CA01AEF00302914 /* TextReader */;
@@ -287,6 +383,58 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		0C0260CF2DCA490C00257087 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6KH2T566FP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TextReaderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TextReaderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.1pointech.www.TextReader.TextReaderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		0C0260D02DCA490C00257087 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 6KH2T566FP;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TextReaderExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TextReaderExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = cn.1pointech.www.TextReader.TextReaderExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		0C9E2AF02CA01AF100302914 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -549,6 +697,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0C0260CE2DCA490C00257087 /* Build configuration list for PBXNativeTarget "TextReaderExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0C0260CF2DCA490C00257087 /* Debug */,
+				0C0260D02DCA490C00257087 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		0C9E2AC92CA01AEF00302914 /* Build configuration list for PBXProject "TextReader" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

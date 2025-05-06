@@ -392,27 +392,25 @@ class ContentViewModel: ObservableObject {
     }
 
     /// Imports a book from a URL (used with DocumentPicker)
-    func importBookFromURL(_ url: URL) {
-        // 增加日志：记录 ViewModel 开始处理导入请求
-        print("[ContentViewModel] Received import request for URL: \(url.absoluteString)")
-
-        // 调用 LibraryManager 进行导入，传递原始 URL
-        libraryManager.importBookFromURL(url) { [weak self] result in
-            guard let self = self else { return }
-            DispatchQueue.main.async { // 确保 UI 更新在主线程
+    func importBookFromURL(_ url: URL, suggestedTitle: String? = nil) {
+        print("[ContentViewModel] Importing book from URL: \(url.absoluteString)")
+        print("[ContentViewModel] Suggested title: \(suggestedTitle ?? "none")")
+        
+        libraryManager.importBookFromURL(url, suggestedTitle: suggestedTitle) { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
                 switch result {
-                case .success(let newBook):
-                    // 增加日志：记录导入成功
-                    print("[ContentViewModel] Successfully imported book: \(newBook.title) (ID: \(newBook.id))")
+                case .success(let book):
+                    print("[ContentViewModel] Successfully imported book: \(book.title)")
+                    // 更新书籍列表并加载
                     self.books = self.libraryManager.loadBooks()
                     self.sortBooks()
-                    self.loadBook(newBook) // 加载新导入的书籍
+                    self.loadBook(book)
+                    
                 case .failure(let error):
-                    // 增加日志：记录导入失败及错误详情
-                    print("[ContentViewModel][Error] Failed to import book from URL: \(url.absoluteString). Error: \(error.localizedDescription)")
-                    if let nsError = error as NSError? {
-                        print("[ContentViewModel][Error] Underlying error details: \(nsError.userInfo)")
-                    }
+                    print("[ContentViewModel] Failed to import book: \(error)")
+                    // 这里可以添加错误处理逻辑，例如显示错误提示等
                 }
             }
         }
@@ -626,10 +624,17 @@ class ContentViewModel: ObservableObject {
     /**
      * 处理通过 onOpenURL 传入的 URL，通常来自文件应用、AirDrop 或其他应用的分享。
      * 对于分享的纯文本，系统可能会将其保存为临时文件并通过 URL 传递。
+     * 也可能来自我们自定义的URL Scheme，例如textreader://import?text=xxx
      */
     func handleImportedURL(_ url: URL) {
         print("[ContentViewModel] Handling imported URL: \(url.absoluteString)")
 
+        // 处理自定义Scheme (textreader://)
+        if url.scheme == "textreader" {
+            handleCustomSchemeURL(url)
+            return
+        }
+        
         // 基本检查：确保是文件 URL (file:// scheme)
         // 系统分享的临时文件通常也是 file URL
         guard url.isFileURL else {
@@ -642,6 +647,63 @@ class ContentViewModel: ObservableObject {
         // importBookFromURL 内部已经处理了安全作用域、文件读取（包括编码检测）和书籍保存
         print("[ContentViewModel] URL is a file URL, attempting to import via importBookFromURL...")
         importBookFromURL(url)
+    }
+    
+    /**
+     * 处理自定义URL Scheme，如 textreader://import?text=xxx
+     */
+    private func handleCustomSchemeURL(_ url: URL) {
+        print("[ContentViewModel] Handling custom scheme URL: \(url.absoluteString)")
+        
+        // 检查主机部分 - 例如textreader://import表示要导入文本
+        guard let host = url.host, host == "import" else {
+            print("[ContentViewModel][Warning] Unsupported URL host: \(url.host ?? "nil")")
+            return
+        }
+        
+        // 提取查询参数
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
+              let queryItems = components.queryItems else {
+            print("[ContentViewModel][Warning] No query items in URL")
+            return
+        }
+        
+        // 查找text参数
+        if let textItem = queryItems.first(where: { $0.name == "text" }),
+           let encodedText = textItem.value,
+           let decodedText = encodedText.removingPercentEncoding,
+           !decodedText.isEmpty {
+            
+            print("[ContentViewModel] Found text parameter with length: \(decodedText.count)")
+            
+            // 从分享的文本创建一个新书籍
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyyMMdd_HHmmss"
+            let timestamp = dateFormatter.string(from: Date())
+            
+            // 为书籍生成一个标题 - 从内容的前10个字符
+            var title = "分享_\(timestamp)"
+            let contentPreview = decodedText.prefix(10).trimmingCharacters(in: .whitespacesAndNewlines)
+            if !contentPreview.isEmpty {
+                title = contentPreview + "..."
+            }
+            
+            // 临时将内容保存为文件
+            do {
+                let tempDir = FileManager.default.temporaryDirectory
+                let tempFile = tempDir.appendingPathComponent("\(title)_\(timestamp).txt")
+                
+                try decodedText.write(to: tempFile, atomically: true, encoding: .utf8)
+                print("[ContentViewModel] Saved shared text to temporary file: \(tempFile.path)")
+                
+                // 使用已有的导入逻辑
+                importBookFromURL(tempFile, suggestedTitle: title)
+            } catch {
+                print("[ContentViewModel][Error] Failed to save shared text to temporary file: \(error.localizedDescription)")
+            }
+        } else {
+            print("[ContentViewModel][Warning] No valid text parameter found in URL")
+        }
     }
 
     // MARK: - Cleanup

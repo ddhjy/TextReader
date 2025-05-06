@@ -91,7 +91,7 @@ class LibraryManager {
         }
     }
     
-    func importBook(fileName: String, content: String, completion: @escaping (Result<Book, Error>) -> Void) {
+    func importBook(fileName: String, content: String, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
         // 增加日志：记录开始保存导入的内容
         print("[LibraryManager] Attempting to save imported content to filename: \(fileName)")
         do {
@@ -117,7 +117,16 @@ class LibraryManager {
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
             print("[LibraryManager] Successfully wrote content to destination.")
 
-            let title = fileURL.deletingPathExtension().lastPathComponent
+            // 使用建议的标题（如果提供）或从文件名中获取标题
+            let title: String
+            if let suggestedTitle = suggestedTitle {
+                title = suggestedTitle
+                print("[LibraryManager] Using suggested title: '\(title)'")
+            } else {
+                title = fileURL.deletingPathExtension().lastPathComponent
+                print("[LibraryManager] Using filename-derived title: '\(title)'")
+            }
+            
             let newBook = Book(title: title, fileName: fileName, isBuiltIn: false)
             print("[LibraryManager] Created Book object: Title='\(title)', FileName='\(fileName)'")
 
@@ -128,10 +137,11 @@ class LibraryManager {
         }
     }
     
-    func importBookFromURL(_ url: URL, completion: @escaping (Result<Book, Error>) -> Void) {
+    func importBookFromURL(_ url: URL, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
         // 增加日志：记录 LibraryManager 开始处理 URL
         print("[LibraryManager] Starting import process for URL: \(url.absoluteString)")
         print("[LibraryManager] URL scheme: \(url.scheme ?? "nil"), is File URL: \(url.isFileURL)")
+        print("[LibraryManager] Suggested title: \(suggestedTitle ?? "none")")
 
         // 检查是否是应用临时 Inbox 目录中的文件
         let isInInboxDirectory = url.path.contains("/tmp/") && url.path.contains("-Inbox/")
@@ -195,11 +205,27 @@ class LibraryManager {
                 return
             }
 
-            let fileName = url.lastPathComponent
-            print("[LibraryManager] Successfully read content (Encoding: \(encoding)). Original filename: \(fileName)")
+            // 获取文件名，但使用建议的标题（如果有）
+            let originalFileName = url.lastPathComponent
+            let fileName: String
+            
+            if let suggestedTitle = suggestedTitle {
+                // 确保文件名以.txt结尾
+                if suggestedTitle.hasSuffix(".txt") {
+                    fileName = suggestedTitle
+                } else {
+                    fileName = suggestedTitle + ".txt"
+                }
+                print("[LibraryManager] Using suggested title for filename: \(fileName)")
+            } else {
+                fileName = originalFileName
+                print("[LibraryManager] Using original filename: \(fileName)")
+            }
+            
+            print("[LibraryManager] Successfully read content (Encoding: \(encoding)). Filename to use: \(fileName)")
 
             // 调用内部方法将内容写入应用文档目录
-            importBook(fileName: fileName, content: content, completion: completion)
+            importBook(fileName: fileName, content: content, suggestedTitle: suggestedTitle, completion: completion)
 
         } catch {
             print("[LibraryManager][Error] Unexpected error during file access for \(url.absoluteString): \(error.localizedDescription)")
