@@ -8,6 +8,8 @@ struct PageControl: View {
     @State private var showSlider = false
     // ② 隐藏滑块的定时器
     @State private var hideSliderWorkItem: DispatchWorkItem?
+    // 新增状态
+    @State private var dragWidth: CGFloat = 0
     
     // === 新增：震动反馈发生器（Selection 类型适用于离散滑块变动） ===
     private let haptic = UISelectionFeedbackGenerator()
@@ -34,41 +36,11 @@ struct PageControl: View {
         VStack(spacing: 8) {
             
             // ---------- 进度条区 ----------
-            ZStack {
-                // 1) 默认只读进度条（始终可见）
-                ProgressView(value: pageProgress)
-                    .progressViewStyle(.linear)
-                    .tint(.accentColor)
-
-                // 2) 可拖动 Slider（仅在 showSlider==true 时可见/可点）
-                if viewModel.pages.count > 1 {
-                    Slider(value: sliderBinding,
-                           in: 0...Double(max(0, viewModel.pages.count - 1)),
-                           step: 1) {
-                        // onEditingChanged
-                        editing in
-                        if editing {
-                            // 开始拖动：显示滑块 & 取消之前的隐藏定时
-                            withAnimation { showSlider = true }
-                            hideSliderWorkItem?.cancel()
-                        } else {
-                            // 结束拖动：启动 1.5s 后自动隐藏
-                            scheduleHide()
-                        }
-                    }
-                    .tint(.accentColor)
-                    .opacity(showSlider ? 1 : 0)          // 可视
-                    .allowsHitTesting(showSlider)         // 控制命中
-                }
+            GeometryReader { geo in
+                progressStack(geo: geo)
+                    .onAppear { dragWidth = geo.size.width }
             }
-            // 3) 点击只读进度条可立即显示滑块
-            .contentShape(Rectangle())
-            .onTapGesture {
-                withAnimation { showSlider = true }
-                scheduleHide()
-            }
-            // 4) 平滑动画
-            .animation(.easeInOut(duration: 0.2), value: showSlider)
+            .frame(height: 24) // 给进度条区固定高度即可
             // ----------------------------------
             
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
@@ -125,5 +97,61 @@ struct PageControl: View {
         }
         hideSliderWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
+    }
+
+    private func progressStack(geo: GeometryProxy) -> some View {
+        ZStack {
+            // ① 只读进度条
+            ProgressView(value: pageProgress)
+                .progressViewStyle(.linear)
+                .tint(.accentColor)
+
+            // ② Slider（与原来一致）
+            if viewModel.pages.count > 1 {
+                Slider(value: sliderBinding,
+                       in: 0...Double(max(0, viewModel.pages.count - 1)),
+                       step: 1,
+                       onEditingChanged: { editing in
+                           if editing {
+                               withAnimation { showSlider = true }
+                               hideSliderWorkItem?.cancel()
+                           } else {
+                               scheduleHide()
+                           }
+                       })
+                .tint(.accentColor)
+                .opacity(showSlider ? 1 : 0)
+                .allowsHitTesting(showSlider)
+            }
+        }
+        .contentShape(Rectangle())
+        // --- ⬇︎ 改动核心：把"长按 + 拖动"组合起来 ----------------
+        .gesture(
+            LongPressGesture(minimumDuration: 0.2)
+                .onChanged { _ in                   // 触发阈值后立即显示滑块
+                    if !showSlider {
+                        withAnimation { showSlider = true }
+                        hideSliderWorkItem?.cancel()
+                    }
+                }
+                .simultaneously(with: DragGesture(minimumDistance: 0)
+                    .onChanged { value in
+                        guard showSlider, dragWidth > 0 else { return }
+                        // 计算拖动百分比 → 页码
+                        let pct = max(0, min(1, value.location.x / dragWidth))
+                        let newIndex = Int(round(pct * Double(max(0, viewModel.pages.count - 1))))
+                        if newIndex != viewModel.currentPageIndex {
+                            haptic.selectionChanged()
+                            viewModel.stopReading()
+                            viewModel.currentPageIndex = newIndex
+                        }
+                    }
+                    .onEnded { _ in
+                        scheduleHide()
+                    }
+                )
+        )
+        // ----------------------------------------------------------
+        .animation(.easeInOut(duration: 0.2), value: showSlider)
     }
 } 
