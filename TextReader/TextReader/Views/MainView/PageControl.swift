@@ -13,6 +13,8 @@ struct PageControl: View {
     
     // === 新增：震动反馈发生器（Selection 类型适用于离散滑块变动） ===
     private let haptic = UISelectionFeedbackGenerator()
+    // === 新增：播放/暂停按钮的震动反馈发生器 ===
+    private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
     
     // ③ 把 currentPageIndex ↔︎ Slider 双向绑定抽出来
     private var sliderBinding: Binding<Double> {
@@ -58,13 +60,17 @@ struct PageControl: View {
                 
                 Spacer()
                 
-                Button(action: { viewModel.toggleReading() }) {
-                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                Button(action: { 
+                    viewModel.toggleReading()
+                    buttonHaptic.impactOccurred() // <--- 点击时触发震动
+                }) { Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(width: 56, height: 56)
                         .background(Circle().fill(Color.accentColor.opacity(0.9)))
+                        .animation(nil, value: viewModel.isReading)
                 }
+                .buttonStyle(NoDimButtonStyle())
                 .accessibilityLabel(viewModel.isReading ? "暂停朗读" : "开始朗读")
                 
                 Spacer()
@@ -79,6 +85,7 @@ struct PageControl: View {
         }
         .onAppear {
             haptic.prepare()
+            buttonHaptic.prepare() // <--- 预热按钮震动器
         }
     }
     
@@ -153,5 +160,13 @@ struct PageControl: View {
         )
         // ----------------------------------------------------------
         .animation(.easeInOut(duration: 0.2), value: showSlider)
+    }
+}
+
+// MARK: - Custom Button Style for No Dimming
+private struct NoDimButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+        // No changes based on configuration.isPressed to avoid dimming or scaling
     }
 } 
