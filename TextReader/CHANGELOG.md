@@ -4,6 +4,9 @@
 
 ### Added
 
+* **Big Bang 拆词与滑动选词**
+  * 长按阅读页触发「大爆炸」；基于 `NLTokenizer` 智能分词。
+  * `BigBangView` 以砖块形式展示 Token，支持拖拽连续高亮并一键复制。
 * **WiFi Import Entry in Book List**: Added "WiFi 传输" option to the import menu in `BookListView`, allowing users to start WiFi transfer alongside file and paste import methods.
 * **Paste Text Import**: Users can now create a new book by directly pasting plain text.  
   * 支持在书籍列表通过「粘贴文本」输入内容并保存为 TXT。  
@@ -12,6 +15,7 @@
 
 ### Changed
 
+* `ContentDisplay` 支持长按手势，调用 ViewModel 的 `triggerBigBang()`。
 * **Removed WiFi Toolbar Button**: Deleted the WiFi transfer button and related sheet from `ContentView`; WiFi transfer can now be initiated only from the book list.
 
 ### Refactor
