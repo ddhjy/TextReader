@@ -22,6 +22,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingSearchView = false
     @Published var showingDocumentPicker = false
     @Published var showingWiFiTransferView = false
+    @Published var showingPasteImport = false
     @Published var bookProgressText: String?
 
     // MARK: - Dependencies
@@ -272,6 +273,37 @@ class ContentViewModel: ObservableObject {
             }
         }
         self.books = sortedBooks
+    }
+    
+    // 直接粘贴文本导入
+    func importPastedText(_ rawText: String, title customTitle: String?) {
+        let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+
+        // 若未输入标题，取前 10 个字符；去掉换行
+        var title = (customTitle?.trimmingCharacters(in: .whitespacesAndNewlines)).nilIfEmpty()
+                   ?? String(text.replacingOccurrences(of: "\n", with: " ").prefix(10))
+
+        // 过滤文件名非法字符，避免写文件失败
+        let invalidSet = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+        title = title.components(separatedBy: invalidSet).joined()
+
+        // 避免重名，可加时间戳
+        let fileName = "\(title)-\(Int(Date().timeIntervalSince1970)).txt"
+
+        libraryManager.importBook(fileName: fileName, content: text) { [weak self] result in
+            guard let self = self else { return }
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let newBook):
+                    self.books = self.libraryManager.loadBooks()
+                    self.sortBooks()
+                    self.loadBook(newBook)
+                case .failure(let err):
+                    print("Paste import failed: \(err)")
+                }
+            }
+        }
     }
     
     func loadBook(_ book: Book) {

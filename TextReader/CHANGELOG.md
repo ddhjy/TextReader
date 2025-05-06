@@ -15,6 +15,9 @@
 
 ### Added
 
+* **Paste Text Import**: Users can now create a new book by directly pasting plain text.  
+  * 支持在书籍列表通过「粘贴文本」输入内容并保存为 TXT。  
+  * 标题可手动输入或自动取文本前 10 个字符。
 * **File Import Button**: Added an 'Import' button to the `BookListView` to allow users to import `.txt` files using the system's document picker (`DocumentPicker` view).
 
 ### Fixed

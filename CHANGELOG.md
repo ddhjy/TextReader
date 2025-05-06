@@ -7,6 +7,9 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
+* **Paste Text Import**: Users can now create a new book by directly pasting plain text.  
+  * 支持在书籍列表通过「粘贴文本」输入内容并保存为 TXT。  
+  * 标题可手动输入或自动取文本前 10 个字符。
 * **Share to Import**: Added the ability to import text content shared from other applications (e.g., Notes, Safari) via the iOS Share Sheet. The app now handles URLs pointing to shared text data (`public.plain-text`, `public.text`).
 * **Book List Sorting**: Books in the list are now sorted by the last accessed time, with the most recently opened book appearing first. Unopened books appear at the end.
 * **Track Last Accessed Time**: The application now records when each book was last opened.
