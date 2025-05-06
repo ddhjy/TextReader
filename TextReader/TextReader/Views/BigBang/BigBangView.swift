@@ -216,8 +216,18 @@ struct BigBangView: View {
                     Button("取消") { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("复制") { vm.copySelected(); dismiss() }
+                    HStack {
+                        Button("清空") {
+                            vm.clearSelectedTokens()
+                        }
                         .disabled(vm.selectedTokenIDs.isEmpty)
+                        
+                        Button("复制") { 
+                            vm.copySelected()
+                            dismiss() 
+                        }
+                        .disabled(vm.selectedTokenIDs.isEmpty)
+                    }
                 }
             }
         }

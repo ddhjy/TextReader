@@ -737,6 +737,10 @@ class ContentViewModel: ObservableObject {
         selectedTokenIDs.formUnion(tokens[range].map(\.id))
     }
 
+    func clearSelectedTokens() {            // 清空所有选中的Token
+        selectedTokenIDs.removeAll()
+    }
+
     func copySelected() {
         let text = tokens.filter { selectedTokenIDs.contains($0.id) }
                          .map(\.value).joined()
