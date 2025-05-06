@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit // 用于震动反馈
 
 // 自定义FlowLayout视图
 struct FlowLayout<Data, ID, Content>: View where Data: RandomAccessCollection, ID: Hashable, Content: View {
@@ -175,11 +176,35 @@ private struct SizePreferenceKey: PreferenceKey {
     }
 }
 
+// 震动反馈辅助类
+class HapticFeedback {
+    static let shared = HapticFeedback()
+    
+    private let selectionFeedback = UISelectionFeedbackGenerator()
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+    
+    private init() {
+        // 预热反馈生成器，减少第一次使用时的延迟
+        selectionFeedback.prepare()
+        impactFeedback.prepare()
+    }
+    
+    func selectionChanged() {
+        selectionFeedback.selectionChanged()
+    }
+    
+    func impactOccurred() {
+        impactFeedback.impactOccurred()
+    }
+}
+
 struct BigBangView: View {
     @ObservedObject var vm: ContentViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var startID: UUID?   // 记录滑动起点
+    @State private var lastSelectedID: UUID? // 记录上一次选中的ID，避免重复震动
+    
     private let tokenHeight: CGFloat = 32
     private let tokenSpacing: CGFloat = 8  // 字块之间的统一间距
     
@@ -200,12 +225,31 @@ struct BigBangView: View {
                         .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
                         .gesture(DragGesture(minimumDistance: 0)
                                  .onChanged{ _ in
-                                     if startID == nil { startID = token.id }
+                                     if startID == nil { 
+                                         startID = token.id 
+                                         HapticFeedback.shared.impactOccurred() // 滑动开始时震动
+                                     }
+                                     
+                                     // 如果之前没有选中这个token，则触发震动
+                                     let initialSelectionState = vm.selectedTokenIDs.contains(token.id)
+                                     
+                                     // 执行选择
                                      vm.slideSelect(from: startID!, to: token.id)
+                                     
+                                     // 如果是新加入选中的token并且不是刚刚震动过的，触发震动
+                                     if !initialSelectionState && vm.selectedTokenIDs.contains(token.id) && lastSelectedID != token.id {
+                                         lastSelectedID = token.id
+                                         HapticFeedback.shared.selectionChanged()
+                                     }
                                  }
-                                 .onEnded{ _ in startID = nil })
+                                 .onEnded{ _ in 
+                                     startID = nil
+                                     lastSelectedID = nil  // 重置
+                                 })
                         .onTapGesture {
+                            // 单点选择时也触发震动
                             vm.toggleToken(token.id)
+                            HapticFeedback.shared.selectionChanged()
                         }
                 }
                 .padding()
@@ -218,11 +262,15 @@ struct BigBangView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
                         Button("清空") {
-                            vm.clearSelectedTokens()
+                            if !vm.selectedTokenIDs.isEmpty {
+                                vm.clearSelectedTokens()
+                                HapticFeedback.shared.impactOccurred() // 清空选择时震动
+                            }
                         }
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Button("复制") { 
+                            HapticFeedback.shared.impactOccurred() // 复制时震动
                             vm.copySelected()
                             dismiss() 
                         }
