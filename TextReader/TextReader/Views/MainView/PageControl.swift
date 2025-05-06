@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct PageControl: View {
     @ObservedObject var viewModel: ContentViewModel
@@ -8,6 +9,9 @@ struct PageControl: View {
     // ② 隐藏滑块的定时器
     @State private var hideSliderWorkItem: DispatchWorkItem?
     
+    // === 新增：震动反馈发生器（Selection 类型适用于离散滑块变动） ===
+    private let haptic = UISelectionFeedbackGenerator()
+    
     // ③ 把 currentPageIndex ↔︎ Slider 双向绑定抽出来
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
@@ -15,6 +19,10 @@ struct PageControl: View {
             set: { newVal in
                 let newIndex = Int(newVal.rounded())
                 guard newIndex != viewModel.currentPageIndex else { return }
+                
+                // === 新增：震动反馈 ===
+                haptic.selectionChanged()
+                haptic.prepare()          // 预加载下一次，手感更跟手
                 
                 viewModel.stopReading()                 // 先停止朗读
                 viewModel.currentPageIndex = newIndex   // 更新页码
@@ -95,6 +103,9 @@ struct PageControl: View {
                 .disabled(viewModel.currentPageIndex >= viewModel.pages.count - 1)
             }
             .padding(.horizontal)
+        }
+        .onAppear {
+            haptic.prepare()
         }
     }
     
