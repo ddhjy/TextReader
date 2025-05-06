@@ -284,6 +284,9 @@ class ContentViewModel: ObservableObject {
         // Update last accessed time
         libraryManager.updateLastAccessed(bookId: book.id)
 
+        sortBooks() // 更新后立即重新排序 books 数组
+        print("[ContentViewModel] Sorted books after loading book: \(book.title)")
+
         libraryManager.loadBookContent(book: book) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -442,6 +445,12 @@ class ContentViewModel: ObservableObject {
 
         currentPageIndex += 1 // 更新页面索引
 
+        if let bookId = self.currentBookId {
+            libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
+            sortBooks() // 更新后立即重新排序 books 数组
+            print("[ContentViewModel] Updated lastAccessed and sorted books after nextPage.")
+        }
+
         if wasReading {
             // 如果翻页前在朗读，立即开始朗读新页面
             // 使用 DispatchQueue.main.async 确保在 UI 更新后执行朗读，避免潜在冲突
@@ -465,6 +474,12 @@ class ContentViewModel: ObservableObject {
         }
 
         currentPageIndex -= 1 // 更新页面索引
+
+        if let bookId = self.currentBookId {
+            libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
+            sortBooks() // 更新后立即重新排序 books 数组
+            print("[ContentViewModel] Updated lastAccessed and sorted books after previousPage.")
+        }
 
         if wasReading {
             // 同 nextPage 的逻辑
