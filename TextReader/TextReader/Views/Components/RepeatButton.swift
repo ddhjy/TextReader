@@ -10,6 +10,8 @@ struct RepeatButton<Label: View>: View {
 
     var body: some View {
         label()
+            .frame(minWidth: 44, minHeight: 44)        // ① HIG 建议
+            .contentShape(Rectangle())                 // ② 扩大热区
             .buttonStyle(PressableButtonStyle())
             .scaleEffect(isPressed ? 0.95 : 1.0)
             .onLongPressGesture(minimumDuration: 0.2, pressing: { pressing in

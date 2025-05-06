@@ -5,6 +5,12 @@ struct PageControl: View {
 
     var body: some View {
         VStack(spacing: 8) {
+            // 新增进度条
+            ProgressView(value: pageProgress)
+                .progressViewStyle(.linear)
+                .tint(.accentColor)
+                .animation(.easeInOut, value: pageProgress)
+            
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
                 .font(.caption)
                 .foregroundColor(.secondary)
@@ -28,10 +34,15 @@ struct PageControl: View {
 
                 Spacer()
 
+                // 优化播放按钮
                 Button(action: { viewModel.toggleReading() }) {
-                    Image(systemName: viewModel.isReading ? "pause.circle.fill" : "play.circle.fill")
-                        .font(.largeTitle)
+                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                        .font(.system(size: 28, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Circle().fill(Color.accentColor.opacity(0.9)))
                 }
+                .accessibilityLabel(viewModel.isReading ? "暂停朗读" : "开始朗读")
 
                 Spacer()
 
@@ -53,5 +64,10 @@ struct PageControl: View {
             }
             .padding(.horizontal)
         }
+    }
+    
+    private var pageProgress: Double {
+        guard viewModel.pages.count > 0 else { return 0 }
+        return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
     }
 } 

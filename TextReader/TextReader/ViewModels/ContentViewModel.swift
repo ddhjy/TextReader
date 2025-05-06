@@ -24,6 +24,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingWiFiTransferView = false
     @Published var showingPasteImport = false
     @Published var bookProgressText: String?
+    @Published var darkModeEnabled: Bool = false
 
     // MARK: - Dependencies
     private let libraryManager: LibraryManager
@@ -52,6 +53,7 @@ class ContentViewModel: ObservableObject {
         self.wiFiTransferService = wiFiTransferService
         self.audioSessionManager = audioSessionManager
         self.settingsManager = settingsManager
+        self.darkModeEnabled = settingsManager.getDarkMode()
 
         loadInitialData()
         
@@ -127,6 +129,11 @@ class ContentViewModel: ObservableObject {
                     self?.restartReading()
                 }
             }
+            .store(in: &cancellables)
+            
+        $darkModeEnabled
+            .dropFirst()
+            .sink { [weak self] enabled in self?.settingsManager.saveDarkMode(enabled) }
             .store(in: &cancellables)
             
         setupSyncTimer()
