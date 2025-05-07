@@ -1,6 +1,7 @@
 import SwiftUI
 import Combine
 import AVFoundation // For Voice type only
+import UIKit // 用于打开URL
 
 /// 内容视图模型，负责管理应用的核心功能和状态
 /// 管理文本分页与显示、朗读控制、书籍库、搜索、WiFi传输等功能
@@ -847,7 +848,15 @@ class ContentViewModel: ObservableObject {
         result = result.replacingOccurrences(of: "{page}", with: page)
         result = result.replacingOccurrences(of: "{book}", with: currentBookTitle)
         UIPasteboard.general.string = result
-        generatedPrompt = AlertMessage(message: "已复制提示词（\(template.name)）")
+        
+        // 构建Perplexity AI搜索URL
+        if let encodedQuery = result.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let url = URL(string: "https://www.perplexity.ai/search/new?q=\(encodedQuery)") {
+            // 打开URL
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+        
+        generatedPrompt = AlertMessage(message: "已复制提示词（\(template.name)）并打开Perplexity AI")
     }
 
     // MARK: - 清理
