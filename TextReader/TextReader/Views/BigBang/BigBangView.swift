@@ -228,7 +228,6 @@ struct BigBangView: View {
                 }
                 .padding()
             }
-            .navigationTitle("大爆炸")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
