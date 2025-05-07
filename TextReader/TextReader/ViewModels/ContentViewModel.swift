@@ -374,25 +374,29 @@ class ContentViewModel: ObservableObject {
             stopReading()
         }
 
-        libraryManager.deleteBook(book) { [weak self] success in
-            guard let self = self, success else {
-                print("删除书籍失败: \(book.title)")
-                return
-            }
-            self.books = self.libraryManager.loadBooks()
-            self.sortBooks()
-
-            if wasCurrentBook {
-                // 如果删除的是当前正在阅读的书籍，加载第一本可用书籍或清空视图
-                if let firstBook = self.books.first {
-                    self.loadBook(firstBook)
-                } else {
-                    self.pages = []
-                    self.currentPageIndex = 0
-                    self.currentBookId = nil
-                    self.currentBookTitle = "TextReader"
-                    self.isContentLoaded = true
+        libraryManager.deleteBook(book) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success:
+                self.books = self.libraryManager.loadBooks()
+                self.sortBooks()
+                
+                if wasCurrentBook {
+                    // 如果删除的是当前正在阅读的书籍，加载第一本可用书籍或清空视图
+                    if let firstBook = self.books.first {
+                        self.loadBook(firstBook)
+                    } else {
+                        self.pages = []
+                        self.currentPageIndex = 0
+                        self.currentBookId = nil
+                        self.currentBookTitle = "TextReader"
+                        self.isContentLoaded = true
+                    }
                 }
+                
+            case .failure(let error):
+                print("删除书籍失败: \(book.title), 错误: \(error)")
             }
         }
     }

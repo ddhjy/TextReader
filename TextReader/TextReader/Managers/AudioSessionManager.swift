@@ -211,7 +211,7 @@ class AudioSessionManager: NSObject {
         guard let viewModel = contentViewModel else { return }
         
         // 应用内部的播放状态
-        let isAppPlaying = viewModel.isSpeaking
+        let isAppPlaying = viewModel.isReading
         
         // 检查是否需要强制更新
         let shouldUpdate = force || (isAppPlaying != isSystemPlaybackActive)
@@ -219,10 +219,10 @@ class AudioSessionManager: NSObject {
         if shouldUpdate {
             // 更新系统状态
             updateNowPlayingInfo(
-                title: viewModel.book?.title,
+                title: viewModel.currentBookTitle,
                 isPlaying: isAppPlaying,
                 currentPage: viewModel.currentPageIndex + 1,
-                totalPages: viewModel.pageCount
+                totalPages: viewModel.pages.count
             )
             print("同步播放状态: 应用内\(isAppPlaying ? "正在播放" : "已暂停"), 系统\(isSystemPlaybackActive ? "正在播放" : "已暂停")")
         }
@@ -245,7 +245,7 @@ class AudioSessionManager: NSObject {
             isSystemPlaybackActive = false
             
             // 通知视图模型暂停播放
-            contentViewModel?.pauseSpeech()
+            contentViewModel?.stopReading()
             
         case .ended:
             // 中断结束，根据选项判断是否需要恢复播放
@@ -295,7 +295,7 @@ class AudioSessionManager: NSObject {
                 
                 // 如果正在播放，则暂停
                 if isSystemPlaybackActive {
-                    contentViewModel?.pauseSpeech()
+                    contentViewModel?.stopReading()
                 }
             }
         }
