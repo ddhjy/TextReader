@@ -300,6 +300,9 @@ struct BigBangView: View {
                 Alert(title: Text(alertMsg.message))
             }
         }
+        .onAppear {
+            HapticFeedback.shared.impactOccurred() // 页面出现时震动
+        }
         .interactiveDismissDisabled()
     }
 } 
