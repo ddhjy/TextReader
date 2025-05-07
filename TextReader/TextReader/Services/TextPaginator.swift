@@ -1,24 +1,25 @@
 import Foundation
 
+/// 文本分页器，负责将长文本分割成适合阅读的页面
 class TextPaginator {
-    /// Splits text into pages based on character count.
+    /// 根据字符数将文本分割成页面
     /// - Parameters:
-    ///   - text: The text content to paginate
-    ///   - maxPageSize: Maximum number of characters per page (default: 100)
-    /// - Returns: Array of string pages
-    func paginate(text: String, maxPageSize: Int = 100) -> [String] { // Default kept for consistency, maybe make configurable later
-        print("Paginating text...")
+    ///   - text: 需要分页的文本内容
+    ///   - maxPageSize: 每页最大字符数（默认值：100）
+    /// - Returns: 字符串页面数组
+    func paginate(text: String, maxPageSize: Int = 100) -> [String] { // 保留默认值以保持一致性，后续可考虑设为可配置项
+        print("开始分页...")
         var sentences = [String]()
         var currentSentence = ""
         
-        // Use String.enumerateSubstrings for more robust sentence splitting
+        // 使用String.enumerateSubstrings进行更可靠的句子分割
         text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: [.bySentences, .localized]) { substring, _, _, _ in
             if let sentence = substring {
                 sentences.append(sentence.trimmingCharacters(in: .whitespacesAndNewlines))
             }
         }
         
-        // Handle case where enumeration finds no sentences (e.g., no punctuation)
+        // 处理枚举未找到句子的情况（例如，没有标点符号）
         if sentences.isEmpty && !text.isEmpty {
             sentences = text.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         }
@@ -32,7 +33,7 @@ class TextPaginator {
             let sentenceCharCount = sentence.count
 
             if sentenceCharCount > maxPageSize {
-                // Handle very long sentences by splitting them across multiple pages
+                // 处理非常长的句子，将其拆分到多个页面
                 if !currentPageContent.isEmpty {
                     pages.append(currentPageContent)
                     currentPageContent = ""
@@ -50,16 +51,16 @@ class TextPaginator {
                 }
 
             } else if currentPageCharCount + sentenceCharCount <= maxPageSize {
-                // Add sentence to the current page
+                // 将句子添加到当前页面
                 if !currentPageContent.isEmpty {
-                    // Add spacing between sentences
+                    // 在句子之间添加空格
                     currentPageContent += " "
                     currentPageCharCount += 1
                 }
                 currentPageContent += sentence
                 currentPageCharCount += sentenceCharCount
             } else {
-                // Current page is full, start a new page
+                // 当前页面已满，开始新页面
                 if !currentPageContent.isEmpty {
                     pages.append(currentPageContent)
                 }
@@ -68,12 +69,12 @@ class TextPaginator {
             }
         }
 
-        // Add the last page if it has content
+        // 如果最后一页有内容，则添加
         if !currentPageContent.isEmpty {
             pages.append(currentPageContent)
         }
         
-        print("Pagination complete. \(pages.count) pages.")
-        return pages.isEmpty ? ["无内容"] : pages // Ensure there's always at least one element for the UI
+        print("分页完成，共 \(pages.count) 页。")
+        return pages.isEmpty ? ["无内容"] : pages // 确保UI至少有一个元素
     }
 } 

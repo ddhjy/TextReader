@@ -1,22 +1,26 @@
 import SwiftUI
 import UIKit
 
+/// 页面控制组件，用于显示阅读进度、页码和控制页面导航
 struct PageControl: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // ① 新增：滑块是否可见
+    // MARK: - 状态属性
+    // 控制滑块是否可见
     @State private var showSlider = false
-    // ② 隐藏滑块的定时器
+    // 隐藏滑块的定时器
     @State private var hideSliderWorkItem: DispatchWorkItem?
-    // 新增状态
+    // 拖动区域宽度
     @State private var dragWidth: CGFloat = 0
     
-    // === 新增：震动反馈发生器（Selection 类型适用于离散滑块变动） ===
+    // MARK: - 反馈生成器
+    // 滑块变动时的震动反馈发生器（Selection类型适用于离散滑块变动）
     private let haptic = UISelectionFeedbackGenerator()
-    // === 新增：播放/暂停按钮的震动反馈发生器 ===
+    // 播放/暂停按钮的震动反馈发生器
     private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
     
-    // ③ 把 currentPageIndex ↔︎ Slider 双向绑定抽出来
+    // MARK: - 计算属性
+    // 创建currentPageIndex与Slider的双向绑定
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(viewModel.currentPageIndex) },
@@ -24,9 +28,9 @@ struct PageControl: View {
                 let newIndex = Int(newVal.rounded())
                 guard newIndex != viewModel.currentPageIndex else { return }
                 
-                // === 新增：震动反馈 ===
+                // 触发震动反馈
                 haptic.selectionChanged()
-                haptic.prepare()          // 预加载下一次，手感更跟手
+                haptic.prepare()  // 预加载下一次，提升响应速度
                 
                 viewModel.stopReading()                 // 先停止朗读
                 viewModel.currentPageIndex = newIndex   // 更新页码
@@ -37,21 +41,22 @@ struct PageControl: View {
     var body: some View {
         VStack(spacing: 8) {
             
-            // ---------- 进度条区 ----------
+            // MARK: - 进度条区域
             GeometryReader { geo in
                 progressStack(geo: geo)
                     .onAppear { dragWidth = geo.size.width }
             }
-            .frame(height: 24) // 给进度条区固定高度即可
-            // ----------------------------------
+            .frame(height: 24) // 给进度条区固定高度
             
+            // MARK: - 页码显示
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundColor(.secondary)
             
-            // —— 原有翻页 / 播放按钮保持不变 ——
+            // MARK: - 控制按钮区域
             HStack {
+                // 上一页按钮
                 RepeatButton(
                     action: { viewModel.previousPage() },
                     longPressAction: { if viewModel.currentPageIndex > 0 { viewModel.previousPage() } }
@@ -60,9 +65,10 @@ struct PageControl: View {
                 
                 Spacer()
                 
+                // 播放/暂停按钮
                 Button(action: { 
                     viewModel.toggleReading()
-                    buttonHaptic.impactOccurred() // <--- 点击时触发震动
+                    buttonHaptic.impactOccurred() // 点击时触发震动
                 }) { Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.white)
@@ -75,6 +81,7 @@ struct PageControl: View {
                 
                 Spacer()
                 
+                // 下一页按钮
                 RepeatButton(
                     action: { viewModel.nextPage() },
                     longPressAction: { if viewModel.currentPageIndex < viewModel.pages.count - 1 { viewModel.nextPage() } }
@@ -85,16 +92,19 @@ struct PageControl: View {
         }
         .onAppear {
             haptic.prepare()
-            buttonHaptic.prepare() // <--- 预热按钮震动器
+            buttonHaptic.prepare() // 预热按钮震动器
         }
     }
     
-    // MARK: - Helpers
+    // MARK: - 辅助方法
+    
+    /// 计算当前阅读进度百分比
     private var pageProgress: Double {
         guard viewModel.pages.count > 0 else { return 0 }
         return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
     }
     
+    /// 安排隐藏滑块的定时任务
     private func scheduleHide() {
         // 取消旧任务
         hideSliderWorkItem?.cancel()
@@ -106,14 +116,15 @@ struct PageControl: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
 
+    /// 创建进度栈视图，包含进度条和滑块
     private func progressStack(geo: GeometryProxy) -> some View {
         ZStack {
-            // ① 只读进度条
+            // 只读进度条
             ProgressView(value: pageProgress)
                 .progressViewStyle(.linear)
                 .tint(.accentColor)
 
-            // ② Slider（与原来一致）
+            // 可交互滑块
             if viewModel.pages.count > 1 {
                 Slider(value: sliderBinding,
                        in: 0...Double(max(0, viewModel.pages.count - 1)),
@@ -132,7 +143,7 @@ struct PageControl: View {
             }
         }
         .contentShape(Rectangle())
-        // --- ⬇︎ 改动核心：把"长按 + 拖动"组合起来 ----------------
+        // 长按和拖动手势
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
                 .onChanged { _ in                   // 触发阈值后立即显示滑块
@@ -144,7 +155,7 @@ struct PageControl: View {
                 .simultaneously(with: DragGesture(minimumDistance: 0)
                     .onChanged { value in
                         guard showSlider, dragWidth > 0 else { return }
-                        // 计算拖动百分比 → 页码
+                        // 计算拖动百分比转换为页码
                         let pct = max(0, min(1, value.location.x / dragWidth))
                         let newIndex = Int(round(pct * Double(max(0, viewModel.pages.count - 1))))
                         if newIndex != viewModel.currentPageIndex {
@@ -158,15 +169,16 @@ struct PageControl: View {
                     }
                 )
         )
-        // ----------------------------------------------------------
         .animation(.easeInOut(duration: 0.2), value: showSlider)
     }
 }
 
-// MARK: - Custom Button Style for No Dimming
+// MARK: - 自定义按钮样式
+
+/// 无暗淡效果的按钮样式，避免按下时的视觉变化
 private struct NoDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-        // No changes based on configuration.isPressed to avoid dimming or scaling
+        // 不根据configuration.isPressed状态改变外观，避免按下时的暗淡或缩放效果
     }
 } 
