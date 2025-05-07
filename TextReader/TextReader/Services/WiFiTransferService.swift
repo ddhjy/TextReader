@@ -1,7 +1,8 @@
 import Network
 import Foundation
 
-class WiFiTransferService: ObservableObject {
+// MARK: - WiFi传输服务，提供无线文件传输功能
+class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private var listener: NWListener?
     @Published var isRunning = false
     @Published var serverAddress: String?
@@ -78,7 +79,7 @@ class WiFiTransferService: ObservableObject {
     /// Receives initial data from the connection to determine request type
     private func receiveData(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
-            if let error = error {
+            if error != nil {
                 return
             }
             
@@ -97,94 +98,75 @@ class WiFiTransferService: ObservableObject {
     /// Handles file upload requests using a buffer to collect all data
     private func receiveFileUpload(connection: NWConnection, initialData: Data) {
         var buffer = initialData
+        let startTime = Date()
         
-        // A timer to detect when the upload has finished
-        var lastReceiveTime = Date()
-        var noDataTimer: Timer?
-        
-        func checkDataComplete() {
-            // If no new data received for 3 seconds, consider the transfer complete
-            if Date().timeIntervalSince(lastReceiveTime) >= 3.0 {
-                processReceivedData()
-                noDataTimer?.invalidate()
-                noDataTimer = nil
-            }
-        }
-        
-        func processReceivedData() {
-            // Try to detect file encoding
-            let encodings: [String.Encoding] = [.utf8]
-            var fileContent: String?
-            
-            for encoding in encodings {
-                if let content = String(data: buffer, encoding: encoding) {
-                    fileContent = content
-                    break
-                }
-            }
-            
-            if let content = fileContent {
-                if let boundaryStart = content.range(of: "boundary="),
-                   let headerEnd = content.range(of: "\r\n\r\n") {
-                    let boundary = "--" + content[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
-                    
-                    if let filenameRange = content.range(of: "filename=\""),
-                       let filenameEnd = content[filenameRange.upperBound...].range(of: "\"") {
-                        let filename = String(content[filenameRange.upperBound..<filenameEnd.lowerBound])
-                        
-                        let boundaryEnd = "\(boundary)--"
-                        if let contentStart = content.range(of: "\r\n\r\n", range: headerEnd.upperBound..<content.endIndex),
-                           let contentEnd = content.range(of: boundaryEnd) {
-                            let fileContent = String(content[contentStart.upperBound..<contentEnd.lowerBound])
-                            
-                            DispatchQueue.main.async { [weak self] in
-                                self?.onFileReceived?(filename, fileContent)
-                            }
-                            
-                            sendSuccessResponse(on: connection, filename: filename)
-                            return
-                        }
-                    }
-                }
-                sendErrorResponse(on: connection, message: "文件格式解析失败")
-            } else {
-                sendErrorResponse(on: connection, message: "不支持的文件编码格式")
-            }
-        }
-        
+        // Use a simpler approach without timer
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
-                if let error = error {
+                if error != nil {
                     self?.sendErrorResponse(on: connection, message: "接收数据时发生错误")
                     return
                 }
                 
+                let currentTime = Date()
+                let timeElapsed = currentTime.timeIntervalSince(startTime)
+                
                 if let data = data {
                     buffer.append(data)
-                    lastReceiveTime = Date()
-                    
-                    // Reset timer
-                    noDataTimer?.invalidate()
-                    noDataTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
-                        checkDataComplete()
-                    }
                 }
                 
-                if isComplete {
-                    noDataTimer?.invalidate()
-                    processReceivedData()
+                if isComplete || (data == nil && timeElapsed > 3.0) {
+                    self?.processReceivedData(buffer: buffer, connection: connection)
                 } else if error == nil {
+                    // Continue receiving
                     receive()
                 }
             }
         }
         
-        // Start initial timer
-        noDataTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
-            checkDataComplete()
+        receive()
+    }
+    
+    /// Process received data to extract file content
+    private func processReceivedData(buffer: Data, connection: NWConnection) {
+        // Try to detect file encoding
+        let encodings: [String.Encoding] = [.utf8]
+        var fileContent: String?
+        
+        for encoding in encodings {
+            if let content = String(data: buffer, encoding: encoding) {
+                fileContent = content
+                break
+            }
         }
         
-        receive()
+        if let content = fileContent {
+            if let boundaryStart = content.range(of: "boundary="),
+               let headerEnd = content.range(of: "\r\n\r\n") {
+                let boundary = "--" + content[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
+                
+                if let filenameRange = content.range(of: "filename=\""),
+                   let filenameEnd = content[filenameRange.upperBound...].range(of: "\"") {
+                    let filename = String(content[filenameRange.upperBound..<filenameEnd.lowerBound])
+                    
+                    let boundaryEnd = "\(boundary)--"
+                    if let contentStart = content.range(of: "\r\n\r\n", range: headerEnd.upperBound..<content.endIndex),
+                       let contentEnd = content.range(of: boundaryEnd) {
+                        let fileContent = String(content[contentStart.upperBound..<contentEnd.lowerBound])
+                        
+                        DispatchQueue.main.async { [weak self] in
+                            self?.onFileReceived?(filename, fileContent)
+                        }
+                        
+                        sendSuccessResponse(on: connection, filename: filename)
+                        return
+                    }
+                }
+            }
+            sendErrorResponse(on: connection, message: "文件格式解析失败")
+        } else {
+            sendErrorResponse(on: connection, message: "不支持的文件编码格式")
+        }
     }
     
     /// Processes HTTP requests and responds appropriately

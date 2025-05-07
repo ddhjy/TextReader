@@ -10,7 +10,7 @@ struct SearchView: View {
             SearchBar(text: $searchText, onCommit: {
                 viewModel.searchContent(searchText)
             })
-            .onChange(of: searchText) { newVal in
+            .onChange(of: searchText) { _, newVal in
                 if newVal.isEmpty {
                     viewModel.searchContent(newVal)  // 将重置为摘要
                 }

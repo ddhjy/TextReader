@@ -193,10 +193,8 @@ class LibraryManager {
             
             // 如果成功获取权限，确保在函数退出时停止访问
             if securityAccessGranted {
-                defer {
-                    url.stopAccessingSecurityScopedResource()
-                    print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
-                }
+                url.stopAccessingSecurityScopedResource()
+                print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
             } else {
                 print("[LibraryManager] 无法作为安全作用域资源访问，将尝试直接访问")
             }
@@ -235,7 +233,7 @@ class LibraryManager {
             }
 
             // 如果仍然无法读取
-            guard let content = fileContent, let encoding = usedEncoding else {
+            guard let content = fileContent, let _ = usedEncoding else {
                 print("[LibraryManager][错误] 无法使用支持的编码从 \(url.path) 读取内容。")
                 completion(.failure(LibraryError.unsupportedEncoding))
                 return
@@ -247,9 +245,6 @@ class LibraryManager {
             // 导入内容创建新书籍
             importBook(fileName: fileName, content: content, suggestedTitle: suggestedTitle, completion: completion)
             
-        } catch {
-            print("[LibraryManager][错误] 导入文件失败: \(error.localizedDescription)")
-            completion(.failure(LibraryError.fileImportError(error.localizedDescription)))
         }
     }
     
@@ -269,32 +264,31 @@ class LibraryManager {
     
     /// 通过先复制到临时目录尝试读取文件内容
     private func tryReadingByCopyingFirst(url: URL, encodingsToTry: [String.Encoding]) -> (String, String.Encoding)? {
+        let tempDir = FileManager.default.temporaryDirectory
+        let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".txt")
+        
         do {
-            let tempDir = FileManager.default.temporaryDirectory
-            let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".txt")
-            
             // 复制到临时文件
             try FileManager.default.copyItem(at: url, to: tempFile)
             print("[LibraryManager] 文件已复制到临时位置: \(tempFile.path)")
-            
-            // 尝试使用各种编码读取
-            for encoding in encodingsToTry {
-                if let content = try? String(contentsOf: tempFile, encoding: encoding) {
-                    print("[LibraryManager] 复制后成功使用编码读取: \(encoding)")
-                    
-                    // 清理临时文件
-                    try? FileManager.default.removeItem(at: tempFile)
-                    return (content, encoding)
-                }
-            }
-            
-            // 清理临时文件
-            try? FileManager.default.removeItem(at: tempFile)
-            
-        } catch {
+        } catch let error {
             print("[LibraryManager][错误] 复制文件到临时位置失败: \(error.localizedDescription)")
+            return nil
         }
         
+        // 尝试使用各种编码读取
+        for encoding in encodingsToTry {
+            if let content = try? String(contentsOf: tempFile, encoding: encoding) {
+                print("[LibraryManager] 复制后成功使用编码读取: \(encoding)")
+                
+                // 清理临时文件
+                try? FileManager.default.removeItem(at: tempFile)
+                return (content, encoding)
+            }
+        }
+        
+        // 清理临时文件
+        try? FileManager.default.removeItem(at: tempFile)
         return nil
     }
     
