@@ -31,6 +31,10 @@ class ContentViewModel: ObservableObject {
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []
     @Published var selectedTokenIDs: Set<UUID> = []
+    // 模板相关状态
+    @Published var templates: [PromptTemplate] = []
+    @Published var showingTemplatePicker = false
+    @Published var generatedPrompt: AlertMessage?
 
     // MARK: - 依赖项
     private let libraryManager: LibraryManager
@@ -42,6 +46,8 @@ class ContentViewModel: ObservableObject {
     private let settingsManager: SettingsManager
     // BigBang 工具依赖
     private let tokenizer = Tokenizer()
+    // 模板管理依赖
+    private let templateManager = TemplateManager()
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -109,6 +115,7 @@ class ContentViewModel: ObservableObject {
         self.readingSpeed = settingsManager.getReadingSpeed()
         self.availableVoices = speechManager.getAvailableVoices(languagePrefix: "zh")
         self.selectedVoiceIdentifier = settingsManager.getSelectedVoiceIdentifier() ?? availableVoices.first?.identifier
+        self.templates = templateManager.load()
     }
 
     // MARK: - 绑定与回调
@@ -778,6 +785,39 @@ class ContentViewModel: ObservableObject {
                          .map(\.value).joined()
         UIPasteboard.general.string = text
         showingBigBang = false
+    }
+
+    // MARK: - 模板管理
+
+    /// 添加新模板
+    func addTemplate(_ t: PromptTemplate) {
+        templates.append(t)
+        templateManager.save(templates)
+    }
+
+    /// 更新已有模板
+    func updateTemplate(_ t: PromptTemplate) {
+        guard let idx = templates.firstIndex(where: { $0.id == t.id }) else { return }
+        templates[idx] = t
+        templateManager.save(templates)
+    }
+
+    /// 删除模板
+    func deleteTemplate(_ t: PromptTemplate) {
+        templates.removeAll { $0.id == t.id }
+        templateManager.save(templates)
+    }
+    
+    /// 生成提示词并复制到剪贴板
+    func buildPrompt(using template: PromptTemplate) {
+        let selection = tokens.filter { selectedTokenIDs.contains($0.id) }.map(\.value).joined()
+        let page = pages.indices.contains(currentPageIndex) ? pages[currentPageIndex] : ""
+        var result = template.content
+        result = result.replacingOccurrences(of: "{selection}", with: selection)
+        result = result.replacingOccurrences(of: "{page}", with: page)
+        result = result.replacingOccurrences(of: "{book}", with: currentBookTitle)
+        UIPasteboard.general.string = result
+        generatedPrompt = AlertMessage(message: "已复制提示词（\(template.name)）")
     }
 
     // MARK: - 清理

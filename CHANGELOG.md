@@ -7,6 +7,10 @@
 * **Moved WiFi UI**: Migrated WiFi transfer UI elements (status display, copy URL button) and controls (start/stop button) from `ContentView` overlay and toolbar to the new `WiFiTransferView`.
 
 ### Added
+* **Prompt Templates after Big Bang**  
+  * 新增 `PromptTemplate` 模型、`TemplateManager` 持久化。  
+  * 在 BigBang 选词后，可选择预设/自定义模板，自动替换 `{selection}/{page}/{book}` 并复制。  
+  * 提供模板管理界面（增删改）。
 * **SearchView 默认分页摘要**  
   * 当搜索框为空时展示分页摘要（≤100 等分），包含页码与预览。
   * 点击摘要可快速跳转至对应页面。
@@ -61,3 +65,7 @@
 ### Improved
 * **Page Slider UX**
   * Long-pressing the progress bar now immediately reveals the slider **and** allows continuous dragging without lifting the finger, matching natural expectations.
+
+### UI
+* `BigBangView` 右上角增加"模板"菜单与管理入口。
+* `ContentDisplay` 支持长按手势，调用 ViewModel 的 `triggerBigBang()`。
