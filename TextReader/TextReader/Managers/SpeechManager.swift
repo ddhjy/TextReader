@@ -1,33 +1,49 @@
 import AVFoundation
 import UIKit // For UIBackgroundTaskIdentifier
 
+/// 语音管理器，负责文本的语音合成和朗读控制
+///
+/// 该类封装了AVSpeechSynthesizer的功能，提供语音朗读、暂停、继续和停止的接口。
+/// 同时管理后台任务，允许应用在后台继续朗读文本。
 class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
+    /// 语音合成器
     private let synthesizer = AVSpeechSynthesizer()
+    /// 当前是否正在朗读
     @Published private(set) var isSpeaking: Bool = false
+    /// 后台任务标识符
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
-    /// Tracks the last time an error occurred for error handling logic
+    /// 记录最后一次出错的时间，用于错误处理逻辑
     private var lastErrorTime: Date?
-    /// Indicates whether an error has been encountered during playback
+    /// 指示在播放过程中是否遇到了错误
     private var didEncounterError = false
-    /// Stores the last text that was attempted to be read for retry functionality
+    /// 存储最后尝试朗读的文本，用于重试功能
     private var lastText: String?
+    /// 存储最后使用的语音
     private var lastVoice: AVSpeechSynthesisVoice?
+    /// 存储最后使用的朗读速率
     private var lastRate: Float = 1.0
 
-    /// Callbacks for ViewModel to respond to speech events
+    /// 视图模型响应语音事件的回调函数
+    /// 朗读完成时的回调
     var onSpeechFinish: (() -> Void)?
+    /// 开始朗读时的回调
     var onSpeechStart: (() -> Void)?
+    /// 暂停朗读时的回调
     var onSpeechPause: (() -> Void)?
+    /// 恢复朗读时的回调
     var onSpeechResume: (() -> Void)?
+    /// 朗读出错时的回调
     var onSpeechError: (() -> Void)?
 
+    /// 初始化语音管理器
     override init() {
         super.init()
         synthesizer.delegate = self
         resetState()
     }
     
+    /// 重置内部状态
     private func resetState() {
         isSpeaking = false
         didEncounterError = false
@@ -35,16 +51,23 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
         lastVoice = nil
     }
 
-    /// Returns available voices for the specified language prefix
+    /// 获取指定语言前缀的可用语音列表
+    /// - Parameter languagePrefix: 语言前缀，默认为"zh"（中文）
+    /// - Returns: 符合指定语言的语音列表
     func getAvailableVoices(languagePrefix: String = "zh") -> [AVSpeechSynthesisVoice] {
         return AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: languagePrefix) }
     }
 
+    /// 开始朗读文本
+    /// - Parameters:
+    ///   - text: 要朗读的文本
+    ///   - voice: 使用的语音，如果为nil则使用默认中文语音
+    ///   - rate: 朗读速率
     func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) {
-        print("SpeechManager: Start reading request")
+        print("语音管理器: 收到开始朗读请求")
         
         guard !text.isEmpty else {
-            print("SpeechManager: Cannot read empty text")
+            print("语音管理器: 无法朗读空文本")
             didEncounterError = true
             DispatchQueue.main.async {
                 self.onSpeechError?()
@@ -57,31 +80,33 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
         lastRate = rate
         didEncounterError = false
         
-        // Start background task to allow speech synthesis to continue in background
+        // 开始后台任务，允许语音合成在应用进入后台时继续
         startBackgroundTask()
 
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
         
-        print("SpeechManager: Starting speech synthesis")
+        print("语音管理器: 开始语音合成")
         self.synthesizer.speak(utterance)
         
+        // 延迟检查是否成功开始播放
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             guard let self = self else { return }
             if !self.synthesizer.isSpeaking && !self.didEncounterError {
-                print("SpeechManager: Detected playback did not start successfully")
+                print("语音管理器: 检测到播放未能成功开始")
                 self.didEncounterError = true
                 self.onSpeechError?()
             }
         }
     }
 
+    /// 停止朗读
     func stopReading() {
-        print("SpeechManager: Stop reading request")
+        print("语音管理器: 收到停止朗读请求")
         
         if synthesizer.isSpeaking || synthesizer.isPaused {
-            print("SpeechManager: Stopping current speech")
+            print("语音管理器: 停止当前朗读")
             synthesizer.stopSpeaking(at: .immediate)
         }
         
@@ -91,111 +116,119 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
         }
     }
 
+    /// 暂停朗读
     func pauseReading() {
         if synthesizer.isSpeaking {
-            print("SpeechManager: Pausing reading")
+            print("语音管理器: 暂停朗读")
             synthesizer.pauseSpeaking(at: .word)
             isSpeaking = false
             onSpeechPause?()
-            // Keep background task active during pause
+            // 在暂停期间保持后台任务活跃
         }
     }
 
+    /// 恢复朗读
     func resumeReading() {
         if synthesizer.isPaused {
-            print("SpeechManager: Resuming reading")
+            print("语音管理器: 恢复朗读")
             synthesizer.continueSpeaking()
             isSpeaking = true
             onSpeechResume?()
         }
     }
     
-    /// Attempts to retry reading the last text that was played
+    /// 尝试重新朗读上次的文本
     func retryLastReading() {
         if let text = lastText, let voice = lastVoice {
-            print("SpeechManager: Retrying last reading")
+            print("语音管理器: 重试上次朗读")
             startReading(text: text, voice: voice, rate: lastRate)
         }
     }
 
-    // MARK: - AVSpeechSynthesizerDelegate
+    // MARK: - AVSpeechSynthesizerDelegate 代理方法
 
+    /// 朗读完成时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: Reading finished")
+            print("语音管理器: 朗读完成")
             self.isSpeaking = false
             self.endBackgroundTask()
             self.onSpeechFinish?()
         }
     }
 
+    /// 朗读被取消时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: Reading cancelled")
+            print("语音管理器: 朗读被取消")
             self.isSpeaking = false
             self.endBackgroundTask()
         }
     }
 
+    /// 朗读被暂停时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didPause utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: Reading paused")
+            print("语音管理器: 朗读被暂停")
             self.isSpeaking = false
             self.onSpeechPause?()
         }
     }
 
+    /// 朗读继续时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didContinue utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: Reading resumed")
+            print("语音管理器: 朗读已恢复")
             self.isSpeaking = true
             self.onSpeechResume?()
         }
     }
     
+    /// 朗读开始时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("SpeechManager: Reading started")
+            print("语音管理器: 朗读已开始")
             self.isSpeaking = true
             self.onSpeechStart?()
         }
     }
     
+    /// 朗读到文本中的某个范围时的回调
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, 
                            willSpeakRangeOfSpeechString characterRange: NSRange, 
                            utterance: AVSpeechUtterance) {
-        
+        // 可以在此处添加当前正在朗读文本范围的处理逻辑
     }
 
-    // MARK: - Background Task Management
+    // MARK: - 后台任务管理
 
-    /// Starts a background task to allow speech synthesis to continue when app is in background
+    /// 开始后台任务，允许应用在后台继续语音合成
     private func startBackgroundTask() {
-        endBackgroundTask() // End any previous task first
+        endBackgroundTask() // 先结束之前的任务
         backgroundTask = UIApplication.shared.beginBackgroundTask { [weak self] in
-            // Handle task timeout
-            print("SpeechManager: Background task about to timeout")
+            // 处理任务超时
+            print("语音管理器: 后台任务即将超时")
             self?.endBackgroundTask()
             
-            // Report error if still speaking when task times out
+            // 如果任务超时时仍在朗读，则报告错误
             if self?.isSpeaking == true {
                 self?.didEncounterError = true
                 self?.onSpeechError?()
             }
         }
         
-        print("SpeechManager: Started background task ID=\(backgroundTask.rawValue)")
+        print("语音管理器: 已开始后台任务 ID=\(backgroundTask.rawValue)")
     }
 
-    /// Ends the current background task if one exists
+    /// 结束当前后台任务（如果存在）
     private func endBackgroundTask() {
         if backgroundTask != .invalid {
-            print("SpeechManager: Ended background task ID=\(backgroundTask.rawValue)")
+            print("语音管理器: 已结束后台任务 ID=\(backgroundTask.rawValue)")
             UIApplication.shared.endBackgroundTask(backgroundTask)
             backgroundTask = .invalid
         }
