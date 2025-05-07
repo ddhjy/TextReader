@@ -3,15 +3,7 @@ import Combine
 import AVFoundation // For Voice type only
 
 /// 内容视图模型，负责管理应用的核心功能和状态
-/// 
-/// ContentViewModel作为应用的核心模型，负责以下功能：
-/// - 文本内容的分页和显示
-/// - 朗读功能的控制（播放/暂停/调速）
-/// - 书籍库的管理
-/// - 搜索功能
-/// - WiFi文件传输
-/// - 深色模式设置
-/// - BigBang文本分析功能
+/// 管理文本分页与显示、朗读控制、书籍库、搜索、WiFi传输等功能
 class ContentViewModel: ObservableObject {
     // MARK: - UI绑定的发布属性
     @Published var pages: [String] = []
@@ -55,14 +47,6 @@ class ContentViewModel: ObservableObject {
 
     // MARK: - 初始化
     /// 初始化视图模型并设置各项依赖和回调
-    /// - Parameters:
-    ///   - libraryManager: 书籍库管理器
-    ///   - textPaginator: 文本分页器
-    ///   - speechManager: 语音管理器
-    ///   - searchService: 搜索服务
-    ///   - wiFiTransferService: WiFi传输服务
-    ///   - audioSessionManager: 音频会话管理器
-    ///   - settingsManager: 设置管理器
     init(libraryManager: LibraryManager = LibraryManager(),
          textPaginator: TextPaginator = TextPaginator(),
          speechManager: SpeechManager = SpeechManager(),
@@ -209,7 +193,7 @@ class ContentViewModel: ObservableObject {
             .assign(to: &$isServerRunning)
     }
 
-    /// 设置语音管理器的回调函数
+    /// 设置语音回调函数
     private func setupSpeechCallbacks() {
         speechManager.onSpeechFinish = { [weak self] in
             guard let self = self else { return }
@@ -414,9 +398,6 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 处理通过WiFi传输接收到的文件
-    /// - Parameters:
-    ///   - fileName: 文件名
-    ///   - content: 文件内容
     private func handleReceivedFile(fileName: String, content: String) {
         libraryManager.importBook(fileName: fileName, content: content) { [weak self] result in
             guard let self = self else { return }
@@ -432,9 +413,6 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 从URL导入书籍（与文档选择器配合使用）
-    /// - Parameters:
-    ///   - url: 书籍文件URL
-    ///   - suggestedTitle: 建议的标题，可为nil
     func importBookFromURL(_ url: URL, suggestedTitle: String? = nil) {
         print("[ContentViewModel] 从URL导入书籍: \(url.absoluteString)")
         print("[ContentViewModel] 建议标题: \(suggestedTitle ?? "无")")
@@ -460,8 +438,6 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 获取书籍阅读进度的显示文本
-    /// - Parameter book: 书籍对象
-    /// - Returns: 格式化的进度文本，如"已读 1/100 页"
     func getBookProgressDisplay(book: Book) -> String? {
         if let progress = libraryManager.getBookProgress(bookId: book.id) {
             return "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
@@ -470,8 +446,6 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 获取书籍最后访问时间的用户友好描述
-    /// - Parameter book: 书籍对象
-    /// - Returns: 格式化的时间描述，如"刚刚阅读"、"10分钟前阅读"等
     func getLastAccessedTimeDisplay(book: Book) -> String? {
         guard let progress = libraryManager.getBookProgress(bookId: book.id),
               let lastAccessed = progress.lastAccessed else {
@@ -639,7 +613,6 @@ class ContentViewModel: ObservableObject {
     // MARK: - 搜索
     
     /// 搜索内容中的指定关键词
-    /// - Parameter query: 搜索关键词
     func searchContent(_ query: String) {
         guard !query.isEmpty else {
             searchResults = []
@@ -651,7 +624,6 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 跳转到搜索结果页面
-    /// - Parameter pageIndex: 页面索引
     func jumpToSearchResult(pageIndex: Int) {
         guard pageIndex >= 0 && pageIndex < pages.count else { return }
         stopReading()
@@ -687,13 +659,7 @@ class ContentViewModel: ObservableObject {
 
     // MARK: - URL处理
     
-    /**
-     * 处理通过onOpenURL传入的URL，通常来自文件应用、AirDrop或其他应用的分享。
-     * 对于分享的纯文本，系统可能会将其保存为临时文件并通过URL传递。
-     * 也可能来自我们自定义的URL Scheme，例如textreader://import?text=xxx
-     * 
-     * - Parameter url: 需要处理的URL
-     */
+    /// 处理通过onOpenURL传入的URL，用于文件导入或自定义URL Scheme
     func handleImportedURL(_ url: URL) {
         print("[ContentViewModel] 处理导入的URL: \(url.absoluteString)")
 
@@ -717,11 +683,7 @@ class ContentViewModel: ObservableObject {
         importBookFromURL(url)
     }
     
-    /**
-     * 处理自定义URL Scheme，如textreader://import?text=xxx
-     * 
-     * - Parameter url: 自定义scheme的URL
-     */
+    /// 处理自定义URL Scheme，如textreader://import?text=xxx
     private func handleCustomSchemeURL(_ url: URL) {
         print("[ContentViewModel] 处理自定义scheme URL: \(url.absoluteString)")
         
@@ -788,16 +750,12 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 切换单个词语的选中状态
-    /// - Parameter id: 词语标记ID
     func toggleToken(_ id: UUID) {          // 供单点选择
         if selectedTokenIDs.contains(id) { selectedTokenIDs.remove(id) }
         else { selectedTokenIDs.insert(id) }
     }
 
     /// 滑动选择多个词语
-    /// - Parameters:
-    ///   - startID: 起始词语ID
-    ///   - endID: 结束词语ID
     func slideSelect(from startID: UUID, to endID: UUID) {   // 供滑动选择
         guard let s = tokens.firstIndex(where: {$0.id == startID}),
               let e = tokens.firstIndex(where: {$0.id == endID}) else { return }

@@ -2,9 +2,7 @@ import AVFoundation
 import UIKit // For UIBackgroundTaskIdentifier
 
 /// 语音管理器，负责文本的语音合成和朗读控制
-///
-/// 该类封装了AVSpeechSynthesizer的功能，提供语音朗读、暂停、继续和停止的接口。
-/// 同时管理后台任务，允许应用在后台继续朗读文本。
+/// 封装AVSpeechSynthesizer功能，提供朗读控制并管理后台任务
 class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     /// 语音合成器
     private let synthesizer = AVSpeechSynthesizer()
@@ -13,7 +11,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     /// 后台任务标识符
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
-    /// 记录最后一次出错的时间，用于错误处理逻辑
+    /// 记录最后一次出错的时间
     private var lastErrorTime: Date?
     /// 指示在播放过程中是否遇到了错误
     private var didEncounterError = false
@@ -24,16 +22,11 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
     /// 存储最后使用的朗读速率
     private var lastRate: Float = 1.0
 
-    /// 视图模型响应语音事件的回调函数
-    /// 朗读完成时的回调
+    /// 回调函数
     var onSpeechFinish: (() -> Void)?
-    /// 开始朗读时的回调
     var onSpeechStart: (() -> Void)?
-    /// 暂停朗读时的回调
     var onSpeechPause: (() -> Void)?
-    /// 恢复朗读时的回调
     var onSpeechResume: (() -> Void)?
-    /// 朗读出错时的回调
     var onSpeechError: (() -> Void)?
 
     /// 初始化语音管理器
