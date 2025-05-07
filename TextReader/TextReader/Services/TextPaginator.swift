@@ -6,7 +6,6 @@ class TextPaginator {
     func paginate(text: String, maxPageSize: Int = 100) -> [String] { // 保留默认值以保持一致性，后续可考虑设为可配置项
         print("开始分页...")
         var sentences = [String]()
-        var currentSentence = ""
         
         // 使用String.enumerateSubstrings进行更可靠的句子分割
         text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: [.bySentences, .localized]) { substring, _, _, _ in

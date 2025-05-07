@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct RepeatButton<Label: View>: View {
+struct RepeatButton<Label: View>: View, @unchecked Sendable {
     let action: () -> Void
     let longPressAction: () -> Void
     let label: () -> Label

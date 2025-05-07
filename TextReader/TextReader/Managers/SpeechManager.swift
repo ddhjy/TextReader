@@ -3,7 +3,7 @@ import UIKit // For UIBackgroundTaskIdentifier
 
 /// 语音管理器，负责文本的语音合成和朗读控制
 /// 封装AVSpeechSynthesizer功能，提供朗读控制并管理后台任务
-class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject {
+class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @unchecked Sendable {
     /// 语音合成器
     private let synthesizer = AVSpeechSynthesizer()
     /// 当前是否正在朗读
