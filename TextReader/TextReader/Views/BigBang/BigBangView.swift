@@ -202,9 +202,6 @@ struct BigBangView: View {
     @ObservedObject var vm: ContentViewModel
     @Environment(\.dismiss) private var dismiss
     
-    @State private var startID: UUID?   // 记录滑动起点
-    @State private var lastSelectedID: UUID? // 记录上一次选中的ID，避免重复震动
-    
     private let tokenHeight: CGFloat = 32
     private let tokenSpacing: CGFloat = 8  // 字块之间的统一间距
     
@@ -224,33 +221,10 @@ struct BigBangView: View {
                         .cornerRadius(4)
                         .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
                         .gesture(DragGesture(minimumDistance: 0)
-                                 .onChanged{ _ in
-                                     if startID == nil { 
-                                         startID = token.id 
-                                         HapticFeedback.shared.impactOccurred() // 滑动开始时震动
-                                     }
-                                     
-                                     // 如果之前没有选中这个token，则触发震动
-                                     let initialSelectionState = vm.selectedTokenIDs.contains(token.id)
-                                     
-                                     // 执行选择
-                                     vm.slideSelect(from: startID!, to: token.id)
-                                     
-                                     // 如果是新加入选中的token并且不是刚刚震动过的，触发震动
-                                     if !initialSelectionState && vm.selectedTokenIDs.contains(token.id) && lastSelectedID != token.id {
-                                         lastSelectedID = token.id
-                                         HapticFeedback.shared.selectionChanged()
-                                     }
-                                 }
                                  .onEnded{ _ in 
-                                     startID = nil
-                                     lastSelectedID = nil  // 重置
+                                     vm.processTokenTap(tappedTokenID: token.id)
+                                     HapticFeedback.shared.selectionChanged()
                                  })
-                        .onTapGesture {
-                            // 单点选择时也触发震动
-                            vm.toggleToken(token.id)
-                            HapticFeedback.shared.selectionChanged()
-                        }
                 }
                 .padding()
             }
