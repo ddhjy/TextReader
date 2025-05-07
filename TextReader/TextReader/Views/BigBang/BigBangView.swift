@@ -275,8 +275,29 @@ struct BigBangView: View {
                             dismiss() 
                         }
                         .disabled(vm.selectedTokenIDs.isEmpty)
+                        
+                        Menu("模板") {
+                            ForEach(vm.templates) { tpl in
+                                Button(tpl.name) { 
+                                    vm.buildPrompt(using: tpl)
+                                    HapticFeedback.shared.impactOccurred() // 应用模板时震动
+                                    dismiss()
+                                }
+                            }
+                            Divider()
+                            Button("管理模板…") {
+                                vm.showingTemplatePicker = true
+                            }
+                        }
+                        .disabled(vm.selectedTokenIDs.isEmpty)
                     }
                 }
+            }
+            .sheet(isPresented: $vm.showingTemplatePicker) {
+                PromptTemplatePicker(viewModel: vm)
+            }
+            .alert(item: $vm.generatedPrompt) { alertMsg in
+                Alert(title: Text(alertMsg.message))
             }
         }
         .interactiveDismissDisabled()
