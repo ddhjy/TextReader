@@ -31,6 +31,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []
     @Published var selectedTokenIDs: Set<UUID> = []
+    private var firstTapInSequence: UUID? = nil // 新增: 记录一个选择序列中的首次点击
     // 模板相关状态
     @Published var templates: [PromptTemplate] = []
     @Published var showingTemplatePicker = false
@@ -757,26 +758,55 @@ class ContentViewModel: ObservableObject {
         let text = pages[currentPageIndex]
         self.tokens = tokenizer.tokenize(text: text)
         self.selectedTokenIDs = []          // 重置选择
+        self.firstTapInSequence = nil // <--- 新增: 重置选择序列起点
         self.showingBigBang = true
     }
 
-    /// 切换单个词语的选中状态
-    func toggleToken(_ id: UUID) {          // 供单点选择
-        if selectedTokenIDs.contains(id) { selectedTokenIDs.remove(id) }
-        else { selectedTokenIDs.insert(id) }
+    /// 处理大爆炸视图中的词语点击
+    func processTokenTap(tappedTokenID: UUID) {
+        if let firstTapped = firstTapInSequence {
+            // 这不是序列的第一次点击
+            if tappedTokenID == firstTapped {
+                // 点击了序列的第一个词 -> 取消所有选中
+                selectedTokenIDs.removeAll()
+                firstTapInSequence = nil // 重置序列
+            } else {
+                // 点击了其他词 -> 清除当前选择，然后选择从 firstTapped 到 tappedTokenID
+                selectedTokenIDs.removeAll()
+                selectTokenRange(from: firstTapped, to: tappedTokenID)
+                // firstTapInSequence 保持不变
+            }
+        } else {
+            // 这是序列的第一次点击
+            selectedTokenIDs.removeAll() // 清除任何之前的选择
+            selectedTokenIDs.insert(tappedTokenID)
+            firstTapInSequence = tappedTokenID
+        }
     }
 
-    /// 滑动选择多个词语
-    func slideSelect(from startID: UUID, to endID: UUID) {   // 供滑动选择
-        guard let s = tokens.firstIndex(where: {$0.id == startID}),
-              let e = tokens.firstIndex(where: {$0.id == endID}) else { return }
-        let range = s <= e ? s...e : e...s
-        selectedTokenIDs.formUnion(tokens[range].map(\.id))
+    /// 辅助方法：选择指定范围内的词块
+    private func selectTokenRange(from startID: UUID, to endID: UUID) {
+        guard let sIndex = tokens.firstIndex(where: { $0.id == startID }),
+              let eIndex = tokens.firstIndex(where: { $0.id == endID }) else {
+            // 如果有一个ID无效，尝试选中单个有效的ID
+            if tokens.contains(where: { $0.id == startID }) {
+                selectedTokenIDs.insert(startID)
+            } else if tokens.contains(where: { $0.id == endID }) {
+                selectedTokenIDs.insert(endID)
+            }
+            return
+        }
+
+        let range = min(sIndex, eIndex)...max(sIndex, eIndex)
+        for i in range {
+            selectedTokenIDs.insert(tokens[i].id)
+        }
     }
 
     /// 清空所有选中的词语
     func clearSelectedTokens() {            // 清空所有选中的Token
         selectedTokenIDs.removeAll()
+        firstTapInSequence = nil // <--- 新增: 重置选择序列起点
     }
 
     /// 复制选中的词语
