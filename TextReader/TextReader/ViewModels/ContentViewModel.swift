@@ -855,8 +855,6 @@ class ContentViewModel: ObservableObject {
             // 打开URL
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
-        
-        generatedPrompt = AlertMessage(message: "已复制提示词（\(template.name)）并打开Perplexity AI")
     }
 
     // MARK: - 清理
