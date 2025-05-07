@@ -2,20 +2,14 @@ import AVFoundation
 import MediaPlayer
 
 /// 音频会话管理器，负责处理音频相关的系统交互
-///
-/// 该类管理以下功能：
-/// - 音频会话的配置和激活
-/// - 控制中心的媒体信息显示
-/// - 音频中断处理（如电话呼入）
-/// - 音频路由变化处理（如耳机插拔）
-/// - 远程控制命令的响应（如锁屏界面的播放/暂停按钮）
+/// 包括会话配置、控制中心显示、音频中断和远程控制命令
 class AudioSessionManager: NSObject {
     /// 内容视图模型的弱引用，用于状态同步和回调
     private weak var contentViewModel: ContentViewModel?
     /// 音频会话当前是否处于激活状态
     private var isAudioSessionActive = false
     
-    /// 跟踪系统播放状态，确保与系统事件（远程命令、中断）保持一致
+    /// 跟踪系统播放状态，确保与系统事件保持一致
     private var isSystemPlaybackActive = false
 
     /// 初始化音频会话管理器
@@ -29,7 +23,7 @@ class AudioSessionManager: NSObject {
         NotificationCenter.default.removeObserver(self)
     }
     
-    /// 设置音频会话相关通知的观察者，包括中断和路由变化等
+    /// 设置音频会话相关通知的观察者
     private func setupNotifications() {
         // 音频会话中断通知
         NotificationCenter.default.addObserver(
@@ -47,7 +41,7 @@ class AudioSessionManager: NSObject {
             object: nil
         )
         
-        // 应用进入前台通知，处理从后台返回时的状态同步
+        // 应用进入前台通知
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(handleAppDidBecomeActive), 
@@ -64,8 +58,7 @@ class AudioSessionManager: NSObject {
         )
     }
     
-    /// 注册内容视图模型，以便在音频事件发生时进行回调
-    /// - Parameter viewModel: 内容视图模型
+    /// 注册内容视图模型，用于音频事件回调
     func registerViewModel(_ viewModel: ContentViewModel) {
         self.contentViewModel = viewModel
     }
@@ -88,11 +81,6 @@ class AudioSessionManager: NSObject {
     }
 
     /// 设置远程控制中心，处理锁屏和控制中心的媒体控制
-    /// - Parameters:
-    ///   - playAction: 播放按钮触发的操作
-    ///   - pauseAction: 暂停按钮触发的操作
-    ///   - nextAction: 下一曲按钮触发的操作，可选
-    ///   - previousAction: 上一曲按钮触发的操作，可选
     func setupRemoteCommandCenter(playAction: @escaping () -> Void,
                                   pauseAction: @escaping () -> Void,
                                   nextAction: (() -> Void)? = nil,
@@ -152,12 +140,7 @@ class AudioSessionManager: NSObject {
         commandCenter.previousTrackCommand.removeTarget(nil)
     }
 
-    /// 更新控制中心的媒体信息，包括标题、播放状态和页码
-    /// - Parameters:
-    ///   - title: 当前书籍标题
-    ///   - isPlaying: 是否正在播放
-    ///   - currentPage: 当前页码
-    ///   - totalPages: 总页数
+    /// 更新控制中心的媒体信息
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
         // 如果状态是停止，先尝试清除现有信息，确保控制中心刷新状态
         if !isPlaying {
@@ -198,126 +181,89 @@ class AudioSessionManager: NSObject {
             }
             
             // 确保音频会话状态与播放状态一致
-            self.updateAudioSessionIfNeeded(isPlaying: isPlaying)
+            self.synchronizeAudioSessionState(with: isPlaying)
         }
     }
     
-    /// 尝试强制系统（控制中心、锁屏）识别暂停状态
+    /// 强制系统识别暂停状态
+    /// 有时iOS系统可能不会正确显示暂停状态，特别是在使用语音合成时
     private func forceSystemToRecognizePausedState() {
-        do {
-            // 临时停用然后重新激活音频会话，帮助系统识别状态变化
-            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-            try AVAudioSession.sharedInstance().setActive(true, options: [])
-            isAudioSessionActive = true
-            
-            // 清除并重置远程控制中心
-            let commandCenter = MPRemoteCommandCenter.shared()
-            commandCenter.playCommand.isEnabled = true
-            commandCenter.pauseCommand.isEnabled = false // 暂时禁用暂停命令
-            
-            // 短暂延迟后恢复正常状态
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                commandCenter.pauseCommand.isEnabled = true
-                commandCenter.playCommand.isEnabled = true
-            }
-        } catch {
-            print("强制系统识别暂停状态失败: \(error)")
-        }
-    }
-
-    /// 确保只有在预期播放时音频会话才处于活跃状态
-    /// - Parameter isPlaying: 是否正在播放
-    private func updateAudioSessionIfNeeded(isPlaying: Bool) {
-        if isPlaying && !isAudioSessionActive {
-            do {
-                try AVAudioSession.sharedInstance().setActive(true, options: [])
-                isAudioSessionActive = true
-                print("已为播放重新激活音频会话")
-            } catch {
-                print("激活音频会话失败: \(error)")
-            }
-        }
-    }
-
-    /// 清除控制中心的媒体信息
-    func clearNowPlayingInfo() {
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-        isSystemPlaybackActive = false
-        
-        // 短暂延迟后再次清除，确保操作完成
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        // 先更新为空，然后再重新设置，可以帮助系统更好地识别暂停状态
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            let info = MPNowPlayingInfoCenter.default().nowPlayingInfo
             MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+            }
         }
     }
     
-    /// 同步应用内部播放状态与控制中心显示状态，特别是当检测到不一致或被强制同步时
-    /// - Parameter force: 是否强制同步，无论状态是否一致
+    /// 同步音频会话状态与播放状态
+    private func synchronizeAudioSessionState(with isPlaying: Bool) {
+        if isPlaying && !isAudioSessionActive {
+            self.setupAudioSession()
+        }
+    }
+    
+    /// 同步播放状态，确保系统控制中心和应用内状态一致
     func synchronizePlaybackState(force: Bool = false) {
         guard let viewModel = contentViewModel else { return }
         
-        let isUIPlaying = viewModel.isReading
+        // 应用内部的播放状态
+        let isAppPlaying = viewModel.isSpeaking
         
-        // 只有在状态不一致或强制同步时才执行同步
-        if force || isUIPlaying != isSystemPlaybackActive {
-            print("同步播放状态 - UI: \(isUIPlaying), 系统: \(isSystemPlaybackActive)")
-            
-            // 使用UI状态作为真实状态
+        // 检查是否需要强制更新
+        let shouldUpdate = force || (isAppPlaying != isSystemPlaybackActive)
+        
+        if shouldUpdate {
+            // 更新系统状态
             updateNowPlayingInfo(
-                title: viewModel.currentBookTitle,
-                isPlaying: isUIPlaying,
+                title: viewModel.book?.title,
+                isPlaying: isAppPlaying,
                 currentPage: viewModel.currentPageIndex + 1,
-                totalPages: viewModel.pages.count
+                totalPages: viewModel.pageCount
             )
+            print("同步播放状态: 应用内\(isAppPlaying ? "正在播放" : "已暂停"), 系统\(isSystemPlaybackActive ? "正在播放" : "已暂停")")
         }
     }
     
+    // MARK: - 通知处理方法
+    
     /// 处理音频会话中断（如电话呼入）
-    /// - Parameter notification: 中断通知
-    @objc private func handleAudioSessionInterruption(notification: Notification) {
+    @objc private func handleAudioSessionInterruption(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
-              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
-              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+              let typeRawValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeRawValue) else {
             return
         }
         
-        print("音频中断: \(type == .began ? "开始" : "结束")")
-        
         switch type {
         case .began:
-            // 中断开始，如电话呼入或其他应用开始音频播放
-            isAudioSessionActive = false
+            // 中断开始，暂停播放
+            print("音频会话被中断：开始")
+            isSystemPlaybackActive = false
             
-            // 如果正在播放，立即暂停并更新状态
-            if let viewModel = contentViewModel, viewModel.isReading {
-                DispatchQueue.main.async {
-                    // 确保在调用暂停方法前更新系统状态
-                    self.isSystemPlaybackActive = false
-                    viewModel.stopReading()
-                }
-            }
+            // 通知视图模型暂停播放
+            contentViewModel?.pauseSpeech()
             
         case .ended:
-            // 中断结束
-            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
-                let options = AVAudioSession.InterruptionOptions(rawValue: optionsValue)
-                
-                // 尝试重新激活音频会话
+            // 中断结束，根据选项判断是否需要恢复播放
+            print("音频会话中断：结束")
+            guard let optionsRawValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {
+                return
+            }
+            
+            let options = AVAudioSession.InterruptionOptions(rawValue: optionsRawValue)
+            
+            // 如果带有"可以恢复"选项，并且中断前处于播放状态，则恢复音频会话和播放
+            if options.contains(.shouldResume) {
                 do {
                     try AVAudioSession.sharedInstance().setActive(true)
                     isAudioSessionActive = true
-                    
-                    // 如果系统指示应该恢复播放且UI指示应该处于播放状态，则恢复播放
-                    if options.contains(.shouldResume) && contentViewModel?.isReading == true {
-                        // 仅当用户明确表示想要恢复时才应恢复
-                        print("系统指示可以恢复播放，但本应用让用户决定是否恢复")
-                    }
-                    
-                    // 无论如何，确保系统状态与应用状态一致
-                    DispatchQueue.main.async {
-                        self.synchronizePlaybackState()
-                    }
+                    // 不要自动恢复语音播放，避免意外语音干扰用户
                 } catch {
-                    print("重新激活音频会话失败: \(error)")
+                    print("恢复音频会话失败: \(error)")
                 }
             }
             
@@ -326,54 +272,58 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    /// 处理音频路由变化（如耳机拔出）
-    /// - Parameter notification: 路由变化通知
-    @objc private func handleAudioRouteChange(notification: Notification) {
+    /// 处理音频路由变更（如耳机插拔）
+    @objc private func handleAudioRouteChange(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
-              let reasonValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
-              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonValue) else {
+              let reasonRawValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
+              let reason = AVAudioSession.RouteChangeReason(rawValue: reasonRawValue) else {
             return
         }
         
-        print("音频路由变化: \(reason.description)")
-        
-        switch reason {
-        case .oldDeviceUnavailable:
-            // 例如，拔出耳机时暂停播放
-            if let viewModel = contentViewModel, viewModel.isReading {
-                DispatchQueue.main.async {
-                    self.isSystemPlaybackActive = false
-                    viewModel.stopReading()
+        // 仅处理旧输出设备被断开的情况
+        if reason == .oldDeviceUnavailable {
+            // 获取之前的音频路由
+            guard let routeDescription = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription,
+                  let output = routeDescription.outputs.first else {
+                return
+            }
+            
+            // 如果之前是耳机或外部设备，断开后自动暂停播放
+            let portTypes: [AVAudioSession.Port] = [.headphones, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .airPlay, .carAudio]
+            if portTypes.contains(output.portType) {
+                print("音频输出设备断开：\(output.portType.rawValue)")
+                
+                // 如果正在播放，则暂停
+                if isSystemPlaybackActive {
+                    contentViewModel?.pauseSpeech()
                 }
             }
-        case .newDeviceAvailable, .categoryChange:
-            // 新设备连接或类别更改时确保状态一致
-            DispatchQueue.main.async {
-                self.synchronizePlaybackState()
-            }
-        default:
-            // 其他情况也确保状态一致
-            DispatchQueue.main.async {
-                self.synchronizePlaybackState()
-            }
         }
     }
     
-    /// 应用变为活跃状态时同步播放状态
-    /// - Parameter notification: 应用变为活跃通知
-    @objc private func handleAppDidBecomeActive(notification: Notification) {
-        print("应用变为活跃状态，同步播放状态")
-        DispatchQueue.main.async {
-            self.synchronizePlaybackState(force: true)
-        }
+    /// 处理应用前台激活事件
+    @objc private func handleAppDidBecomeActive(_ notification: Notification) {
+        print("应用进入前台，同步播放状态")
+        // 当应用进入前台后，确保系统媒体控制中心显示正确的状态
+        synchronizePlaybackState(force: true)
     }
     
-    /// 确保应用进入后台时正确更新控制中心信息
-    /// - Parameter notification: 应用进入后台通知
-    @objc private func handleAppDidEnterBackground(notification: Notification) {
-        print("应用进入后台，确保播放状态正确")
-        DispatchQueue.main.async {
-            self.synchronizePlaybackState(force: true)
+    /// 处理应用进入后台事件
+    @objc private func handleAppDidEnterBackground(_ notification: Notification) {
+        print("应用进入后台")
+        // 应用进入后台时的处理可以在这里添加
+    }
+    
+    /// 取消激活音频会话
+    func deactivateAudioSession() {
+        guard isAudioSessionActive else { return }
+        
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            isAudioSessionActive = false
+            print("音频会话已停用")
+        } catch {
+            print("停用音频会话失败: \(error)")
         }
     }
 }

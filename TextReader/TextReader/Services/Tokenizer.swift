@@ -15,8 +15,6 @@ class Tokenizer {
     private let zhTokenizer = NLTokenizer(unit: .word)
 
     /// 将输入文本分割成标记数组
-    /// - Parameter text: 需要分词的原始文本
-    /// - Returns: 分词后的Token数组，已排除空白字符
     func tokenize(text: String) -> [Token] {
         zhTokenizer.string = text
         var results:[Token] = []

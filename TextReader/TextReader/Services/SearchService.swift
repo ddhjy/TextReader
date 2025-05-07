@@ -3,10 +3,6 @@ import Foundation
 /// 搜索服务，提供文本内容搜索和页面摘要功能
 class SearchService {
     /// 在页面数组中搜索指定查询文本
-    /// - Parameters:
-    ///   - query: 搜索关键词
-    ///   - pages: 要搜索的页面数组
-    /// - Returns: 包含匹配页面索引和预览文本的元组数组
     func search(query: String, in pages: [String]) -> [(Int, String)] {
         guard !query.isEmpty else { return [] }
         let lowercasedQuery = query.lowercased() // 不区分大小写搜索
@@ -22,11 +18,6 @@ class SearchService {
     }
 
     /// 为匹配的搜索结果生成预览片段
-    /// - Parameters:
-    ///   - query: 搜索关键词
-    ///   - page: 页面内容
-    ///   - maxLength: 预览最大长度，默认100个字符
-    /// - Returns: 包含关键词上下文的预览文本
     private func generatePreview(for query: String, in page: String, maxLength: Int = 100) -> String {
         if let range = page.range(of: query, options: .caseInsensitive) {
             let start = page.index(range.lowerBound, offsetBy: -20, limitedBy: page.startIndex) ?? page.startIndex
@@ -40,11 +31,6 @@ class SearchService {
 
     // MARK: - 页面摘要
     /// 生成分页摘要，用于页面概览
-    /// - Parameters:
-    ///   - pages: 页面数组
-    ///   - sampleLimit: 最大摘要数量，默认100条
-    ///   - previewLength: 每条摘要的最大长度，默认60个字符
-    /// - Returns: 包含页面索引和摘要文本的元组数组
     func pageSummaries(pages: [String],
                        sampleLimit: Int = 100,
                        previewLength: Int = 60) -> [(Int, String)] {

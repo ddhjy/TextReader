@@ -241,102 +241,148 @@ class LibraryManager {
                 return
             }
 
-            // 获取文件名，但使用建议的标题（如果有）
-            let originalFileName = url.lastPathComponent
-            let fileName: String
+            // 使用文件名或建议的标题作为书籍标题
+            let fileName = generateSafeFileName(from: url, suggestedTitle: suggestedTitle)
             
-            if let suggestedTitle = suggestedTitle {
-                // 确保文件名以.txt结尾
-                if suggestedTitle.hasSuffix(".txt") {
-                    fileName = suggestedTitle
-                } else {
-                    fileName = suggestedTitle + ".txt"
-                }
-                print("[LibraryManager] 使用建议标题作为文件名: \(fileName)")
-            } else {
-                fileName = originalFileName
-                print("[LibraryManager] 使用原始文件名: \(fileName)")
-            }
-            
-            print("[LibraryManager] 成功读取内容（编码: \(encoding)）。要使用的文件名: \(fileName)")
-
-            // 调用内部方法将内容写入应用文档目录
+            // 导入内容创建新书籍
             importBook(fileName: fileName, content: content, suggestedTitle: suggestedTitle, completion: completion)
-
+            
         } catch {
-            print("[LibraryManager][错误] 访问文件 \(url.absoluteString) 时发生意外错误: \(error.localizedDescription)")
-            completion(.failure(LibraryError.readError("文件访问过程中发生意外错误: \(error.localizedDescription)")))
+            print("[LibraryManager][错误] 导入文件失败: \(error.localizedDescription)")
+            completion(.failure(LibraryError.fileImportError(error.localizedDescription)))
         }
     }
     
-    /// 通过先复制文件到临时目录再读取的方式尝试获取内容
-    /// - Parameters:
-    ///   - url: 原始文件URL
-    ///   - encodingsToTry: 要尝试的编码数组
-    /// - Returns: 文件内容和成功的编码，如果失败则返回nil
+    /// 生成安全的文件名
+    private func generateSafeFileName(from url: URL, suggestedTitle: String?) -> String {
+        let baseName: String
+        if let suggestedTitle = suggestedTitle {
+            baseName = suggestedTitle
+        } else {
+            baseName = url.deletingPathExtension().lastPathComponent
+        }
+        
+        // 确保文件名合法并添加.txt扩展名
+        let safeName = baseName.replacingOccurrences(of: "[^a-zA-Z0-9_\\-\\.]", with: "_", options: .regularExpression)
+        return safeName.hasSuffix(".txt") ? safeName : safeName + ".txt"
+    }
+    
+    /// 通过先复制到临时目录尝试读取文件内容
     private func tryReadingByCopyingFirst(url: URL, encodingsToTry: [String.Encoding]) -> (String, String.Encoding)? {
         do {
-            // 创建临时文件URL
-            let tempDirURL = FileManager.default.temporaryDirectory
-            let tempFileURL = tempDirURL.appendingPathComponent(UUID().uuidString + "-" + url.lastPathComponent)
+            let tempDir = FileManager.default.temporaryDirectory
+            let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".txt")
             
-            print("[LibraryManager] 将文件复制到临时位置: \(tempFileURL.path)")
+            // 复制到临时文件
+            try FileManager.default.copyItem(at: url, to: tempFile)
+            print("[LibraryManager] 文件已复制到临时位置: \(tempFile.path)")
             
-            // 尝试复制文件
-            try FileManager.default.copyItem(at: url, to: tempFileURL)
-            print("[LibraryManager] 文件复制成功")
-            
-            // 尝试从临时位置读取
+            // 尝试使用各种编码读取
             for encoding in encodingsToTry {
-                if let content = try? String(contentsOf: tempFileURL, encoding: encoding) {
-                    print("[LibraryManager] 成功使用编码读取临时文件: \(encoding)")
+                if let content = try? String(contentsOf: tempFile, encoding: encoding) {
+                    print("[LibraryManager] 复制后成功使用编码读取: \(encoding)")
                     
-                    // 完成后删除临时文件
-                    try? FileManager.default.removeItem(at: tempFileURL)
-                    
+                    // 清理临时文件
+                    try? FileManager.default.removeItem(at: tempFile)
                     return (content, encoding)
                 }
             }
             
-            // 没有成功读取，删除临时文件
-            try? FileManager.default.removeItem(at: tempFileURL)
-            print("[LibraryManager] 无法使用任何编码读取临时文件，已删除临时文件")
+            // 清理临时文件
+            try? FileManager.default.removeItem(at: tempFile)
             
         } catch {
-            print("[LibraryManager] 将文件复制到临时位置时出错: \(error.localizedDescription)")
+            print("[LibraryManager][错误] 复制文件到临时位置失败: \(error.localizedDescription)")
         }
         
         return nil
+    }
+    
+    /// 获取文档目录
+    func getDocumentsDirectory() throws -> URL {
+        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            throw LibraryError.directoryAccessFailed
+        }
+        return documentsDirectory
     }
     
     /// 删除指定的书籍
     /// - Parameters:
     ///   - book: 要删除的书籍
     ///   - completion: 完成回调，返回是否成功
-    func deleteBook(_ book: Book, completion: @escaping (Bool) -> Void) {
-        // 跳过内置书籍
-        if book.isBuiltIn {
-            print("无法删除内置书籍: \(book.title)")
-            completion(false)
+    func deleteBook(_ book: Book, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !book.isBuiltIn else {
+            // 内置书籍不能删除
+            print("[LibraryManager] 无法删除内置书籍: \(book.title)")
+            DispatchQueue.main.async {
+                completion(.success(()))
+            }
             return
         }
         
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let documentsURL = try self.getDocumentsDirectory()
+                let fileURL = documentsURL.appendingPathComponent(book.fileName)
+                
+                if self.fileManager.fileExists(atPath: fileURL.path) {
+                    try self.fileManager.removeItem(at: fileURL)
+                    print("[LibraryManager] 成功删除书籍文件: \(fileURL.path)")
+                } else {
+                    print("[LibraryManager] 要删除的文件不存在: \(fileURL.path)")
+                }
+                
+                DispatchQueue.main.async {
+                    completion(.success(()))
+                }
+            } catch {
+                print("[LibraryManager][错误] 删除书籍失败: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    completion(.failure(LibraryError.deleteError))
+                }
+            }
+        }
+    }
+    
+    /// 检查是否存在指定文件名的书籍
+    func bookExists(withFileName fileName: String) -> Bool {
         do {
             let documentsURL = try getDocumentsDirectory()
-            let fileURL = documentsURL.appendingPathComponent(book.fileName)
-            
-            // 如果文件存在则删除
-            if fileManager.fileExists(atPath: fileURL.path) {
-                try fileManager.removeItem(at: fileURL)
-            }
-            
-            // 删除进度信息
-            removeBookProgress(bookId: book.id)
-            
-            completion(true)
+            let fileURL = documentsURL.appendingPathComponent(fileName)
+            return fileManager.fileExists(atPath: fileURL.path)
         } catch {
-            print("删除书籍时出错: \(error)")
-            completion(false)
+            return false
+        }
+    }
+    
+    /// 更新书籍内容
+    func updateBookContent(book: Book, newContent: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        guard !book.isBuiltIn else {
+            // 内置书籍不能修改
+            print("[LibraryManager] 无法修改内置书籍: \(book.title)")
+            DispatchQueue.main.async {
+                completion(.failure(LibraryError.saveError))
+            }
+            return
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let documentsURL = try self.getDocumentsDirectory()
+                let fileURL = documentsURL.appendingPathComponent(book.fileName)
+                
+                try newContent.write(to: fileURL, atomically: true, encoding: .utf8)
+                print("[LibraryManager] 成功更新书籍内容: \(book.title)")
+                
+                DispatchQueue.main.async {
+                    completion(.success(()))
+                }
+            } catch {
+                print("[LibraryManager][错误] 更新书籍内容失败: \(error.localizedDescription)")
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
+            }
         }
     }
     
@@ -421,17 +467,6 @@ class LibraryManager {
     }
     
     // MARK: - 辅助方法
-    
-    /// 获取文档目录URL
-    /// - Returns: 文档目录URL，如果无法获取则抛出错误
-    private func getDocumentsDirectory() throws -> URL {
-        return try fileManager.url(
-            for: .documentDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )
-    }
     
     // MARK: - 元数据存储
     

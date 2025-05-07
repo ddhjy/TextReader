@@ -3,10 +3,6 @@ import Foundation
 /// 文本分页器，负责将长文本分割成适合阅读的页面
 class TextPaginator {
     /// 根据字符数将文本分割成页面
-    /// - Parameters:
-    ///   - text: 需要分页的文本内容
-    ///   - maxPageSize: 每页最大字符数（默认值：100）
-    /// - Returns: 字符串页面数组
     func paginate(text: String, maxPageSize: Int = 100) -> [String] { // 保留默认值以保持一致性，后续可考虑设为可配置项
         print("开始分页...")
         var sentences = [String]()
