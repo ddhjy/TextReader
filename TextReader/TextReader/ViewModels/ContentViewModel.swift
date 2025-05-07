@@ -2,16 +2,25 @@ import SwiftUI
 import Combine
 import AVFoundation // For Voice type only
 
-// Inject dependencies (Services/Managers)
+/// 内容视图模型，负责管理应用的核心功能和状态
+/// 
+/// ContentViewModel作为应用的核心模型，负责以下功能：
+/// - 文本内容的分页和显示
+/// - 朗读功能的控制（播放/暂停/调速）
+/// - 书籍库的管理
+/// - 搜索功能
+/// - WiFi文件传输
+/// - 深色模式设置
+/// - BigBang文本分析功能
 class ContentViewModel: ObservableObject {
-    // MARK: - Published Properties for UI Binding
+    // MARK: - UI绑定的发布属性
     @Published var pages: [String] = []
     @Published var currentPageIndex: Int = 0
     @Published var currentBookTitle: String = "TextReader"
     @Published var isContentLoaded: Bool = false
     @Published var isReading: Bool = false
     @Published var availableVoices: [AVSpeechSynthesisVoice] = []
-    @Published var selectedVoiceIdentifier: String? // Used for binding and persistence
+    @Published var selectedVoiceIdentifier: String? // 用于绑定和持久化
     @Published var readingSpeed: Float = 1.0
     @Published var books: [Book] = []
     @Published var currentBookId: String?
@@ -31,7 +40,7 @@ class ContentViewModel: ObservableObject {
     @Published var tokens: [Token] = []
     @Published var selectedTokenIDs: Set<UUID> = []
 
-    // MARK: - Dependencies
+    // MARK: - 依赖项
     private let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
     private let speechManager: SpeechManager
@@ -44,7 +53,16 @@ class ContentViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Initialization
+    // MARK: - 初始化
+    /// 初始化视图模型并设置各项依赖和回调
+    /// - Parameters:
+    ///   - libraryManager: 书籍库管理器
+    ///   - textPaginator: 文本分页器
+    ///   - speechManager: 语音管理器
+    ///   - searchService: 搜索服务
+    ///   - wiFiTransferService: WiFi传输服务
+    ///   - audioSessionManager: 音频会话管理器
+    ///   - settingsManager: 设置管理器
     init(libraryManager: LibraryManager = LibraryManager(),
          textPaginator: TextPaginator = TextPaginator(),
          speechManager: SpeechManager = SpeechManager(),
@@ -79,18 +97,19 @@ class ContentViewModel: ObservableObject {
         setupSpeechCallbacks()
         
         $isReading
-            .dropFirst() // Ignore initial value
+            .dropFirst() // 忽略初始值
             .sink { [weak self] isReading in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
-                    print("isReading state changed: \(isReading)")
+                    print("isReading状态变化: \(isReading)")
                     self.audioSessionManager.synchronizePlaybackState(force: true)
                 }
             }
             .store(in: &cancellables)
     }
 
-    // MARK: - Loading
+    // MARK: - 数据加载
+    /// 加载初始数据，包括书籍列表、上次阅读位置和设置
     private func loadInitialData() {
         self.books = libraryManager.loadBooks()
         sortBooks()
@@ -98,19 +117,20 @@ class ContentViewModel: ObservableObject {
         let lastBookId = settingsManager.getLastOpenedBookId()
         if let bookId = lastBookId, let bookToLoad = books.first(where: { $0.id == bookId }) {
             loadBook(bookToLoad)
-        } else if let firstBook = books.first { // Load first book if last book not found
+        } else if let firstBook = books.first { // 如果找不到上次阅读的书籍，加载第一本
             loadBook(firstBook)
         } else {
-            isContentLoaded = true // No book to load
+            isContentLoaded = true // 没有书籍可加载
         }
         self.readingSpeed = settingsManager.getReadingSpeed()
         self.availableVoices = speechManager.getAvailableVoices(languagePrefix: "zh")
         self.selectedVoiceIdentifier = settingsManager.getSelectedVoiceIdentifier() ?? availableVoices.first?.identifier
     }
 
-    // MARK: - Bindings & Callbacks
+    // MARK: - 绑定与回调
+    /// 设置数据绑定，监听状态变化并保存相关设置
     private func setupBindings() {
-        // Save progress when page changes
+        // 页面改变时保存进度
         $currentPageIndex
             .dropFirst()
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
@@ -121,7 +141,7 @@ class ContentViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        // Save settings when they change
+        // 设置改变时保存
         $readingSpeed
             .dropFirst()
             .sink { [weak self] speed in self?.settingsManager.saveReadingSpeed(speed) }
@@ -146,7 +166,7 @@ class ContentViewModel: ObservableObject {
         setupSyncTimer()
     }
 
-    /// Periodically checks and synchronizes system playback state
+    /// 设置定时器，定期检查并同步系统播放状态
     private func setupSyncTimer() {
         Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
@@ -155,21 +175,21 @@ class ContentViewModel: ObservableObject {
                 
                 let speechManagerActive = speechManager.isSpeaking
                 
-                // Correct inconsistent states
+                // 修正不一致的状态
                 if self.isReading != speechManagerActive {
-                    print("Detected inconsistent state: UI=\(self.isReading), Speech=\(speechManagerActive)")
+                    print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
                     
-                    // Force stop if UI shows stopped but speech manager is still playing
+                    // 如果UI显示已停止但语音管理器仍在播放，则强制停止
                     if !self.isReading && speechManagerActive {
-                        print("Forcing playback to stop")
+                        print("强制停止播放")
                         DispatchQueue.main.async {
                             self.speechManager.stopReading()
                         }
                     }
-                    // Logic to resume playback was removed to avoid conflicts with onSpeechFinish
+                    // 移除了恢复播放的逻辑，以避免与onSpeechFinish冲突
                 }
                 
-                // Periodically synchronize control center state every 5 seconds
+                // 每5秒定期同步控制中心状态
                 let now = Date().timeIntervalSince1970
                 if Int(now) % 5 == 0 {
                     self.audioSessionManager.synchronizePlaybackState()
@@ -178,6 +198,7 @@ class ContentViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    /// 设置WiFi传输服务的回调函数
     private func setupWiFiTransferCallbacks() {
         wiFiTransferService.onFileReceived = { [weak self] fileName, content in
             self?.handleReceivedFile(fileName: fileName, content: content)
@@ -188,29 +209,30 @@ class ContentViewModel: ObservableObject {
             .assign(to: &$isServerRunning)
     }
 
+    /// 设置语音管理器的回调函数
     private func setupSpeechCallbacks() {
         speechManager.onSpeechFinish = { [weak self] in
             guard let self = self else { return }
             
-            // Save page index when speech finishes to verify later
+            // 保存语音结束时的页面索引，以便稍后验证
             let finishedPageIndex = self.currentPageIndex
             
             DispatchQueue.main.async {
                 guard self.isReading else { return }
                 
-                // Verify current page index matches the one when speech finished
-                // This prevents race conditions between manual page turns and auto-advancement
+                // 验证当前页面索引与语音结束时的索引是否匹配
+                // 这可以防止手动翻页和自动前进之间的竞争条件
                 guard self.currentPageIndex == finishedPageIndex else {
-                    print("Page has changed, skipping auto-advancement")
+                    print("页面已更改，跳过自动前进")
                     return
                 }
                 
-                // Auto-advance to next page
+                // 自动前进到下一页
                 if self.currentPageIndex < self.pages.count - 1 {
                     self.currentPageIndex += 1
                     self.readCurrentPage()
                 } else {
-                    self.isReading = false // Reached end of book
+                    self.isReading = false // 到达书籍末尾
                     self.updateNowPlayingInfo()
                 }
             }
@@ -219,7 +241,7 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechStart = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Ensure playback state is consistent when speech starts
+                // 确保语音开始时播放状态一致
                 if !self.isReading {
                     self.isReading = true
                     self.updateNowPlayingInfo()
@@ -230,7 +252,7 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechPause = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Ensure playback state is consistent when speech pauses
+                // 确保语音暂停时播放状态一致
                 if self.isReading {
                     self.isReading = false
                     self.updateNowPlayingInfo()
@@ -241,7 +263,7 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechResume = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Ensure playback state is consistent when speech resumes
+                // 确保语音恢复时播放状态一致
                 if !self.isReading {
                     self.isReading = true
                     self.updateNowPlayingInfo()
@@ -252,36 +274,36 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechError = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                // Reset state on speech synthesis error
+                // 发生语音合成错误时重置状态
                 if self.isReading {
                     self.isReading = false
                     self.updateNowPlayingInfo()
-                    print("Speech synthesis error, playback stopped")
+                    print("语音合成错误，播放已停止")
                 }
             }
         }
     }
 
-    // MARK: - Book Management
+    // MARK: - 书籍管理
     
-    /// Sorts books by last accessed time, with most recently accessed first
+    /// 对书籍进行排序，最近访问的排在前面
     private func sortBooks() {
         let sortedBooks = books.sorted { book1, book2 in
             let lastAccessed1 = libraryManager.getBookProgress(bookId: book1.id)?.lastAccessed
             let lastAccessed2 = libraryManager.getBookProgress(bookId: book2.id)?.lastAccessed
 
-            // Sort logic:
-            // 1. If book1 has access time but book2 doesn't, book1 comes first
-            // 2. If book1 doesn't have access time but book2 does, book2 comes first
-            // 3. If both have access times, sort by most recent first
-            // 4. If neither has access time, sort by title for stability
+            // 排序逻辑:
+            // 1. 如果book1有访问时间但book2没有，book1排在前面
+            // 2. 如果book1没有访问时间但book2有，book2排在前面
+            // 3. 如果两者都有访问时间，按照最近的时间排在前面
+            // 4. 如果两者都没有访问时间，按标题排序保持稳定性
             switch (lastAccessed1, lastAccessed2) {
             case (let date1?, let date2?):
-                return date1 > date2 // Descending by time
+                return date1 > date2 // 按时间降序排列
             case (.some, .none):
-                return true // Books with access time first
+                return true // 有访问时间的书籍排在前面
             case (.none, .some):
-                return false // Books without access time last
+                return false // 没有访问时间的书籍排在后面
             case (.none, .none):
                 return book1.title.localizedCompare(book2.title) == .orderedAscending
             }
@@ -289,12 +311,15 @@ class ContentViewModel: ObservableObject {
         self.books = sortedBooks
     }
     
-    // 直接粘贴文本导入
+    /// 导入粘贴的文本内容为新书籍
+    /// - Parameters:
+    ///   - rawText: 原始文本内容
+    ///   - customTitle: 自定义标题，如果为nil则从文本内容自动生成
     func importPastedText(_ rawText: String, title customTitle: String?) {
         let text = rawText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
-        // 若未输入标题，取前 10 个字符；去掉换行
+        // 若未输入标题，取前10个字符；去掉换行
         var title = (customTitle?.trimmingCharacters(in: .whitespacesAndNewlines)).nilIfEmpty()
                    ?? String(text.replacingOccurrences(of: "\n", with: " ").prefix(10))
 
@@ -302,7 +327,7 @@ class ContentViewModel: ObservableObject {
         let invalidSet = CharacterSet(charactersIn: "/\\?%*|\"<>:")
         title = title.components(separatedBy: invalidSet).joined()
 
-        // 避免重名，可加时间戳
+        // 避免重名，加时间戳
         let fileName = "\(title)-\(Int(Date().timeIntervalSince1970)).txt"
 
         libraryManager.importBook(fileName: fileName, content: text) { [weak self] result in
@@ -314,24 +339,26 @@ class ContentViewModel: ObservableObject {
                     self.sortBooks()
                     self.loadBook(newBook)
                 case .failure(let err):
-                    print("Paste import failed: \(err)")
+                    print("粘贴导入失败: \(err)")
                 }
             }
         }
     }
     
+    /// 加载指定的书籍
+    /// - Parameter book: 要加载的书籍
     func loadBook(_ book: Book) {
-        stopReading() // Stop reading before changing book
+        stopReading() // 加载新书前停止朗读
         isContentLoaded = false
         currentBookId = book.id
         currentBookTitle = book.title
-        settingsManager.saveLastOpenedBookId(book.id) // Save as last opened
+        settingsManager.saveLastOpenedBookId(book.id) // 保存为上次打开的书籍
         
-        // Update last accessed time
+        // 更新最后访问时间
         libraryManager.updateLastAccessed(bookId: book.id)
 
-        sortBooks() // 更新后立即重新排序 books 数组
-        print("[ContentViewModel] Sorted books after loading book: \(book.title)")
+        sortBooks() // 更新后立即重新排序books数组
+        print("[ContentViewModel] 加载书籍后重新排序: \(book.title)")
 
         libraryManager.loadBookContent(book: book) { [weak self] result in
             DispatchQueue.main.async {
@@ -346,7 +373,7 @@ class ContentViewModel: ObservableObject {
                     self.isContentLoaded = true
                     self.updateNowPlayingInfo()
                 case .failure(let error):
-                    print("Error loading book content: \(error)")
+                    print("加载书籍内容失败: \(error)")
                     self.pages = ["加载书籍内容失败: \(error.localizedDescription)"]
                     self.currentPageIndex = 0
                     self.isContentLoaded = true
@@ -355,6 +382,8 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    /// 删除指定的书籍
+    /// - Parameter book: 要删除的书籍
     func deleteBook(_ book: Book) {
         let wasCurrentBook = (book.id == currentBookId)
         if wasCurrentBook {
@@ -363,14 +392,14 @@ class ContentViewModel: ObservableObject {
 
         libraryManager.deleteBook(book) { [weak self] success in
             guard let self = self, success else {
-                print("Failed to delete book \(book.title)")
+                print("删除书籍失败: \(book.title)")
                 return
             }
             self.books = self.libraryManager.loadBooks()
             self.sortBooks()
 
             if wasCurrentBook {
-                // If the deleted book was the current one, load the first available book or clear the view
+                // 如果删除的是当前正在阅读的书籍，加载第一本可用书籍或清空视图
                 if let firstBook = self.books.first {
                     self.loadBook(firstBook)
                 } else {
@@ -384,7 +413,10 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    /// Handles a file received via WiFi transfer
+    /// 处理通过WiFi传输接收到的文件
+    /// - Parameters:
+    ///   - fileName: 文件名
+    ///   - content: 文件内容
     private func handleReceivedFile(fileName: String, content: String) {
         libraryManager.importBook(fileName: fileName, content: content) { [weak self] result in
             guard let self = self else { return }
@@ -394,15 +426,18 @@ class ContentViewModel: ObservableObject {
                 self.sortBooks()
                 self.loadBook(newBook)
             case .failure(let error):
-                print("Error handling received file: \(error)")
+                print("处理接收文件失败: \(error)")
             }
         }
     }
 
-    /// Imports a book from a URL (used with DocumentPicker)
+    /// 从URL导入书籍（与文档选择器配合使用）
+    /// - Parameters:
+    ///   - url: 书籍文件URL
+    ///   - suggestedTitle: 建议的标题，可为nil
     func importBookFromURL(_ url: URL, suggestedTitle: String? = nil) {
-        print("[ContentViewModel] Importing book from URL: \(url.absoluteString)")
-        print("[ContentViewModel] Suggested title: \(suggestedTitle ?? "none")")
+        print("[ContentViewModel] 从URL导入书籍: \(url.absoluteString)")
+        print("[ContentViewModel] 建议标题: \(suggestedTitle ?? "无")")
         
         libraryManager.importBookFromURL(url, suggestedTitle: suggestedTitle) { [weak self] result in
             DispatchQueue.main.async {
@@ -410,20 +445,23 @@ class ContentViewModel: ObservableObject {
                 
                 switch result {
                 case .success(let book):
-                    print("[ContentViewModel] Successfully imported book: \(book.title)")
+                    print("[ContentViewModel] 成功导入书籍: \(book.title)")
                     // 更新书籍列表并加载
                     self.books = self.libraryManager.loadBooks()
                     self.sortBooks()
                     self.loadBook(book)
                     
                 case .failure(let error):
-                    print("[ContentViewModel] Failed to import book: \(error)")
+                    print("[ContentViewModel] 导入书籍失败: \(error)")
                     // 这里可以添加错误处理逻辑，例如显示错误提示等
                 }
             }
         }
     }
 
+    /// 获取书籍阅读进度的显示文本
+    /// - Parameter book: 书籍对象
+    /// - Returns: 格式化的进度文本，如"已读 1/100 页"
     func getBookProgressDisplay(book: Book) -> String? {
         if let progress = libraryManager.getBookProgress(bookId: book.id) {
             return "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
@@ -431,7 +469,9 @@ class ContentViewModel: ObservableObject {
         return nil
     }
 
-    /// Returns a user-friendly string describing when the book was last accessed
+    /// 获取书籍最后访问时间的用户友好描述
+    /// - Parameter book: 书籍对象
+    /// - Returns: 格式化的时间描述，如"刚刚阅读"、"10分钟前阅读"等
     func getLastAccessedTimeDisplay(book: Book) -> String? {
         guard let progress = libraryManager.getBookProgress(bookId: book.id),
               let lastAccessed = progress.lastAccessed else {
@@ -441,7 +481,7 @@ class ContentViewModel: ObservableObject {
         let now = Date()
         let calendar = Calendar.current
         
-        // Determine appropriate format based on how long ago the book was accessed
+        // 根据距离上次访问的时间长短决定合适的格式
         if calendar.isDateInToday(lastAccessed) {
             let components = calendar.dateComponents([.minute, .hour], from: lastAccessed, to: now)
             let totalMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
@@ -463,10 +503,10 @@ class ContentViewModel: ObservableObject {
             formatter.locale = Locale(identifier: "zh_CN")
             
             if currentYear == accessedYear {
-                // If this year, show only month and day
+                // 如果是今年，只显示月日
                 formatter.dateFormat = "M月d日阅读"
             } else {
-                // Otherwise show full date with year
+                // 否则显示完整日期（年月日）
                 formatter.dateFormat = "yyyy年M月d日阅读"
             }
             
@@ -474,7 +514,9 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Reading Control
+    // MARK: - 阅读控制
+    
+    /// 翻到下一页
     func nextPage() {
         guard currentPageIndex < pages.count - 1 else { return }
         
@@ -493,7 +535,7 @@ class ContentViewModel: ObservableObject {
         if let bookId = self.currentBookId {
             libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
             sortBooks() // 更新后立即重新排序 books 数组
-            print("[ContentViewModel] Updated lastAccessed and sorted books after nextPage.")
+            print("[ContentViewModel] 执行nextPage后，更新lastAccessed并重新排序书籍。")
         }
 
         if wasReading {
@@ -508,6 +550,7 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    /// 翻到上一页
     func previousPage() {
         guard currentPageIndex > 0 else { return }
         
@@ -523,7 +566,7 @@ class ContentViewModel: ObservableObject {
         if let bookId = self.currentBookId {
             libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
             sortBooks() // 更新后立即重新排序 books 数组
-            print("[ContentViewModel] Updated lastAccessed and sorted books after previousPage.")
+            print("[ContentViewModel] 执行previousPage后，更新lastAccessed并重新排序书籍。")
         }
 
         if wasReading {
@@ -536,6 +579,7 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    /// 切换朗读状态（播放/暂停）
     func toggleReading() {
         if isReading {
             stopReading()
@@ -544,45 +588,47 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    /// 朗读当前页面
     func readCurrentPage() {
         guard !pages.isEmpty, currentPageIndex < pages.count else { return }
         
-        print("Starting reading current page")
+        print("开始朗读当前页面")
         let textToRead = pages[currentPageIndex]
         let voice = availableVoices.first { $0.identifier == selectedVoiceIdentifier }
         
-        // Set state to playing first
+        // 先设置状态为播放中
         isReading = true
         
         DispatchQueue.main.async {
-            // Update Now Playing info immediately
+            // 立即更新Now Playing信息
             self.updateNowPlayingInfo()
             
-            // Then start speech playback
+            // 然后开始语音播放
             self.speechManager.startReading(text: textToRead, voice: voice, rate: self.readingSpeed)
         }
     }
 
+    /// 停止朗读
     func stopReading() {
-        print("Stopping reading")
+        print("停止朗读")
         
-        // Stop speech synthesizer immediately
+        // 立即停止语音合成器
         speechManager.stopReading()
         
-        // Set state to stopped
-        let needsUpdate = isReading // Only update NowPlaying if state actually changes
+        // 设置状态为已停止
+        let needsUpdate = isReading // 只有状态实际改变时才更新NowPlaying
         if needsUpdate {
             isReading = false
-            // Update Now Playing info ONCE immediately to reflect the stopped state
-            // The AudioSessionManager's periodic sync will handle further consistency checks.
+            // 立即更新Now Playing信息以反映停止状态
+            // AudioSessionManager的定期同步将处理进一步的一致性检查
             updateNowPlayingInfo()
         }
     }
 
-    /// Restarts reading with a slight delay to ensure synthesizer is reset
+    /// 重新开始朗读，添加轻微延迟确保合成器重置
     private func restartReading() {
         if isReading {
-            print("Restarting reading")
+            print("重新开始朗读")
             stopReading()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
                 self?.readCurrentPage()
@@ -590,7 +636,10 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Search
+    // MARK: - 搜索
+    
+    /// 搜索内容中的指定关键词
+    /// - Parameter query: 搜索关键词
     func searchContent(_ query: String) {
         guard !query.isEmpty else {
             searchResults = []
@@ -601,14 +650,18 @@ class ContentViewModel: ObservableObject {
         searchResults = searchService.search(query: query, in: pages)
     }
 
+    /// 跳转到搜索结果页面
+    /// - Parameter pageIndex: 页面索引
     func jumpToSearchResult(pageIndex: Int) {
         guard pageIndex >= 0 && pageIndex < pages.count else { return }
         stopReading()
         currentPageIndex = pageIndex
-        showingSearchView = false // Dismiss search view
+        showingSearchView = false // 关闭搜索视图
     }
 
-    // MARK: - WiFi Transfer
+    // MARK: - WiFi传输
+    
+    /// 切换WiFi传输服务状态（开启/关闭）
     func toggleWiFiTransfer() {
         if isServerRunning {
             wiFiTransferService.stopServer()
@@ -617,7 +670,9 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Now Playing Info
+    // MARK: - Now Playing信息
+    
+    /// 更新控制中心的Now Playing信息
     private func updateNowPlayingInfo() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -630,14 +685,17 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    // MARK: - URL Handling
+    // MARK: - URL处理
+    
     /**
-     * 处理通过 onOpenURL 传入的 URL，通常来自文件应用、AirDrop 或其他应用的分享。
-     * 对于分享的纯文本，系统可能会将其保存为临时文件并通过 URL 传递。
+     * 处理通过onOpenURL传入的URL，通常来自文件应用、AirDrop或其他应用的分享。
+     * 对于分享的纯文本，系统可能会将其保存为临时文件并通过URL传递。
      * 也可能来自我们自定义的URL Scheme，例如textreader://import?text=xxx
+     * 
+     * - Parameter url: 需要处理的URL
      */
     func handleImportedURL(_ url: URL) {
-        print("[ContentViewModel] Handling imported URL: \(url.absoluteString)")
+        print("[ContentViewModel] 处理导入的URL: \(url.absoluteString)")
 
         // 处理自定义Scheme (textreader://)
         if url.scheme == "textreader" {
@@ -645,36 +703,38 @@ class ContentViewModel: ObservableObject {
             return
         }
         
-        // 基本检查：确保是文件 URL (file:// scheme)
-        // 系统分享的临时文件通常也是 file URL
+        // 基本检查：确保是文件URL (file:// scheme)
+        // 系统分享的临时文件通常也是file URL
         guard url.isFileURL else {
-            print("[ContentViewModel][Warning] Received URL is not a file URL. Scheme: \(url.scheme ?? "nil"). Ignoring.")
-            // 这里可以根据需要添加对其他 scheme 的处理逻辑
+            print("[ContentViewModel][警告] 接收的URL不是文件URL。Scheme: \(url.scheme ?? "nil")。忽略。")
+            // 这里可以根据需要添加对其他scheme的处理逻辑
             return
         }
 
         // 复用现有的导入逻辑
-        // importBookFromURL 内部已经处理了安全作用域、文件读取（包括编码检测）和书籍保存
-        print("[ContentViewModel] URL is a file URL, attempting to import via importBookFromURL...")
+        // importBookFromURL内部已经处理了安全作用域、文件读取（包括编码检测）和书籍保存
+        print("[ContentViewModel] URL是文件URL，尝试通过importBookFromURL导入...")
         importBookFromURL(url)
     }
     
     /**
-     * 处理自定义URL Scheme，如 textreader://import?text=xxx
+     * 处理自定义URL Scheme，如textreader://import?text=xxx
+     * 
+     * - Parameter url: 自定义scheme的URL
      */
     private func handleCustomSchemeURL(_ url: URL) {
-        print("[ContentViewModel] Handling custom scheme URL: \(url.absoluteString)")
+        print("[ContentViewModel] 处理自定义scheme URL: \(url.absoluteString)")
         
         // 检查主机部分 - 例如textreader://import表示要导入文本
         guard let host = url.host, host == "import" else {
-            print("[ContentViewModel][Warning] Unsupported URL host: \(url.host ?? "nil")")
+            print("[ContentViewModel][警告] 不支持的URL主机: \(url.host ?? "nil")")
             return
         }
         
         // 提取查询参数
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true),
               let queryItems = components.queryItems else {
-            print("[ContentViewModel][Warning] No query items in URL")
+            print("[ContentViewModel][警告] URL中没有查询项")
             return
         }
         
@@ -684,7 +744,7 @@ class ContentViewModel: ObservableObject {
            let decodedText = encodedText.removingPercentEncoding,
            !decodedText.isEmpty {
             
-            print("[ContentViewModel] Found text parameter with length: \(decodedText.count)")
+            print("[ContentViewModel] 找到text参数，长度: \(decodedText.count)")
             
             // 从分享的文本创建一个新书籍
             let dateFormatter = DateFormatter()
@@ -704,32 +764,40 @@ class ContentViewModel: ObservableObject {
                 let tempFile = tempDir.appendingPathComponent("\(title)_\(timestamp).txt")
                 
                 try decodedText.write(to: tempFile, atomically: true, encoding: .utf8)
-                print("[ContentViewModel] Saved shared text to temporary file: \(tempFile.path)")
+                print("[ContentViewModel] 已将共享文本保存到临时文件: \(tempFile.path)")
                 
                 // 使用已有的导入逻辑
                 importBookFromURL(tempFile, suggestedTitle: title)
             } catch {
-                print("[ContentViewModel][Error] Failed to save shared text to temporary file: \(error.localizedDescription)")
+                print("[ContentViewModel][错误] 保存共享文本到临时文件失败: \(error.localizedDescription)")
             }
         } else {
-            print("[ContentViewModel][Warning] No valid text parameter found in URL")
+            print("[ContentViewModel][警告] URL中未找到有效的text参数")
         }
     }
 
-    // MARK: - Big Bang
+    // MARK: - BigBang功能
+    
+    /// 触发BigBang功能，对当前页面文本进行分词
     func triggerBigBang() {
         guard currentPageIndex < pages.count else { return }
         let text = pages[currentPageIndex]
         self.tokens = tokenizer.tokenize(text: text)
-        self.selectedTokenIDs = []          // reset
+        self.selectedTokenIDs = []          // 重置选择
         self.showingBigBang = true
     }
 
+    /// 切换单个词语的选中状态
+    /// - Parameter id: 词语标记ID
     func toggleToken(_ id: UUID) {          // 供单点选择
         if selectedTokenIDs.contains(id) { selectedTokenIDs.remove(id) }
         else { selectedTokenIDs.insert(id) }
     }
 
+    /// 滑动选择多个词语
+    /// - Parameters:
+    ///   - startID: 起始词语ID
+    ///   - endID: 结束词语ID
     func slideSelect(from startID: UUID, to endID: UUID) {   // 供滑动选择
         guard let s = tokens.firstIndex(where: {$0.id == startID}),
               let e = tokens.firstIndex(where: {$0.id == endID}) else { return }
@@ -737,10 +805,12 @@ class ContentViewModel: ObservableObject {
         selectedTokenIDs.formUnion(tokens[range].map(\.id))
     }
 
+    /// 清空所有选中的词语
     func clearSelectedTokens() {            // 清空所有选中的Token
         selectedTokenIDs.removeAll()
     }
 
+    /// 复制选中的词语
     func copySelected() {
         let text = tokens.filter { selectedTokenIDs.contains($0.id) }
                          .map(\.value).joined()
@@ -748,7 +818,9 @@ class ContentViewModel: ObservableObject {
         showingBigBang = false
     }
 
-    // MARK: - Cleanup
+    // MARK: - 清理
+    
+    /// 在视图模型被释放时执行清理
     deinit {
         stopReading()
         wiFiTransferService.stopServer()
