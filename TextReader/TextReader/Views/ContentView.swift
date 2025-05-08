@@ -30,7 +30,6 @@ struct ContentView: View {
             } else {
                 ProgressView()
                     .scaleEffect(1.5)
-                    .navigationTitle("加载中...")
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
