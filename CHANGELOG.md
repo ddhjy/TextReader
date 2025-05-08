@@ -51,6 +51,7 @@
 
 ### Changed
 * `ContentDisplay` 支持长按手势，调用 ViewModel 的 `triggerBigBang()`。
+ * **Removed Startup Loading**: Completely removed the initial loading indicator (`ProgressView`) and its conditional display logic from `ContentView` as local content loads quickly. The `isContentLoaded` flag in `ContentViewModel` is now initialized to `true`. (Affects `./TextReader/TextReader/Views/ContentView.swift` and `./TextReader/TextReader/ViewModels/ContentViewModel.swift`)
 
 ### Fixed
 * **Share Sheet Text Import**  
