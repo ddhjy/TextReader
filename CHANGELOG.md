@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Fixed
+* **Removed Loading Title Flicker**: Removed the navigation title ("加载中...") during initial content loading to prevent UI flickering on startup. (Affects `./TextReader/TextReader/Views/ContentView.swift`)
+
 ### Refactor
 * **Optimized Code Comments**: Removed redundant and outdated comments (including one in `SpeechManager`), clarified important logic with improved documentation comments, and converted remaining Chinese comments to English across multiple files (e.g., `AudioSessionManager`, `SpeechManager`, `ContentViewModel`, `WiFiTransferView`) for better maintainability and internationalization.
 * **Decomposed `ContentModel`**: Extracted business logic from `ContentView` into a dedicated `ContentViewModel` to improve separation of concerns and testability.
