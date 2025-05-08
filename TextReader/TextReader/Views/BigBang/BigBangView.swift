@@ -201,68 +201,67 @@ class HapticFeedback {
 struct BigBangView: View {
     @ObservedObject var vm: ContentViewModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
     
-    private let tokenHeight: CGFloat = 32
-    private let tokenSpacing: CGFloat = 8  // 字块之间的统一间距
+    private let tokenHeight: CGFloat = 28 // 标准高度
+    private let tokenSpacing: CGFloat = 6  // 标准间距
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
-                    Text(token.value)
-                        .lineLimit(1)
-                        .padding(.horizontal, 6)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.vertical, 4)
-                        .frame(height: tokenHeight)
-                        .background(vm.selectedTokenIDs.contains(token.id) ?
-                                    Color.accentColor.opacity(0.8) :
-                                    Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(4)
-                        .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
-                        .gesture(DragGesture(minimumDistance: 0)
-                                 .onEnded{ _ in 
-                                     vm.processTokenTap(tappedTokenID: token.id)
-                                     HapticFeedback.shared.selectionChanged()
-                                 })
+            ZStack {
+                // 主内容区
+                ScrollView {
+                    FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
+                        Text(token.value)
+                            .lineLimit(1)
+                            .font(.system(size: 15, weight: .regular))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .frame(height: tokenHeight)
+                            .background(
+                                vm.selectedTokenIDs.contains(token.id) ?
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color.accentColor) :
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .fill(Color(.systemGray6))
+                            )
+                            .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                vm.processTokenTap(tappedTokenID: token.id)
+                                HapticFeedback.shared.selectionChanged()
+                            }
+                    }
+                    .padding()
+                    .padding(.bottom, 80) // 为底部工具栏留出空间
                 }
-                .padding()
+                
+                // 底部工具栏（浮动样式）
+                VStack {
+                    Spacer()
+                    
+                    // 使用Material背景的工具栏
+                    ToolbarView(vm: vm, dismiss: dismiss)
+                        .frame(height: 60)
+                        .background(.clear)
+                        .cornerRadius(30)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
             }
+            .navigationTitle("词组选择")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
                 }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    HStack {
-                        Button("清空") {
-                            if !vm.selectedTokenIDs.isEmpty {
-                                vm.clearSelectedTokens()
-                                HapticFeedback.shared.impactOccurred() // 清空选择时震动
-                            }
+                    if !vm.selectedTokenIDs.isEmpty {
+                        Button("全部清除") {
+                            vm.clearSelectedTokens()
+                            HapticFeedback.shared.impactOccurred()
                         }
-                        .disabled(vm.selectedTokenIDs.isEmpty)
-                        
-                        Button("复制") { 
-                            HapticFeedback.shared.impactOccurred() // 复制时震动
-                            vm.copySelected()
-                            dismiss() 
-                        }
-                        .disabled(vm.selectedTokenIDs.isEmpty)
-                        
-                        Menu("模板") {
-                            ForEach(vm.templates) { tpl in
-                                Button(tpl.name) { 
-                                    vm.buildPrompt(using: tpl)
-                                    HapticFeedback.shared.impactOccurred() // 应用模板时震动
-                                    dismiss()
-                                }
-                            }
-                            Divider()
-                            Button("管理模板…") {
-                                vm.showingTemplatePicker = true
-                            }
-                        }
-                        .disabled(vm.selectedTokenIDs.isEmpty)
                     }
                 }
             }
@@ -274,8 +273,108 @@ struct BigBangView: View {
             }
         }
         .onAppear {
-            HapticFeedback.shared.impactOccurred() // 页面出现时震动
+            HapticFeedback.shared.impactOccurred()
         }
         .interactiveDismissDisabled()
+    }
+}
+
+// 底部工具栏组件
+struct ToolbarView: View {
+    @ObservedObject var vm: ContentViewModel
+    let dismiss: DismissAction
+    
+    var body: some View {
+        HStack(spacing: 24) {
+            Spacer()
+            
+            // 复制按钮
+            ToolbarButton(
+                icon: "doc.on.doc.fill",
+                title: "复制",
+                isDisabled: vm.selectedTokenIDs.isEmpty
+            ) {
+                HapticFeedback.shared.impactOccurred()
+                vm.copySelected()
+                dismiss()
+            }
+            
+            // 转发按钮
+            ToolbarButton(
+                icon: "arrowshape.turn.up.right.fill",
+                title: "分享",
+                isDisabled: vm.selectedTokenIDs.isEmpty
+            ) {
+                // 分享功能
+            }
+            
+            // 模板按钮
+            Menu {
+                ForEach(vm.templates) { tpl in
+                    Button(tpl.name) {
+                        vm.buildPrompt(using: tpl)
+                        HapticFeedback.shared.impactOccurred()
+                        dismiss()
+                    }
+                }
+                Divider()
+                Button("管理模板") {
+                    vm.showingTemplatePicker = true
+                }
+            } label: {
+                ToolbarButtonView(
+                    icon: "text.badge.star",
+                    title: "模板",
+                    isDisabled: vm.selectedTokenIDs.isEmpty
+                )
+            }
+            .disabled(vm.selectedTokenIDs.isEmpty)
+            
+            // 收藏按钮
+            ToolbarButton(
+                icon: "bookmark.fill",
+                title: "收藏",
+                isDisabled: vm.selectedTokenIDs.isEmpty
+            ) {
+                // 收藏功能
+            }
+            
+            Spacer()
+        }
+    }
+}
+
+// 底部工具栏按钮
+struct ToolbarButton: View {
+    let icon: String
+    let title: String
+    let isDisabled: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            ToolbarButtonView(icon: icon, title: title, isDisabled: isDisabled)
+        }
+        .disabled(isDisabled)
+    }
+}
+
+// 底部工具栏按钮视图
+struct ToolbarButtonView: View {
+    let icon: String
+    let title: String
+    let isDisabled: Bool
+    
+    var body: some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 22))
+                .symbolRenderingMode(.hierarchical)
+                .contentShape(Rectangle())
+            
+            Text(title)
+                .font(.system(size: 12, weight: .medium))
+        }
+        .foregroundColor(isDisabled ? .secondary.opacity(0.5) : .primary)
     }
 } 
