@@ -15,6 +15,7 @@ struct ContentView: View {
             .toolbarBackground(Color(UIColor.systemGray6), for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
+                    
                     Button(action: { viewModel.showingBookList = true }) {
                         Image(systemName: "book")
                     }

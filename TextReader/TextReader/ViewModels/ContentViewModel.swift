@@ -757,7 +757,9 @@ class ContentViewModel: ObservableObject {
     func triggerBigBang() {
         guard currentPageIndex < pages.count else { return }
         let text = pages[currentPageIndex]
-        self.tokens = tokenizer.tokenize(text: text)
+       tokenizer.tokenize(text: text) { [weak self] tokens in
+           self?.tokens = tokens
+       }
         self.selectedTokenIDs = []          // 重置选择
         self.firstTapInSequence = nil // <--- 新增: 重置选择序列起点
         self.showingBigBang = true
