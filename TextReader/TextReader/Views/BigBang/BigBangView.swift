@@ -1,7 +1,5 @@
 import SwiftUI
-import UIKit // 用于震动反馈
-
-// 自定义FlowLayout视图
+import UIKit
 struct FlowLayout<Data, ID, Content>: View where Data: RandomAccessCollection, ID: Hashable, Content: View {
     private let data: Data
     private let id: KeyPath<Data.Element, ID>
@@ -36,7 +34,6 @@ struct FlowLayout<Data, ID, Content>: View where Data: RandomAccessCollection, I
     }
 }
 
-// 帮助视图，负责实际布局
 private struct FlowLayoutHelper<Data, ID, Content>: View where Data: RandomAccessCollection, ID: Hashable, Content: View {
     let availableWidth: CGFloat
     let data: Data
@@ -57,7 +54,6 @@ private struct FlowLayoutHelper<Data, ID, Content>: View where Data: RandomAcces
     }
 }
 
-// 用于表示一行中的元素
 private struct RowElement<Element>: Identifiable, Hashable {
     let element: Element
     let id = UUID()
@@ -71,7 +67,6 @@ private struct RowElement<Element>: Identifiable, Hashable {
     }
 }
 
-// 用于表示一行
 private struct Row<Element>: Identifiable, Hashable {
     let elements: [RowElement<Element>]
     let id = UUID()
@@ -85,7 +80,6 @@ private struct Row<Element>: Identifiable, Hashable {
     }
 }
 
-// 真正的布局实现
 private struct _FlowLayoutHelper<Data, ID, Content>: View where Data: RandomAccessCollection, ID: Hashable, Content: View {
     let availableWidth: CGFloat
     let data: Data
@@ -130,14 +124,12 @@ private struct _FlowLayoutHelper<Data, ID, Content>: View where Data: RandomAcce
                     currentRowElements = [RowElement(element: element)]
                     remainingWidth = availableWidth - elementSize.width - spacing
                 } else {
-                    // 如果当前行为空，强制添加该元素，即使宽度超出
                     currentRowElements.append(RowElement(element: element))
                     remainingWidth = availableWidth - elementSize.width - spacing
                 }
             }
         }
         
-        // 添加最后一行
         if !currentRowElements.isEmpty {
             rows.append(Row(elements: currentRowElements))
         }
@@ -146,7 +138,6 @@ private struct _FlowLayoutHelper<Data, ID, Content>: View where Data: RandomAcce
     }
 }
 
-// 用于测量视图大小的修饰器
 extension View {
     func measureSize(perform action: @escaping (CGSize) -> Void) -> some View {
         self.background(
@@ -168,7 +159,6 @@ extension View {
     }
 }
 
-// 用于传递尺寸数据的PreferenceKey
 private struct SizePreferenceKey: PreferenceKey {
     static var defaultValue: CGSize = .zero
     static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
@@ -176,7 +166,6 @@ private struct SizePreferenceKey: PreferenceKey {
     }
 }
 
-// 震动反馈辅助类
 class HapticFeedback {
     static let shared = HapticFeedback()
     
@@ -184,7 +173,6 @@ class HapticFeedback {
     private let impactFeedback = UIImpactFeedbackGenerator(style: .light)
     
     private init() {
-        // 预热反馈生成器，减少第一次使用时的延迟
         selectionFeedback.prepare()
         impactFeedback.prepare()
     }
@@ -203,7 +191,7 @@ struct BigBangView: View {
     @Environment(\.dismiss) private var dismiss
     
     private let tokenHeight: CGFloat = 32
-    private let tokenSpacing: CGFloat = 8  // 字块之间的统一间距
+    private let tokenSpacing: CGFloat = 8
     
     var body: some View {
         NavigationStack {
@@ -237,13 +225,13 @@ struct BigBangView: View {
                         Button("清空") {
                             if !vm.selectedTokenIDs.isEmpty {
                                 vm.clearSelectedTokens()
-                                HapticFeedback.shared.impactOccurred() // 清空选择时震动
+                                HapticFeedback.shared.impactOccurred()
                             }
                         }
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Button("复制") { 
-                            HapticFeedback.shared.impactOccurred() // 复制时震动
+                            HapticFeedback.shared.impactOccurred()
                             vm.copySelected()
                             dismiss() 
                         }
@@ -253,7 +241,7 @@ struct BigBangView: View {
                             ForEach(vm.templates) { tpl in
                                 Button(tpl.name) { 
                                     vm.buildPrompt(using: tpl)
-                                    HapticFeedback.shared.impactOccurred() // 应用模板时震动
+                                    HapticFeedback.shared.impactOccurred()
                                     dismiss()
                                 }
                             }
@@ -274,7 +262,7 @@ struct BigBangView: View {
             }
         }
         .onAppear {
-            HapticFeedback.shared.impactOccurred() // 页面出现时震动
+            HapticFeedback.shared.impactOccurred()
         }
         .interactiveDismissDisabled()
     }

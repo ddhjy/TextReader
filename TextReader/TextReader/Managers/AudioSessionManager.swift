@@ -1,31 +1,23 @@
 import AVFoundation
 import MediaPlayer
 
-/// 音频会话管理器，负责处理音频相关的系统交互
-/// 包括会话配置、控制中心显示、音频中断和远程控制命令
+/// Audio session manager for handling audio-related system interactions
+/// Including session configuration, control center display, audio interruption and remote control commands
 class AudioSessionManager: NSObject {
-    /// 内容视图模型的弱引用，用于状态同步和回调
     private weak var contentViewModel: ContentViewModel?
-    /// 音频会话当前是否处于激活状态
     private var isAudioSessionActive = false
-    
-    /// 跟踪系统播放状态，确保与系统事件保持一致
     private var isSystemPlaybackActive = false
 
-    /// 初始化音频会话管理器
     override init() {
         super.init()
         setupNotifications()
     }
     
-    /// 析构函数，移除通知观察者
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
     
-    /// 设置音频会话相关通知的观察者
     private func setupNotifications() {
-        // 音频会话中断通知
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(handleAudioSessionInterruption), 
@@ -33,7 +25,6 @@ class AudioSessionManager: NSObject {
             object: nil
         )
         
-        // 音频路由变化通知
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(handleAudioRouteChange), 
@@ -41,7 +32,6 @@ class AudioSessionManager: NSObject {
             object: nil
         )
         
-        // 应用进入前台通知
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(handleAppDidBecomeActive), 
@@ -49,7 +39,6 @@ class AudioSessionManager: NSObject {
             object: nil
         )
         
-        // 应用进入后台通知
         NotificationCenter.default.addObserver(
             self, 
             selector: #selector(handleAppDidEnterBackground), 
@@ -58,41 +47,36 @@ class AudioSessionManager: NSObject {
         )
     }
     
-    /// 注册内容视图模型，用于音频事件回调
     func registerViewModel(_ viewModel: ContentViewModel) {
         self.contentViewModel = viewModel
     }
 
-    /// 设置音频会话，配置为播放模式
     func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playback, mode: .spokenAudio, options: [.allowAirPlay, .allowBluetooth])
             try session.setActive(true)
             isAudioSessionActive = true
-            print("音频会话已配置为播放模式")
+            print("Audio session configured for playback mode")
             
-            // 确保初始化时控制中心状态正确
             synchronizePlaybackState(force: true)
         } catch {
-            print("设置音频会话失败: \(error)")
+            print("Failed to setup audio session: \(error)")
             isAudioSessionActive = false
         }
     }
 
-    /// 设置远程控制中心，处理锁屏和控制中心的媒体控制
     func setupRemoteCommandCenter(playAction: @escaping () -> Void,
                                   pauseAction: @escaping () -> Void,
                                   nextAction: (() -> Void)? = nil,
                                   previousAction: (() -> Void)? = nil) {
-        // 清除已有的目标，避免重复添加
         clearRemoteCommandTargets()
         
         let commandCenter = MPRemoteCommandCenter.shared()
 
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] event in
-            print("远程命令: 播放")
+            print("Remote command: play")
             self?.isSystemPlaybackActive = true
             playAction()
             return .success
@@ -100,7 +84,7 @@ class AudioSessionManager: NSObject {
 
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] event in
-            print("远程命令: 暂停")
+            print("Remote command: pause")
             self?.isSystemPlaybackActive = false
             pauseAction()
             return .success
@@ -109,7 +93,7 @@ class AudioSessionManager: NSObject {
         if let next = nextAction {
             commandCenter.nextTrackCommand.isEnabled = true
             commandCenter.nextTrackCommand.addTarget { _ in 
-                print("远程命令: 下一曲")
+                print("Remote command: next track")
                 next()
                 return .success 
             }
@@ -120,7 +104,7 @@ class AudioSessionManager: NSObject {
         if let prev = previousAction {
             commandCenter.previousTrackCommand.isEnabled = true
             commandCenter.previousTrackCommand.addTarget { _ in 
-                print("远程命令: 上一曲")
+                print("Remote command: previous track")
                 prev()
                 return .success 
             }
@@ -128,7 +112,7 @@ class AudioSessionManager: NSObject {
             commandCenter.previousTrackCommand.isEnabled = false
         }
 
-        print("远程命令中心已配置")
+        print("Remote command center configured")
     }
     
     /// 清除远程命令中心的现有目标

@@ -1,25 +1,15 @@
 import SwiftUI
 import UIKit
 
-/// 页面控制组件，用于显示阅读进度、页码和控制页面导航
 struct PageControl: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // MARK: - 状态属性
-    // 控制滑块是否可见
     @State private var showSlider = false
-    // 隐藏滑块的定时器
     @State private var hideSliderWorkItem: DispatchWorkItem?
-    // 拖动区域宽度
     @State private var dragWidth: CGFloat = 0
     
-    // MARK: - 反馈生成器
-    // 滑块变动时的震动反馈发生器（Selection类型适用于离散滑块变动）
     private let haptic = UISelectionFeedbackGenerator()
-    // 播放/暂停按钮的震动反馈发生器
     private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
-    
-    // MARK: - 计算属性
     // 创建currentPageIndex与Slider的双向绑定
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
@@ -41,20 +31,16 @@ struct PageControl: View {
     var body: some View {
         VStack(spacing: 8) {
             
-            // MARK: - 进度条区域
             GeometryReader { geo in
                 progressStack(geo: geo)
                     .onAppear { dragWidth = geo.size.width }
             }
-            .frame(height: 24) // 给进度条区固定高度
+            .frame(height: 24)
             
-            // MARK: - 页码显示
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundColor(.secondary)
-            
-            // MARK: - 控制按钮区域
             HStack {
                 // 上一页按钮
                 RepeatButton(
@@ -92,31 +78,22 @@ struct PageControl: View {
         }
         .onAppear {
             haptic.prepare()
-            buttonHaptic.prepare() // 预热按钮震动器
+            buttonHaptic.prepare()
         }
     }
-    
-    // MARK: - 辅助方法
-    
-    /// 计算当前阅读进度百分比
     private var pageProgress: Double {
         guard viewModel.pages.count > 0 else { return 0 }
         return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
     }
     
-    /// 安排隐藏滑块的定时任务
     private func scheduleHide() {
-        // 取消旧任务
         hideSliderWorkItem?.cancel()
-        // 新建任务
         let work = DispatchWorkItem {
             withAnimation { showSlider = false }
         }
         hideSliderWorkItem = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
     }
-
-    /// 创建进度栈视图，包含进度条和滑块
     private func progressStack(geo: GeometryProxy) -> some View {
         ZStack {
             // 只读进度条
@@ -173,9 +150,6 @@ struct PageControl: View {
     }
 }
 
-// MARK: - 自定义按钮样式
-
-/// 无暗淡效果的按钮样式，避免按下时的视觉变化
 private struct NoDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label

@@ -101,7 +101,6 @@ class ContentViewModel: ObservableObject {
     }
 
     // MARK: - 数据加载
-    /// 加载初始数据，包括书籍列表、上次阅读位置和设置
     private func loadInitialData() {
         self.books = libraryManager.loadBooks()
         sortBooks()
@@ -109,10 +108,10 @@ class ContentViewModel: ObservableObject {
         let lastBookId = settingsManager.getLastOpenedBookId()
         if let bookId = lastBookId, let bookToLoad = books.first(where: { $0.id == bookId }) {
             loadBook(bookToLoad)
-        } else if let firstBook = books.first { // 如果找不到上次阅读的书籍，加载第一本
+        } else if let firstBook = books.first {
             loadBook(firstBook)
         } else {
-            isContentLoaded = true // 没有书籍可加载
+            isContentLoaded = true
         }
         self.readingSpeed = settingsManager.getReadingSpeed()
         self.availableVoices = speechManager.getAvailableVoices(languagePrefix: "zh")
@@ -507,61 +506,48 @@ class ContentViewModel: ObservableObject {
 
     // MARK: - 阅读控制
     
-    /// 翻到下一页
     func nextPage() {
         guard currentPageIndex < pages.count - 1 else { return }
         
-        let wasReading = self.isReading // 记录翻页前的朗读状态
+        let wasReading = self.isReading
 
         if wasReading {
-            // 如果在朗读，立即停止当前页的朗读，但不需要完全执行 stopReading() 中的所有 UI 更新和延迟操作
-            // 只需要停止 SpeechManager 即可
             speechManager.stopReading()
-            // 不立即设置 isReading = false，因为马上可能就要开始读下一页
-            // 也不在这里调用 updateNowPlayingInfo，因为 index 还没更新
         }
 
-        currentPageIndex += 1 // 更新页面索引
+        currentPageIndex += 1
 
         if let bookId = self.currentBookId {
-            libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
-            sortBooks() // 更新后立即重新排序 books 数组
-            print("[ContentViewModel] 执行nextPage后，更新lastAccessed并重新排序书籍。")
+            libraryManager.updateLastAccessed(bookId: bookId)
+            sortBooks()
         }
 
         if wasReading {
-            // 如果翻页前在朗读，立即开始朗读新页面
-            // 使用 DispatchQueue.main.async 确保在 UI 更新后执行朗读，避免潜在冲突
             DispatchQueue.main.async {
-                self.readCurrentPage() // readCurrentPage 内部会设置 isReading = true 并更新 NowPlayingInfo
+                self.readCurrentPage()
             }
         } else {
-            // 如果翻页前没有朗读，只需要更新 NowPlayingInfo 的页码信息
             updateNowPlayingInfo()
         }
     }
 
-    /// 翻到上一页
     func previousPage() {
         guard currentPageIndex > 0 else { return }
         
-        let wasReading = self.isReading // 记录翻页前的朗读状态
+        let wasReading = self.isReading
 
         if wasReading {
-            // 同 nextPage 的逻辑
             speechManager.stopReading()
         }
 
-        currentPageIndex -= 1 // 更新页面索引
+        currentPageIndex -= 1
 
         if let bookId = self.currentBookId {
-            libraryManager.updateLastAccessed(bookId: bookId) // 更新访问时间
-            sortBooks() // 更新后立即重新排序 books 数组
-            print("[ContentViewModel] 执行previousPage后，更新lastAccessed并重新排序书籍。")
+            libraryManager.updateLastAccessed(bookId: bookId)
+            sortBooks()
         }
 
         if wasReading {
-            // 同 nextPage 的逻辑
             DispatchQueue.main.async {
                 self.readCurrentPage()
             }
