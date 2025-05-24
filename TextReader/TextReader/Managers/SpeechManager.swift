@@ -1,5 +1,5 @@
 import AVFoundation
-import UIKit // For UIBackgroundTaskIdentifier
+import UIKit
 
 /// 语音管理器，负责文本的语音合成和朗读控制
 /// 封装AVSpeechSynthesizer功能，提供朗读控制并管理后台任务
@@ -195,7 +195,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, 
                            willSpeakRangeOfSpeechString characterRange: NSRange, 
                            utterance: AVSpeechUtterance) {
-        // 可以在此处添加当前正在朗读文本范围的处理逻辑
     }
 
     // MARK: - 后台任务管理

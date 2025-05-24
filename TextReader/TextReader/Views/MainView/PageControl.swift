@@ -10,7 +10,6 @@ struct PageControl: View {
     
     private let haptic = UISelectionFeedbackGenerator()
     private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
-    // 创建currentPageIndex与Slider的双向绑定
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(viewModel.currentPageIndex) },
@@ -20,10 +19,10 @@ struct PageControl: View {
                 
                 // 触发震动反馈
                 haptic.selectionChanged()
-                haptic.prepare()  // 预加载下一次，提升响应速度
+                haptic.prepare()
                 
-                viewModel.stopReading()                 // 先停止朗读
-                viewModel.currentPageIndex = newIndex   // 更新页码
+                viewModel.stopReading()
+                viewModel.currentPageIndex = newIndex
             }
         )
     }
@@ -54,7 +53,7 @@ struct PageControl: View {
                 // 播放/暂停按钮
                 Button(action: { 
                     viewModel.toggleReading()
-                    buttonHaptic.impactOccurred() // 点击时触发震动
+                    buttonHaptic.impactOccurred()
                 }) { Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.white)
@@ -123,7 +122,7 @@ struct PageControl: View {
         // 长按和拖动手势
         .gesture(
             LongPressGesture(minimumDuration: 0.2)
-                .onChanged { _ in                   // 触发阈值后立即显示滑块
+                .onChanged { _ in
                     if !showSlider {
                         withAnimation { showSlider = true }
                         hideSliderWorkItem?.cancel()
@@ -153,6 +152,6 @@ struct PageControl: View {
 private struct NoDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-        // 不根据configuration.isPressed状态改变外观，避免按下时的暗淡或缩放效果
+
     }
 } 

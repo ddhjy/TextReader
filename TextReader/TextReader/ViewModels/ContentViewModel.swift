@@ -1,7 +1,7 @@
 import SwiftUI
 import Combine
-import AVFoundation // For Voice type only
-import UIKit // 用于打开URL
+import AVFoundation
+import UIKit
 
 /// 内容视图模型，负责管理应用的核心功能和状态
 /// 管理文本分页与显示、朗读控制、书籍库、搜索、WiFi传输等功能
@@ -32,7 +32,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []
     @Published var selectedTokenIDs: Set<UUID> = []
-    private var firstTapInSequence: UUID? = nil // 新增: 记录一个选择序列中的首次点击
+    private var firstTapInSequence: UUID? = nil
     // 模板相关状态
     @Published var templates: [PromptTemplate] = []
     @Published var showingTemplatePicker = false
@@ -750,8 +750,8 @@ class ContentViewModel: ObservableObject {
        tokenizer.tokenize(text: text) { [weak self] tokens in
            self?.tokens = tokens
        }
-        self.selectedTokenIDs = []          // 重置选择
-        self.firstTapInSequence = nil // <--- 新增: 重置选择序列起点
+        self.selectedTokenIDs = []
+        self.firstTapInSequence = nil
         self.showingBigBang = true
     }
 
@@ -762,7 +762,7 @@ class ContentViewModel: ObservableObject {
             if tappedTokenID == firstTapped {
                 // 点击了序列的第一个词 -> 取消所有选中
                 selectedTokenIDs.removeAll()
-                firstTapInSequence = nil // 重置序列
+                firstTapInSequence = nil
             } else {
                 // 点击了其他词 -> 清除当前选择，然后选择从 firstTapped 到 tappedTokenID
                 selectedTokenIDs.removeAll()
@@ -771,7 +771,7 @@ class ContentViewModel: ObservableObject {
             }
         } else {
             // 这是序列的第一次点击
-            selectedTokenIDs.removeAll() // 清除任何之前的选择
+            selectedTokenIDs.removeAll()
             selectedTokenIDs.insert(tappedTokenID)
             firstTapInSequence = tappedTokenID
         }
@@ -797,9 +797,9 @@ class ContentViewModel: ObservableObject {
     }
 
     /// 清空所有选中的词语
-    func clearSelectedTokens() {            // 清空所有选中的Token
+    func clearSelectedTokens() {
         selectedTokenIDs.removeAll()
-        firstTapInSequence = nil // <--- 新增: 重置选择序列起点
+        firstTapInSequence = nil
     }
 
     /// 复制选中的词语
@@ -844,7 +844,6 @@ class ContentViewModel: ObservableObject {
         // 构建Perplexity AI搜索URL
         if let encodedQuery = result.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
            let url = URL(string: "https://www.perplexity.ai/search/new?q=\(encodedQuery)") {
-            // 打开URL
             UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }

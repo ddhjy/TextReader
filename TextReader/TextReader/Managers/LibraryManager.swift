@@ -10,9 +10,7 @@ import Foundation
 /// - 书籍删除功能
 class LibraryManager {
     
-    /// 书籍元数据文件名
     private let bookMetadataFile = "library.json"
-    /// 文件管理器实例
     private let fileManager = FileManager.default
     
     /// 书籍库操作可能出现的错误类型
@@ -464,12 +462,10 @@ class LibraryManager {
     
     // MARK: - 元数据存储
     
-    /// Structure for storing book progress information
     private struct LibraryMetadata: Codable {
         var progress: [String: BookProgress] = [:]
     }
     
-    /// Loads metadata from disk, returns empty metadata if file doesn't exist
     private func loadMetadata() -> LibraryMetadata {
         do {
             let documentsURL = try getDocumentsDirectory()
@@ -488,7 +484,6 @@ class LibraryManager {
         }
     }
     
-    /// Saves metadata to disk
     private func saveMetadata(_ metadata: LibraryMetadata) {
         do {
             let documentsURL = try getDocumentsDirectory()
