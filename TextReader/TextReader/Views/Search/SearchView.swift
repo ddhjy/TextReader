@@ -49,7 +49,6 @@ struct SearchView: View {
         }
     }
     
-    // 执行搜索的方法
     private func performSearch() {
         viewModel.searchContent(searchText)
     }

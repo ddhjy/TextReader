@@ -153,7 +153,6 @@ class AudioSessionManager: NSObject {
                 nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = fakeDuration * progress
             }
             
-            // 更新内部记录的系统播放状态
             self.isSystemPlaybackActive = isPlaying
             
             print("更新NowPlayingInfo: \(isPlaying ? "播放中" : "已暂停") - 强制更新")
@@ -194,14 +193,11 @@ class AudioSessionManager: NSObject {
     func synchronizePlaybackState(force: Bool = false) {
         guard let viewModel = contentViewModel else { return }
         
-        // 应用内部的播放状态
         let isAppPlaying = viewModel.isReading
         
-        // 检查是否需要强制更新
         let shouldUpdate = force || (isAppPlaying != isSystemPlaybackActive)
         
         if shouldUpdate {
-            // 更新系统状态
             updateNowPlayingInfo(
                 title: viewModel.currentBookTitle,
                 isPlaying: isAppPlaying,
@@ -228,7 +224,6 @@ class AudioSessionManager: NSObject {
             print("音频会话被中断：开始")
             isSystemPlaybackActive = false
             
-            // 通知视图模型暂停播放
             contentViewModel?.stopReading()
             
         case .ended:
@@ -277,7 +272,6 @@ class AudioSessionManager: NSObject {
             if portTypes.contains(output.portType) {
                 print("音频输出设备断开：\(output.portType.rawValue)")
                 
-                // 如果正在播放，则暂停
                 if isSystemPlaybackActive {
                     contentViewModel?.stopReading()
                 }

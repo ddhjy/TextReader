@@ -89,7 +89,7 @@ class ContentViewModel: ObservableObject {
         setupSpeechCallbacks()
         
         $isReading
-            .dropFirst() // 忽略初始值
+            .dropFirst()
             .sink { [weak self] isReading in
                 guard let self = self else { return }
                 DispatchQueue.main.async {
@@ -364,7 +364,7 @@ class ContentViewModel: ObservableObject {
                     
                     // 确保生成页面摘要
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
-                    self.searchResults = []  // 清空之前的搜索结果
+                    self.searchResults = []
                     
                     self.isContentLoaded = true
                     self.updateNowPlayingInfo()
@@ -631,7 +631,7 @@ class ContentViewModel: ObservableObject {
         guard pageIndex >= 0 && pageIndex < pages.count else { return }
         stopReading()
         currentPageIndex = pageIndex
-        showingSearchView = false // 关闭搜索视图
+        showingSearchView = false
     }
 
     // MARK: - WiFi传输

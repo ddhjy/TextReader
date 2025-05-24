@@ -22,7 +22,6 @@ struct RepeatButton<Label: View>: View, @unchecked Sendable {
                         self.longPressAction()
                     }
                 } else {
-                    // Stop timer
                     self.timer?.invalidate()
                     self.timer = nil
                 }

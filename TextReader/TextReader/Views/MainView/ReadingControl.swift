@@ -6,7 +6,6 @@ struct ReadingControl: View {
     
     // MARK: - 私有属性
     
-    /// 可选的朗读速度选项
     private let speedOptions: [Float] = [1.0, 1.5, 1.75, 2.0, 3.0]
     
     /// 将速度值格式化为显示文本

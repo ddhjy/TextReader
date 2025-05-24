@@ -2,9 +2,7 @@ import NaturalLanguage
 
 /// 表示文本中的一个标记（词语或字符）
 struct Token {
-    /// 唯一标识符
     let id = UUID()
-    /// 标记的文本值
     let value: String
 }
 
@@ -14,11 +12,11 @@ class Tokenizer {
     /// 中文分词器，使用NL框架的词语单元
     private let zhTokenizer = NLTokenizer(unit: .word)
 
-   /// 在后台线程中执行分词操作
-   private let backgroundQueue = DispatchQueue(label: "com.textreader.tokenizer", qos: .userInitiated)
+    /// 在后台线程中执行分词操作
+    private let backgroundQueue = DispatchQueue(label: "com.textreader.tokenizer", qos: .userInitiated)
 
     /// 将输入文本分割成标记数组
-   func tokenize(text: String, completion: @escaping ([Token]) -> Void) {
+    func tokenize(text: String, completion: @escaping ([Token]) -> Void) {
         zhTokenizer.string = text
         var results:[Token] = []
         
@@ -31,10 +29,10 @@ class Tokenizer {
             return true
         }
         
-       backgroundQueue.async {
-           DispatchQueue.main.async {
-               completion(results)
-           }
-       }
+        backgroundQueue.async {
+            DispatchQueue.main.async {
+                completion(results)
+            }
+        }
     }
 } 

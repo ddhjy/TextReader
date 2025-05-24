@@ -52,7 +52,6 @@ class TextPaginator {
             } else if currentPageCharCount + sentenceCharCount <= maxPageSize {
                 // 将句子添加到当前页面
                 if !currentPageContent.isEmpty {
-                    // 在句子之间添加空格
                     currentPageContent += " "
                     currentPageCharCount += 1
                 }
@@ -68,7 +67,6 @@ class TextPaginator {
             }
         }
 
-        // 如果最后一页有内容，则添加
         if !currentPageContent.isEmpty {
             pages.append(currentPageContent)
         }

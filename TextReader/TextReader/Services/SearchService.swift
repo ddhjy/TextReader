@@ -5,11 +5,10 @@ class SearchService {
     /// 在页面数组中搜索指定查询文本
     func search(query: String, in pages: [String]) -> [(Int, String)] {
         guard !query.isEmpty else { return [] }
-        let lowercasedQuery = query.lowercased() // 不区分大小写搜索
+        let lowercasedQuery = query.lowercased()
 
         return pages.enumerated().compactMap { index, page in
             if page.lowercased().contains(lowercasedQuery) {
-                // 返回页面索引和预览片段
                 let preview = generatePreview(for: query, in: page)
                 return (index, preview)
             }
@@ -42,7 +41,6 @@ class SearchService {
         return String(page[page.startIndex..<previewEnd]) + (page.count > maxLength ? "..." : "")
     }
 
-    // MARK: - 页面摘要
     /// 生成分页摘要，用于页面概览
     func pageSummaries(pages: [String],
                        sampleLimit: Int = 100,

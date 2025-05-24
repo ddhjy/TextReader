@@ -214,7 +214,7 @@ class LibraryManager {
                     fileContent = content
                     usedEncoding = encoding
                     print("[LibraryManager] 使用编码成功读取内容: \(encoding)")
-                    break // 找到合适的编码后跳出循环
+                    break
                 } else {
                     print("[LibraryManager] 使用编码读取失败: \(encoding)")
                 }
@@ -266,7 +266,6 @@ class LibraryManager {
         let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".txt")
         
         do {
-            // 复制到临时文件
             try FileManager.default.copyItem(at: url, to: tempFile)
             print("[LibraryManager] 文件已复制到临时位置: \(tempFile.path)")
         } catch let error {
@@ -279,13 +278,11 @@ class LibraryManager {
             if let content = try? String(contentsOf: tempFile, encoding: encoding) {
                 print("[LibraryManager] 复制后成功使用编码读取: \(encoding)")
                 
-                // 清理临时文件
                 try? FileManager.default.removeItem(at: tempFile)
                 return (content, encoding)
             }
         }
         
-        // 清理临时文件
         try? FileManager.default.removeItem(at: tempFile)
         return nil
     }
@@ -471,7 +468,6 @@ class LibraryManager {
             let documentsURL = try getDocumentsDirectory()
             let metadataURL = documentsURL.appendingPathComponent(bookMetadataFile)
             
-            // If file doesn't exist, return empty metadata
             guard fileManager.fileExists(atPath: metadataURL.path) else {
                 return LibraryMetadata()
             }

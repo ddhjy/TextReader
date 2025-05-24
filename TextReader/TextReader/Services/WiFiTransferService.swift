@@ -1,7 +1,7 @@
 import Network
 import Foundation
 
-// MARK: - WiFi传输服务，提供无线文件传输功能
+/// WiFi传输服务，提供无线文件传输功能
 class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private var listener: NWListener?
     @Published var isRunning = false
@@ -100,7 +100,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         var buffer = initialData
         let startTime = Date()
         
-        // Use a simpler approach without timer
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
                 if error != nil {
@@ -118,7 +117,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 if isComplete || (data == nil && timeElapsed > 3.0) {
                     self?.processReceivedData(buffer: buffer, connection: connection)
                 } else if error == nil {
-                    // Continue receiving
                     receive()
                 }
             }
@@ -129,7 +127,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     
     /// Process received data to extract file content
     private func processReceivedData(buffer: Data, connection: NWConnection) {
-        // Try to detect file encoding
         let encodings: [String.Encoding] = [.utf8]
         var fileContent: String?
         
