@@ -1,103 +1,118 @@
-# TextReader
+# TextReader for iOS
 
-TextReader 是一个基于 SwiftUI 开发的文本阅读器应用，支持阅读和朗读文本文件。该应用提供了丰富的功能，包括分页显示、语音朗读、语音设置、全文搜索以及从 iCloud 导入书籍等。
+TextReader is a SwiftUI-based iOS application designed for an enhanced text reading and narration experience. It offers a comprehensive suite of features for importing, managing, reading, and listening to text-based content, with a focus on usability and customization.
 
-## 功能特性
+## Features
 
-- **分页阅读**：自动将文本内容分割成页，方便用户逐页阅读。
-- **语音朗读**：利用 `AVSpeechSynthesizer` 实现文本语音朗读，支持暂停和继续。
-- **语音设置**：
-  - **音色选择**：支持多种中文语音音色，用户可根据喜好选择。
-  - **朗读速度**：提供多档朗读速度供用户调节。
-- **搜索功能**：支持全文搜索，快速定位到指定的页面和内容。
-- **书籍管理**：
-  - **内置书籍**：预置了《思考快与慢》、《罗素作品集》、《哲学研究》等书籍。
-  - **书籍列表**：方便地在不同书籍之间切换。
-  - **导入书籍**：支持从 iCloud 或本地文件导入新的文本文件。
-- **阅读进度保存**：自动保存每本书的阅读进度，方便下次继续阅读。
-- **后台播放**：支持后台朗读，用户可在锁屏或使用其他应用时继续聆听。
-- **远程控制**：集成了系统的播放控制中心，支持通过耳机或控制中心控制播放。
+### Core Reading & Narration
+* **Paginated Reading:** Text content is automatically divided into easily navigable pages.
+* **Text-to-Speech (TTS):** Utilizes `AVSpeechSynthesizer` for audio narration of book content, with play/pause capabilities.
+* **Customizable Narration:**
+    * **Voice Selection:** Choose from various available system voices (primarily focused on Chinese voices).
+    * **Speed Control:** Adjust narration speed to your preference (options include 1.0x, 1.5x, 1.75x, 2.0x, 3.0x).
+* **Background Playback:** Continue listening to narration even when the app is in the background or the device is locked.
+* **Remote Controls:** Manage playback (play/pause, next/previous page) via headphones or the Control Center.
+* **Now Playing Integration:** Displays current book title, page, and playback controls on the lock screen and Control Center.
+* **Dark Mode:** Switch between light and dark themes for comfortable reading, with persistence.
 
-## 安装和运行
+### Book Management & Import
+* **Multiple Import Methods:**
+    * **File Import:** Import `.txt` files directly using the system document picker (from local storage or iCloud Drive). Supports UTF-8 and GBK/GB18030 encodings.
+    * **Paste Text:** Create new books by pasting text directly into the app. Titles can be manually set or automatically generated from the first 10 characters.
+    * **Share Sheet Import:** Import text content shared from other applications (e.g., Notes, Safari) via the iOS Share Sheet (handles `public.plain-text`, `public.text`).
+    * **Wi-Fi Transfer:** Transfer `.txt` files to the app from a computer on the same Wi-Fi network via a web browser interface.
+* **Book Library:**
+    * View a list of all imported and built-in books.
+    * Sorts books by the last accessed time, showing the most recently opened book first.
+    * Displays last accessed time in a user-friendly format (e.g., "Read just now", "Read 5 minutes ago").
+* **Progress Persistence:** Automatically saves reading progress (current page) and total pages for each book.
+* **Built-in Book:** Includes a "User Guide" (使用说明.txt) as a default book.
 
-1. **环境要求**
+### Search & Navigation
+* **Full-Text Search:** Search within the currently open book.
+    * **Live Search:** Results update palavras-chave.
+    * **Keyword Highlighting:** Matched keywords are highlighted (yellow background, bold) in search results for better visibility. Search box empty means no highlighting in summaries.
+    * **Contextual Preview:** Search results show a preview snippet with context around the matched keyword.
+    * **No Results Found:** Clear "No relevant content found" message when search yields no results.
+* **Page Summaries:** When the search bar is empty, displays summaries for quick navigation (up to 100 equally spaced page snippets).
+* **Interactive Page Slider:**
+    * Tap or drag the progress bar to reveal an interactive slider for quick page jumps.
+    * The slider auto-hides after 1.5 seconds of inactivity.
+    * Long-pressing the progress bar also activates the slider for continuous dragging.
+* **Haptic Feedback:** Subtle vibrations on page changes via the slider and for other interactions.
 
-   - **操作系统**：macOS 11.0 或更高版本
-   - **Xcode 版本**：Xcode 12 或更高版本
-   - **目标设备**：iOS 14 或更高版本的设备或模拟器
+### Advanced Text Interaction
+* **"Big Bang" Word Segmentation:**
+    * Long-press on the reading view to trigger "Big Bang" word segmentation based on `NLTokenizer`.
+    * `BigBangView` displays tokens as selectable blocks.
+    * Supports drag-to-select continuous tokens for copying.
+* **Prompt Templates:**
+    * After selecting text in "Big Bang" view, choose from preset or custom templates.
+    * Placeholders `{selection}`, `{page}`, and `{book}` are automatically replaced.
+    * Generated prompt is copied to the clipboard and can optionally open a Perplexity AI search.
+    * Manage templates (add, delete, edit).
 
-2. **获取项目**
+### UI/UX Enhancements
+* Optimized paragraph/letter spacing and a larger base font for readability.
+* Linear progress bar for visual page progress.
+* Prominent circular Play/Pause button.
+* Segmented speed selector for quick adjustments.
+* Removed loading title flicker on startup for a smoother experience.
 
-   - 将项目文件下载或克隆到本地。
+## Requirements
 
-3. **打开项目**
+* **iOS:** 14.0 or later
+* **Xcode:** 12.0 or later (for development)
+* **macOS:** 11.0 or later (for development with Xcode)
 
-   - 使用 Xcode 打开 `TextReader.xcodeproj` 文件。
+## Installation
 
-4. **运行项目**
+1.  **Clone or Download:** Get the project files onto your local machine.
+    ```bash
+    git clone [https://github.com/your-repository-url/TextReader.git](https://github.com/your-repository-url/TextReader.git)
+    ```
+2.  **Open Project:** Open `TextReader.xcodeproj` in Xcode.
+3.  **Select Target:** Choose an iOS device or simulator.
+4.  **Run:** Build and run the application.
 
-   - 在 Xcode 中选择目标设备或模拟器。
-   - 点击运行按钮即可构建并启动应用。
+## Usage Overview
 
-## 使用指南
+* **Book List:** Tap the book icon in the navigation bar to open the book list. Select a book to start reading.
+* **Importing:** Use the "+" icon in the book list to import books via Files, Paste Text, or Wi-Fi Transfer.
+* **Reading:**
+    * Swipe left/right or use the arrow buttons in the control panel to navigate pages.
+    * Use the progress slider for quick page jumps.
+* **Narration:**
+    * Tap the Play/Pause button to start or stop narration.
+    * Adjust voice and speed from the control panel.
+* **Search:** Tap the magnifying glass icon to search within the current book.
+* **Big Bang & Prompts:** Long-press text in the reader view to segment words. Select words and use the "Templates" menu.
+* **Dark Mode:** Toggle dark mode from the control panel.
 
-### 1. 选择书籍
+## Key Technologies
 
-- 点击导航栏左侧的 **书本图标** 📖，打开书籍列表。
-- 从列表中选择一本书，应用会自动加载并显示内容。
+* **SwiftUI:** For the entire user interface and application structure.
+* **AVFoundation:** `AVSpeechSynthesizer` for text-to-speech, `AVAudioSession` for audio management.
+* **MediaPlayer:** `MPRemoteCommandCenter` and `MPNowPlayingInfoCenter` for background audio control and lock screen integration.
+* **NaturalLanguage Framework:** `NLTokenizer` for "Big Bang" word segmentation.
+* **Network Framework:** For the Wi-Fi file transfer service.
+* **Combine Framework:** For managing asynchronous events and state changes.
+* **Core iOS Frameworks:** For file management, persistence (`UserDefaults`, JSON for library metadata), and UI components.
 
-### 2. 阅读和翻页
+## Architecture & Refactoring Highlights
 
-- 应用会自动将内容分页显示。
-- 使用底部的 **左右箭头按钮** 可以前后翻页。
-- 当前页码和总页数会显示在控制面板上方。
+The application has undergone significant refactoring to improve code structure, maintainability, and adherence to software design principles:
 
-### 3. 语音朗读
+* **MVVM Design:** `ContentViewModel` acts as the central orchestrator for views and business logic.
+* **Decomposition:** The original monolithic `ContentModel` has been broken down into dedicated managers and services:
+    * **Managers:** `LibraryManager`, `SpeechManager`, `SettingsManager`, `AudioSessionManager`, `TemplateManager`.
+    * **Services:** `SearchService`, `TextPaginator`, `WiFiTransferService`.
+* **Single Responsibility Principle:** Each manager and service now has a clearly defined responsibility.
+* **Improved Persistence:** `LibraryManager` handles library metadata and progress using JSON, while `SettingsManager` (using `UserDefaults`) manages user preferences.
+* **Organized Code Structure:** Project files are organized into logical directories (Models, ViewModels, Views, Services, Managers, etc.).
 
-- 点击底部中间的 **播放/暂停按钮** 开始或暂停朗读当前页面的内容。
-- 朗读过程中可以切换页面，语音会自动更新。
-- **音色和速度设置**：
-  - 在控制面板中，选择 **音色** 选项来更改语音音色。
-  - 选择 **速度** 选项来调整朗读速度。
+## License
 
-### 4. 搜索内容
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-- 点击导航栏右侧的 **放大镜图标** 🔍，进入搜索界面。
-- 输入要搜索的关键词，点击搜索按钮。
-- 搜索结果会以列表形式显示，点击结果可跳转到对应页面。
-
-### 5. 导入书籍
-
-- 在书籍列表界面（点击 📖 图标），可以看到已有的书籍。
-- 要导入新的文本文件，点击 **导入** 按钮（如果已实现该功能）。
-- 通过文件选择器，从 iCloud 或本地文件中选择要导入的 `.txt` 文件。
-- 导入成功后，新的书籍会出现在书籍列表中。
-
-## 技术细节
-
-- **SwiftUI**：全界面使用 SwiftUI 构建，支持响应式和声明式编程。
-- **AVFoundation**：使用 `AVSpeechSynthesizer` 实现文本转语音功能。
-- **MediaPlayer**：集成 `MPRemoteCommandCenter`，支持后台播放和远程控制。
-- **文件处理**：支持从应用内和 iCloud 导入文本文件，使用安全的沙盒访问。
-- **数据持久化**：利用 `UserDefaults` 保存用户设置和阅读进度。
-
-## 文件结构
-
-- **ContentView.swift**：主界面，包括内容显示和控制面板。
-- **TextReaderApp.swift**：应用入口，设置了主视图。
-- **其他组件**：
-  - **ContentModel**：负责数据处理和业务逻辑，包括文本分页、语音朗读控制等。
-  - **SearchView**、**BookListView**、**DocumentPicker** 等：辅助界面和功能组件。
-
-## 注意事项
-
-- **权限设置**：如果需要从 iCloud 导入文件，请确保在项目的 **Signing & Capabilities** 中启用了 **iCloud** 功能。
-- **语音资源**：应用使用系统内置的语音音色，确保设备已下载所需的中文语音包。
-
-## 贡献
-
-如果您对该项目有任何建议或改进，欢迎提交 Pull Request 或 Issue。
-
-## 许可证
-
-该项目采用 MIT 许可证进行分发。详细信息请参阅 [LICENSE](LICENSE) 文件。
+Copyright (c) 2024 KAI
