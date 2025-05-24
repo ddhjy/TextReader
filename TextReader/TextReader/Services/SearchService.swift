@@ -20,13 +20,26 @@ class SearchService {
     /// 为匹配的搜索结果生成预览片段
     private func generatePreview(for query: String, in page: String, maxLength: Int = 100) -> String {
         if let range = page.range(of: query, options: .caseInsensitive) {
-            let start = page.index(range.lowerBound, offsetBy: -20, limitedBy: page.startIndex) ?? page.startIndex
-            let end = page.index(range.upperBound, offsetBy: maxLength - query.count, limitedBy: page.endIndex) ?? page.endIndex
-            let snippet = String(page[start..<end])
-            return (start == page.startIndex ? "" : "...") + snippet + (end == page.endIndex ? "" : "...")
+            // 计算起始位置，确保有足够的上下文
+            let contextPadding = 30  // 增加上下文长度
+            let start = page.index(range.lowerBound, offsetBy: -contextPadding, limitedBy: page.startIndex) ?? page.startIndex
+            let end = page.index(range.upperBound, offsetBy: maxLength - query.count + contextPadding, limitedBy: page.endIndex) ?? page.endIndex
+            
+            var snippet = String(page[start..<end])
+            
+            // 清理预览文本，去除多余的空白
+            snippet = snippet.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // 添加省略号
+            let prefix = start == page.startIndex ? "" : "..."
+            let suffix = end == page.endIndex ? "" : "..."
+            
+            return prefix + snippet + suffix
         }
-        // 如果找不到范围（在包含检查后调用不应发生）则返回默认预览
-        return String(page.prefix(maxLength)) + (page.count > maxLength ? "..." : "")
+        
+        // 如果找不到范围，返回页面开头的文本
+        let previewEnd = page.index(page.startIndex, offsetBy: maxLength, limitedBy: page.endIndex) ?? page.endIndex
+        return String(page[page.startIndex..<previewEnd]) + (page.count > maxLength ? "..." : "")
     }
 
     // MARK: - 页面摘要

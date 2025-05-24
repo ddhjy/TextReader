@@ -362,7 +362,11 @@ class ContentViewModel: ObservableObject {
                     let savedProgress = self.libraryManager.getBookProgress(bookId: book.id)
                     self.currentPageIndex = savedProgress?.currentPageIndex ?? 0
                     self.libraryManager.saveTotalPages(bookId: book.id, totalPages: self.pages.count)
+                    
+                    // 确保生成页面摘要
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
+                    self.searchResults = []  // 清空之前的搜索结果
+                    
                     self.isContentLoaded = true
                     self.updateNowPlayingInfo()
                 case .failure(let error):

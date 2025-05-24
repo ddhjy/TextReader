@@ -1,6 +1,16 @@
 ## [Unreleased]
 
 ### Fixed
+* **搜索功能优化**：
+  - 修复了搜索功能无响应的问题，现在支持实时搜索
+  - 搜索时输入文字会立即触发搜索，无需按回车键
+  - 当搜索无结果时，显示明确的"未找到相关内容"提示
+  - 优化了搜索结果预览的生成，提供更多上下文信息
+  - 修复了切换书籍后搜索结果未清空的问题
+  - **搜索关键词高亮**：在搜索结果中只高亮匹配的关键词，而不是整个文本，使用黄色背景和粗体效果提升视觉识别度
+  - **默认状态无高亮**：确保在搜索框为空时，分页摘要不会有任何高亮效果，只有输入搜索词后才对匹配内容进行高亮显示
+  - **移除蓝色链接样式**：搜索结果列表不再显示为蓝色链接样式，改为使用正常的文本颜色，页面标题显示为主文本色，预览内容显示为次要文本色
+  - **统一文本颜色**：确保搜索态和非搜索态的默认文本颜色保持一致，都使用次要文本颜色(secondary)，只有搜索关键词才会被高亮显示
 * **Removed Loading Title Flicker**: Removed the navigation title ("加载中...") during initial content loading to prevent UI flickering on startup. (Affects `./TextReader/TextReader/Views/ContentView.swift`)
 
 ### Refactor
