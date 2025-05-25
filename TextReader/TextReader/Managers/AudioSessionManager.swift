@@ -54,7 +54,7 @@ class AudioSessionManager: NSObject {
     func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.allowAirPlay, .allowBluetooth])
+            try session.setCategory(.playback, mode: .spokenAudio)
             try session.setActive(true)
             isAudioSessionActive = true
             print("Audio session configured for playback mode")
