@@ -22,6 +22,10 @@ struct ContentDisplay: View {
                 .onEnded { _ in
                     viewModel.triggerBigBang()
                 })
+        // 添加点击手势用于翻页
+        .onTapGesture {
+            viewModel.nextPage()
+        }
     }
     
     // MARK: - 计算属性
