@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// 阅读控制组件，用于控制朗读语音和速度设置
 struct ReadingControl: View {
@@ -6,7 +7,8 @@ struct ReadingControl: View {
     
     // MARK: - 私有属性
     
-    private let speedOptions: [Float] = [1.0, 1.5, 1.75, 2.0, 3.0]
+    private let speedOptions: [Float] = [1.0, 1.75, 3.0]
+    private let feedbackGenerator = UIImpactFeedbackGenerator(style: .light)
     
     /// 将速度值格式化为显示文本
     /// - Parameter v: 速度值
@@ -51,7 +53,10 @@ struct ReadingControl: View {
                 Spacer()
                 HStack(spacing: 8) {
                     ForEach(speedOptions, id:\.self) { speed in
-                        Button(action:{ viewModel.readingSpeed = speed }) {
+                        Button(action:{
+                            viewModel.readingSpeed = speed
+                            feedbackGenerator.impactOccurred()
+                        }) {
                             Text(speedLabel(speed))
                                 .padding(.vertical, 6)
                                 .padding(.horizontal, 12)
@@ -66,5 +71,8 @@ struct ReadingControl: View {
             }
         }
         .padding(.horizontal)
+        .onAppear {
+            feedbackGenerator.prepare()
+        }
     }
-} 
+}
