@@ -126,36 +126,65 @@ class AudioSessionManager: NSObject {
 
     /// 更新控制中心的媒体信息
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
-        // 卡马克式简单方案：直接明确地设置状态，不搞复杂的延迟和多层设置
-        self.isSystemPlaybackActive = isPlaying
-        
-        var nowPlayingInfo: [String: Any] = [:]
-        nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-        nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
-        nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
-        
-        // 核心：播放速率直接决定播放状态
-        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
-        nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
-        
-        // 设置虚拟时长和进度
-        let duration = 3600.0
-        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
-        
-        if let current = currentPage, let total = totalPages, total > 0 {
-            let progress = Double(current - 1) / Double(total)
-            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
-        } else {
-            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
+        // 确保在主线程执行
+        DispatchQueue.main.async {
+            print("🎵 开始更新播放状态: \(isPlaying ? "播放" : "暂停")")
+            
+            // 卡马克式解决方案：如果要暂停，先完全清空，让系统重置状态
+            if !isPlaying {
+                print("🎵 暂停：先清空所有信息")
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+                MPNowPlayingInfoCenter.default().playbackState = .stopped
+                
+                // 等一小会儿让系统处理
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    // 然后重新设置为暂停状态的信息
+                    var pausedInfo: [String: Any] = [:]
+                    pausedInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
+                    pausedInfo[MPMediaItemPropertyArtist] = "TextReader App"
+                    pausedInfo[MPNowPlayingInfoPropertyPlaybackRate] = 0.0
+                    pausedInfo[MPMediaItemPropertyPlaybackDuration] = 3600.0
+                    
+                    if let current = currentPage, let total = totalPages, total > 0 {
+                        let progress = Double(current - 1) / Double(total)
+                        pausedInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 3600.0 * progress
+                    }
+                    
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = pausedInfo
+                    MPNowPlayingInfoCenter.default().playbackState = .paused
+                    print("🎵 暂停：重新设置为paused状态")
+                }
+                
+                self.isSystemPlaybackActive = false
+                print("🎵 暂停状态设置完成")
+                return
+            }
+            
+            // 播放状态：直接设置
+            self.isSystemPlaybackActive = true
+            
+            var nowPlayingInfo: [String: Any] = [:]
+            nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
+            nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
+            nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
+            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+            nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
+            
+            let duration = 3600.0
+            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+            
+            if let current = currentPage, let total = totalPages, total > 0 {
+                let progress = Double(current - 1) / Double(total)
+                nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
+            } else {
+                nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
+            }
+            
+            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+            MPNowPlayingInfoCenter.default().playbackState = .playing
+            
+            print("🎵 播放状态更新完成")
         }
-        
-        // 直接设置，不要延迟，不要清空
-        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-        
-        // 明确设置播放状态
-        MPNowPlayingInfoCenter.default().playbackState = isPlaying ? .playing : .paused
-        
-        print("设置播放状态: \(isPlaying ? "播放" : "暂停")")
     }
     
     /// 同步播放状态，确保系统控制中心和应用内状态一致

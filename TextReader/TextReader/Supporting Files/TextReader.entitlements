@@ -15,5 +15,7 @@
 	<array/>
 	<key>com.apple.developer.ubiquity-kvstore-identifier</key>
 	<string>$(TeamIdentifierPrefix)$(CFBundleIdentifier)</string>
+	<key>com.apple.mediaremote.set-playback-state</key>
+	<true/>
 </dict>
 </plist>
