@@ -139,56 +139,63 @@ class AudioSessionManager: NSObject {
             
             if isPlaying {
                 // 播放状态：激活音频会话并设置播放信息
-                do {
-                    let audioSession = AVAudioSession.sharedInstance()
-                    try audioSession.setActive(true)
-                    self.isAudioSessionActive = true
-                    
-                    // 设置播放信息
-                    var nowPlayingInfo: [String: Any] = [:]
-                    nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-                    nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
-                    nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
-                    nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
-                    nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
-                    
-                    let duration = 3600.0
-                    nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
-                    
-                    if let current = currentPage, let total = totalPages, total > 0 {
-                        let progress = Double(current - 1) / Double(total)
-                        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
-                    } else {
-                        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
+                // 音频会话操作移到后台线程，避免阻塞UI
+                DispatchQueue.global(qos: .userInitiated).async {
+                    do {
+                        let audioSession = AVAudioSession.sharedInstance()
+                        try audioSession.setActive(true)
+                        DispatchQueue.main.async {
+                            self.isAudioSessionActive = true
+                        }
+                    } catch {
+                        print("🎵 音频会话设置失败: \(error)")
                     }
-                    
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-                    self.isSystemPlaybackActive = true
-                    
-                    print("🎵 播放状态更新完成 - PlaybackRate: 1.0")
-                    
-                } catch {
-                    print("🎵 音频会话设置失败: \(error)")
                 }
+                
+                // 立即设置播放信息，不等待音频会话
+                var nowPlayingInfo: [String: Any] = [:]
+                nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
+                nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
+                nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
+                nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+                nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
+                
+                let duration = 3600.0
+                nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+                
+                if let current = currentPage, let total = totalPages, total > 0 {
+                    let progress = Double(current - 1) / Double(total)
+                    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
+                } else {
+                    nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
+                }
+                
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+                self.isSystemPlaybackActive = true
+                
+                print("🎵 播放状态更新完成 - PlaybackRate: 1.0")
                 
             } else {
-                // 暂停状态：卡马克式最直接方法 - 完全清空所有信息
-                print("🎵 暂停：完全清空播放信息")
+                // 暂停状态：卡马克式最直接方法 - 立即清空播放信息，音频会话操作放后台
+                print("🎵 暂停：立即清空播放信息")
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-                
-                // 同时停用音频会话
-                if self.isAudioSessionActive {
-                    do {
-                        try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-                        self.isAudioSessionActive = false
-                        print("🎵 音频会话已停用")
-                    } catch {
-                        print("🎵 停用音频会话失败: \(error)")
-                    }
-                }
-                
                 self.isSystemPlaybackActive = false
                 print("🎵 暂停状态更新完成 - 已清空所有播放信息")
+                
+                // 音频会话停用操作移到后台，避免阻塞UI
+                if self.isAudioSessionActive {
+                    DispatchQueue.global(qos: .utility).async {
+                        do {
+                            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                            DispatchQueue.main.async {
+                                self.isAudioSessionActive = false
+                                print("🎵 音频会话已停用")
+                            }
+                        } catch {
+                            print("🎵 停用音频会话失败: \(error)")
+                        }
+                    }
+                }
             }
         }
     }
