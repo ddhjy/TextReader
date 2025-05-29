@@ -126,67 +126,36 @@ class AudioSessionManager: NSObject {
 
     /// 更新控制中心的媒体信息
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
-        // 如果状态是停止，先尝试清除现有信息，确保控制中心刷新状态
-        if !isPlaying {
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+        // 卡马克式简单方案：直接明确地设置状态，不搞复杂的延迟和多层设置
+        self.isSystemPlaybackActive = isPlaying
+        
+        var nowPlayingInfo: [String: Any] = [:]
+        nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
+        nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
+        nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
+        
+        // 核心：播放速率直接决定播放状态
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
+        nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
+        
+        // 设置虚拟时长和进度
+        let duration = 3600.0
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
+        
+        if let current = currentPage, let total = totalPages, total > 0 {
+            let progress = Double(current - 1) / Double(total)
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
+        } else {
+            nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
         }
         
-        // 稍作延迟设置新信息，确保清除操作完成
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            var nowPlayingInfo: [String: Any] = [:]
-            nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-            nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
-            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1.0 : 0.0
-            
-            nowPlayingInfo[MPNowPlayingInfoPropertyIsLiveStream] = false
-            
-            // 添加一个较小的虚拟播放时长和进度，以帮助控制中心更好地识别状态
-            let fakeDuration = 3600.0 // 1小时
-            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = fakeDuration
-            
-            if let current = currentPage, let total = totalPages, total > 0 {
-                nowPlayingInfo[MPNowPlayingInfoPropertyChapterNumber] = current
-                nowPlayingInfo[MPNowPlayingInfoPropertyChapterCount] = total
-                
-                // 根据页码设置播放进度
-                let progress = Double(current) / Double(total)
-                nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = fakeDuration * progress
-            }
-            
-            self.isSystemPlaybackActive = isPlaying
-            
-            print("更新NowPlayingInfo: \(isPlaying ? "播放中" : "已暂停") - 强制更新")
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-            
-            // 如果播放已停止，额外尝试让系统识别停止状态
-            if !isPlaying {
-                self.forceSystemToRecognizePausedState()
-            }
-            
-            // 确保音频会话状态与播放状态一致
-            self.synchronizeAudioSessionState(with: isPlaying)
-        }
-    }
-    
-    /// 强制系统识别暂停状态
-    /// 有时iOS系统可能不会正确显示暂停状态，特别是在使用语音合成时
-    private func forceSystemToRecognizePausedState() {
-        // 先更新为空，然后再重新设置，可以帮助系统更好地识别暂停状态
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            let info = MPNowPlayingInfoCenter.default().nowPlayingInfo
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                MPNowPlayingInfoCenter.default().nowPlayingInfo = info
-            }
-        }
-    }
-    
-    /// 同步音频会话状态与播放状态
-    private func synchronizeAudioSessionState(with isPlaying: Bool) {
-        if isPlaying && !isAudioSessionActive {
-            self.setupAudioSession()
-        }
+        // 直接设置，不要延迟，不要清空
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        
+        // 明确设置播放状态
+        MPNowPlayingInfoCenter.default().playbackState = isPlaying ? .playing : .paused
+        
+        print("设置播放状态: \(isPlaying ? "播放" : "暂停")")
     }
     
     /// 同步播放状态，确保系统控制中心和应用内状态一致
@@ -195,16 +164,14 @@ class AudioSessionManager: NSObject {
         
         let isAppPlaying = viewModel.isReading
         
-        let shouldUpdate = force || (isAppPlaying != isSystemPlaybackActive)
-        
-        if shouldUpdate {
+        // 卡马克式简单方案：直接更新，不要复杂的条件判断
+        if force || (isAppPlaying != isSystemPlaybackActive) {
             updateNowPlayingInfo(
                 title: viewModel.currentBookTitle,
                 isPlaying: isAppPlaying,
                 currentPage: viewModel.currentPageIndex + 1,
                 totalPages: viewModel.pages.count
             )
-            print("同步播放状态: 应用内\(isAppPlaying ? "正在播放" : "已暂停"), 系统\(isSystemPlaybackActive ? "正在播放" : "已暂停")")
         }
     }
     

@@ -76,14 +76,15 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     func stopReading() {
         print("语音管理器: 收到停止朗读请求")
         
+        // 卡马克式简单方案：直接停止，不要复杂的延迟调用
         if synthesizer.isSpeaking || synthesizer.isPaused {
-            print("语音管理器: 停止当前朗读")
             synthesizer.stopSpeaking(at: .immediate)
         }
         
         if isSpeaking {
             isSpeaking = false
             endBackgroundTask()
+            onSpeechPause?()
         }
     }
 
@@ -130,6 +131,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             print("语音管理器: 朗读被取消")
             self.isSpeaking = false
             self.endBackgroundTask()
+            self.onSpeechPause?()
         }
     }
 

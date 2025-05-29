@@ -92,10 +92,9 @@ class ContentViewModel: ObservableObject {
             .dropFirst()
             .sink { [weak self] isReading in
                 guard let self = self else { return }
-                DispatchQueue.main.async {
-                    print("isReading状态变化: \(isReading)")
-                    self.audioSessionManager.synchronizePlaybackState(force: true)
-                }
+                print("isReading状态变化: \(isReading)")
+                // 卡马克式简单方案：状态变化时直接更新媒体信息即可
+                self.updateNowPlayingInfo()
             }
             .store(in: &cancellables)
     }
@@ -160,31 +159,26 @@ class ContentViewModel: ObservableObject {
 
     /// 设置定时器，定期检查并同步系统播放状态
     private func setupSyncTimer() {
-        Timer.publish(every: 1.0, on: .main, in: .common)
+        // 卡马克式简单方案：减少复杂的同步，只做最基本的状态检查
+        Timer.publish(every: 2.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 guard let self = self else { return }
                 
                 let speechManagerActive = speechManager.isSpeaking
                 
-                // 修正不一致的状态
+                // 只修正明显不一致的状态
                 if self.isReading != speechManagerActive {
                     print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
                     
-                    // 如果UI显示已停止但语音管理器仍在播放，则强制停止
                     if !self.isReading && speechManagerActive {
                         print("强制停止播放")
-                        DispatchQueue.main.async {
-                            self.speechManager.stopReading()
-                        }
+                        self.speechManager.stopReading()
+                    } else if self.isReading && !speechManagerActive {
+                        print("状态同步：更新为已停止")
+                        self.isReading = false
+                        self.updateNowPlayingInfo()
                     }
-                    // 移除了恢复播放的逻辑，以避免与onSpeechFinish冲突
-                }
-                
-                // 每5秒定期同步控制中心状态
-                let now = Date().timeIntervalSince1970
-                if Int(now) % 5 == 0 {
-                    self.audioSessionManager.synchronizePlaybackState()
                 }
             }
             .store(in: &cancellables)
@@ -589,17 +583,10 @@ class ContentViewModel: ObservableObject {
     func stopReading() {
         print("停止朗读")
         
-        // 立即停止语音合成器
+        // 卡马克式简单方案：直接停止，直接更新，不要复杂的异步调用
         speechManager.stopReading()
-        
-        // 设置状态为已停止
-        let needsUpdate = isReading // 只有状态实际改变时才更新NowPlaying
-        if needsUpdate {
-            isReading = false
-            // 立即更新Now Playing信息以反映停止状态
-            // AudioSessionManager的定期同步将处理进一步的一致性检查
-            updateNowPlayingInfo()
-        }
+        isReading = false
+        updateNowPlayingInfo()
     }
 
     /// 重新开始朗读，添加轻微延迟确保合成器重置
