@@ -54,12 +54,19 @@ class AudioSessionManager: NSObject {
     func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playback, mode: .spokenAudio)
+            
+            // 设置音频会话类别为播放，模式为语音朗读
+            try session.setCategory(.playback, mode: .spokenAudio, options: [])
+            
+            // 激活音频会话
             try session.setActive(true)
             isAudioSessionActive = true
+            
             print("Audio session configured for playback mode")
             
+            // 强制同步播放状态
             synchronizePlaybackState(force: true)
+            
         } catch {
             print("Failed to setup audio session: \(error)")
             isAudioSessionActive = false
@@ -130,60 +137,59 @@ class AudioSessionManager: NSObject {
         DispatchQueue.main.async {
             print("🎵 开始更新播放状态: \(isPlaying ? "播放" : "暂停")")
             
-            // 卡马克式解决方案：如果要暂停，先完全清空，让系统重置状态
-            if !isPlaying {
-                print("🎵 暂停：先清空所有信息")
-                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
-                MPNowPlayingInfoCenter.default().playbackState = .stopped
-                
-                // 等一小会儿让系统处理
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    // 然后重新设置为暂停状态的信息
-                    var pausedInfo: [String: Any] = [:]
-                    pausedInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-                    pausedInfo[MPMediaItemPropertyArtist] = "TextReader App"
-                    pausedInfo[MPNowPlayingInfoPropertyPlaybackRate] = 0.0
-                    pausedInfo[MPMediaItemPropertyPlaybackDuration] = 3600.0
+            if isPlaying {
+                // 播放状态：激活音频会话并设置播放信息
+                do {
+                    let audioSession = AVAudioSession.sharedInstance()
+                    try audioSession.setActive(true)
+                    self.isAudioSessionActive = true
+                    
+                    // 设置播放信息
+                    var nowPlayingInfo: [String: Any] = [:]
+                    nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
+                    nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
+                    nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
+                    nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
+                    nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
+                    
+                    let duration = 3600.0
+                    nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
                     
                     if let current = currentPage, let total = totalPages, total > 0 {
                         let progress = Double(current - 1) / Double(total)
-                        pausedInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 3600.0 * progress
+                        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
+                    } else {
+                        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
                     }
                     
-                    MPNowPlayingInfoCenter.default().nowPlayingInfo = pausedInfo
-                    MPNowPlayingInfoCenter.default().playbackState = .paused
-                    print("🎵 暂停：重新设置为paused状态")
+                    MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+                    self.isSystemPlaybackActive = true
+                    
+                    print("🎵 播放状态更新完成 - PlaybackRate: 1.0")
+                    
+                } catch {
+                    print("🎵 音频会话设置失败: \(error)")
+                }
+                
+            } else {
+                // 暂停状态：卡马克式最直接方法 - 完全清空所有信息
+                print("🎵 暂停：完全清空播放信息")
+                MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
+                
+                // 同时停用音频会话
+                if self.isAudioSessionActive {
+                    do {
+                        try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+                        self.isAudioSessionActive = false
+                        print("🎵 音频会话已停用")
+                    } catch {
+                        print("🎵 停用音频会话失败: \(error)")
+                    }
                 }
                 
                 self.isSystemPlaybackActive = false
-                print("🎵 暂停状态设置完成")
-                return
+                print("🎵 暂停状态更新完成 - 已清空所有播放信息")
             }
-            
-            // 播放状态：直接设置
-            self.isSystemPlaybackActive = true
-            
-            var nowPlayingInfo: [String: Any] = [:]
-            nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-            nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
-            nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
-            nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
-            nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
-            
-            let duration = 3600.0
-            nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = duration
-            
-            if let current = currentPage, let total = totalPages, total > 0 {
-                let progress = Double(current - 1) / Double(total)
-                nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = duration * progress
-            } else {
-                nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = 0.0
-            }
-            
-            MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
-            MPNowPlayingInfoCenter.default().playbackState = .playing
-            
-            print("🎵 播放状态更新完成")
         }
     }
     
