@@ -581,21 +581,10 @@ class ContentViewModel: ObservableObject {
 
     /// 停止朗读
     func stopReading() {
-        print("🛑 ContentViewModel: 开始停止朗读")
-        print("🛑 当前isReading状态: \(isReading)")
-        
         // 卡马克式简单方案：直接停止，直接更新，不要复杂的异步调用
         speechManager.stopReading()
-        
-        print("🛑 已调用speechManager.stopReading()")
-        print("🛑 speechManager.isSpeaking: \(speechManager.isSpeaking)")
-        
         isReading = false
-        print("🛑 已设置isReading = false")
-        
         updateNowPlayingInfo()
-        print("🛑 已调用updateNowPlayingInfo()")
-        print("🛑 停止朗读完成")
     }
 
     /// 重新开始朗读，添加轻微延迟确保合成器重置

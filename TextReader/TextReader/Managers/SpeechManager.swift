@@ -74,24 +74,16 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     }
 
     func stopReading() {
-        print("🔇 SpeechManager: 收到停止朗读请求")
-        print("🔇 当前状态 - isSpeaking: \(isSpeaking), synthesizer.isSpeaking: \(synthesizer.isSpeaking), synthesizer.isPaused: \(synthesizer.isPaused)")
-        
         // 卡马克式简单方案：直接停止，不要复杂的延迟调用
         if synthesizer.isSpeaking || synthesizer.isPaused {
-            print("🔇 正在停止语音合成器")
             synthesizer.stopSpeaking(at: .immediate)
         }
         
         if isSpeaking {
-            print("🔇 更新内部状态")
             isSpeaking = false
             endBackgroundTask()
-            print("🔇 触发暂停回调")
             onSpeechPause?()
         }
-        
-        print("🔇 停止朗读完成 - 最终状态: isSpeaking: \(isSpeaking)")
     }
 
     func pauseReading() {
@@ -134,7 +126,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            print("语音管理器: 朗读被取消")
             self.isSpeaking = false
             self.endBackgroundTask()
             self.onSpeechPause?()

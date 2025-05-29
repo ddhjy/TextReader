@@ -62,13 +62,10 @@ class AudioSessionManager: NSObject {
             try session.setActive(true)
             isAudioSessionActive = true
             
-            print("Audio session configured for playback mode")
-            
             // 强制同步播放状态
             synchronizePlaybackState(force: true)
             
         } catch {
-            print("Failed to setup audio session: \(error)")
             isAudioSessionActive = false
         }
     }
@@ -83,7 +80,6 @@ class AudioSessionManager: NSObject {
 
         commandCenter.playCommand.isEnabled = true
         commandCenter.playCommand.addTarget { [weak self] event in
-            print("Remote command: play")
             self?.isSystemPlaybackActive = true
             playAction()
             return .success
@@ -91,7 +87,6 @@ class AudioSessionManager: NSObject {
 
         commandCenter.pauseCommand.isEnabled = true
         commandCenter.pauseCommand.addTarget { [weak self] event in
-            print("Remote command: pause")
             self?.isSystemPlaybackActive = false
             pauseAction()
             return .success
@@ -100,7 +95,6 @@ class AudioSessionManager: NSObject {
         if let next = nextAction {
             commandCenter.nextTrackCommand.isEnabled = true
             commandCenter.nextTrackCommand.addTarget { _ in 
-                print("Remote command: next track")
                 next()
                 return .success 
             }
@@ -111,7 +105,6 @@ class AudioSessionManager: NSObject {
         if let prev = previousAction {
             commandCenter.previousTrackCommand.isEnabled = true
             commandCenter.previousTrackCommand.addTarget { _ in 
-                print("Remote command: previous track")
                 prev()
                 return .success 
             }
@@ -135,8 +128,6 @@ class AudioSessionManager: NSObject {
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
         // 确保在主线程执行
         DispatchQueue.main.async {
-            print("🎵 开始更新播放状态: \(isPlaying ? "播放" : "暂停")")
-            
             if isPlaying {
                 // 播放状态：激活音频会话并设置播放信息
                 // 音频会话操作移到后台线程，避免阻塞UI
@@ -148,7 +139,7 @@ class AudioSessionManager: NSObject {
                             self.isAudioSessionActive = true
                         }
                     } catch {
-                        print("🎵 音频会话设置失败: \(error)")
+                        // 音频会话设置失败，但不影响播放信息显示
                     }
                 }
                 
@@ -173,14 +164,10 @@ class AudioSessionManager: NSObject {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
                 self.isSystemPlaybackActive = true
                 
-                print("🎵 播放状态更新完成 - PlaybackRate: 1.0")
-                
             } else {
                 // 暂停状态：卡马克式最直接方法 - 立即清空播放信息，音频会话操作放后台
-                print("🎵 暂停：立即清空播放信息")
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
                 self.isSystemPlaybackActive = false
-                print("🎵 暂停状态更新完成 - 已清空所有播放信息")
                 
                 // 音频会话停用操作移到后台，避免阻塞UI
                 if self.isAudioSessionActive {
@@ -189,10 +176,9 @@ class AudioSessionManager: NSObject {
                             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
                             DispatchQueue.main.async {
                                 self.isAudioSessionActive = false
-                                print("🎵 音频会话已停用")
                             }
                         } catch {
-                            print("🎵 停用音频会话失败: \(error)")
+                            // 停用音频会话失败，不影响播放信息清空
                         }
                     }
                 }
@@ -290,14 +276,12 @@ class AudioSessionManager: NSObject {
     
     /// 处理应用前台激活事件
     @objc private func handleAppDidBecomeActive(_ notification: Notification) {
-        print("应用进入前台，同步播放状态")
         // 当应用进入前台后，确保系统媒体控制中心显示正确的状态
         synchronizePlaybackState(force: true)
     }
     
     /// 处理应用进入后台事件
     @objc private func handleAppDidEnterBackground(_ notification: Notification) {
-        print("应用进入后台")
         // 应用进入后台时的处理可以在这里添加
     }
     
@@ -308,9 +292,8 @@ class AudioSessionManager: NSObject {
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             isAudioSessionActive = false
-            print("音频会话已停用")
         } catch {
-            print("停用音频会话失败: \(error)")
+            // 停用音频会话失败，但不影响应用功能
         }
     }
 }
