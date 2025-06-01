@@ -32,6 +32,11 @@ struct ContentDisplay: View {
     
     /// 获取当前页面的文本内容，如果页面为空则显示"无内容"
     private var currentPageText: String {
-        viewModel.pages.isEmpty ? "无内容" : viewModel.pages[viewModel.currentPageIndex]
+        guard !viewModel.pages.isEmpty, 
+              viewModel.currentPageIndex >= 0,
+              viewModel.currentPageIndex < viewModel.pages.count else {
+            return "无内容"
+        }
+        return viewModel.pages[viewModel.currentPageIndex]
     }
 } 

@@ -214,7 +214,7 @@ class ContentViewModel: ObservableObject {
                 }
                 
                 // 自动前进到下一页
-                if self.currentPageIndex < self.pages.count - 1 {
+                if !self.pages.isEmpty && self.currentPageIndex < self.pages.count - 1 {
                     self.currentPageIndex += 1
                     self.readCurrentPage()
                 } else {
@@ -336,6 +336,8 @@ class ContentViewModel: ObservableObject {
     func loadBook(_ book: Book) {
         stopReading() // 加载新书前停止朗读
         isContentLoaded = false
+        // 在加载新书时立即重置页面索引，防止在异步加载过程中出现越界访问
+        currentPageIndex = 0
         currentBookId = book.id
         currentBookTitle = book.title
         settingsManager.saveLastOpenedBookId(book.id) // 保存为上次打开的书籍
@@ -353,7 +355,9 @@ class ContentViewModel: ObservableObject {
                 case .success(let content):
                     self.pages = self.textPaginator.paginate(text: content)
                     let savedProgress = self.libraryManager.getBookProgress(bookId: book.id)
-                    self.currentPageIndex = savedProgress?.currentPageIndex ?? 0
+                    let savedPageIndex = savedProgress?.currentPageIndex ?? 0
+                    // 确保恢复的页面索引不会越界
+                    self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
                     self.libraryManager.saveTotalPages(bookId: book.id, totalPages: self.pages.count)
                     
                     // 确保生成页面摘要
@@ -561,7 +565,9 @@ class ContentViewModel: ObservableObject {
 
     /// 朗读当前页面
     func readCurrentPage() {
-        guard !pages.isEmpty, currentPageIndex < pages.count else { return }
+        guard !pages.isEmpty, 
+              currentPageIndex >= 0,
+              currentPageIndex < pages.count else { return }
         
         print("开始朗读当前页面")
         let textToRead = pages[currentPageIndex]
@@ -730,7 +736,9 @@ class ContentViewModel: ObservableObject {
     
     /// 触发BigBang功能，对当前页面文本进行分词
     func triggerBigBang() {
-        guard currentPageIndex < pages.count else { return }
+        guard !pages.isEmpty,
+              currentPageIndex >= 0,
+              currentPageIndex < pages.count else { return }
         let text = pages[currentPageIndex]
        tokenizer.tokenize(text: text) { [weak self] tokens in
            self?.tokens = tokens

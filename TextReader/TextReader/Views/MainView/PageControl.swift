@@ -17,6 +17,11 @@ struct PageControl: View {
                 let newIndex = Int(newVal.rounded())
                 guard newIndex != viewModel.currentPageIndex else { return }
                 
+                // 确保新索引在有效范围内
+                guard !viewModel.pages.isEmpty,
+                      newIndex >= 0,
+                      newIndex < viewModel.pages.count else { return }
+                
                 // 触发震动反馈
                 haptic.selectionChanged()
                 haptic.prepare()
@@ -130,15 +135,18 @@ struct PageControl: View {
                 }
                 .simultaneously(with: DragGesture(minimumDistance: 0)
                     .onChanged { value in
-                        guard showSlider, dragWidth > 0 else { return }
+                        guard showSlider, dragWidth > 0, !viewModel.pages.isEmpty else { return }
                         // 计算拖动百分比转换为页码
                         let pct = max(0, min(1, value.location.x / dragWidth))
                         let newIndex = Int(round(pct * Double(max(0, viewModel.pages.count - 1))))
-                        if newIndex != viewModel.currentPageIndex {
-                            haptic.selectionChanged()
-                            viewModel.stopReading()
-                            viewModel.currentPageIndex = newIndex
-                        }
+                        
+                        // 确保新索引在有效范围内
+                        guard newIndex >= 0, newIndex < viewModel.pages.count,
+                              newIndex != viewModel.currentPageIndex else { return }
+                        
+                        haptic.selectionChanged()
+                        viewModel.stopReading()
+                        viewModel.currentPageIndex = newIndex
                     }
                     .onEnded { _ in
                         scheduleHide()
