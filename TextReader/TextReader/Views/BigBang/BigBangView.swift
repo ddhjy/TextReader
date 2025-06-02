@@ -264,6 +264,5 @@ struct BigBangView: View {
         .onAppear {
             HapticFeedback.shared.impactOccurred()
         }
-        .interactiveDismissDisabled()
     }
 } 
