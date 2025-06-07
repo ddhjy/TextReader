@@ -4,12 +4,10 @@ import UIKit
 struct PageControl: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    @State private var showSlider = false
-    @State private var hideSliderWorkItem: DispatchWorkItem?
-    @State private var dragWidth: CGFloat = 0
-    
     private let haptic = UISelectionFeedbackGenerator()
     private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
+    
+    // sliderBinding 保持不变，它将 ViewModel 的 Int 索引安全地绑定到 Slider 的 Double 值
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(viewModel.currentPageIndex) },
@@ -17,12 +15,10 @@ struct PageControl: View {
                 let newIndex = Int(newVal.rounded())
                 guard newIndex != viewModel.currentPageIndex else { return }
                 
-                // 确保新索引在有效范围内
                 guard !viewModel.pages.isEmpty,
                       newIndex >= 0,
                       newIndex < viewModel.pages.count else { return }
                 
-                // 触发震动反馈
                 haptic.selectionChanged()
                 haptic.prepare()
                 
@@ -35,11 +31,21 @@ struct PageControl: View {
     var body: some View {
         VStack(spacing: 8) {
             
-            GeometryReader { geo in
-                progressStack(geo: geo)
-                    .onAppear { dragWidth = geo.size.width }
+            // 直接使用 Slider，替换原有的 GeometryReader 和 progressStack
+            if viewModel.pages.count > 1 {
+                Slider(value: sliderBinding,
+                       in: 0...Double(max(0, viewModel.pages.count - 1)),
+                       step: 1)
+                .tint(.accentColor)
+                .padding(.horizontal) // 为 Slider 添加一些边距
+            } else {
+                // 如果只有一页或没有内容，显示一个禁用的进度条占位
+                ProgressView(value: 0)
+                    .progressViewStyle(.linear)
+                    .tint(.accentColor)
+                    .disabled(true)
+                    .padding(.horizontal)
             }
-            .frame(height: 24)
             
             Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
                 .font(.caption)
@@ -84,76 +90,6 @@ struct PageControl: View {
             haptic.prepare()
             buttonHaptic.prepare()
         }
-    }
-    private var pageProgress: Double {
-        guard viewModel.pages.count > 0 else { return 0 }
-        return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
-    }
-    
-    private func scheduleHide() {
-        hideSliderWorkItem?.cancel()
-        let work = DispatchWorkItem {
-            withAnimation { showSlider = false }
-        }
-        hideSliderWorkItem = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: work)
-    }
-    private func progressStack(geo: GeometryProxy) -> some View {
-        ZStack {
-            // 只读进度条
-            ProgressView(value: pageProgress)
-                .progressViewStyle(.linear)
-                .tint(.accentColor)
-
-            // 可交互滑块
-            if viewModel.pages.count > 1 {
-                Slider(value: sliderBinding,
-                       in: 0...Double(max(0, viewModel.pages.count - 1)),
-                       step: 1,
-                       onEditingChanged: { editing in
-                           if editing {
-                               withAnimation { showSlider = true }
-                               hideSliderWorkItem?.cancel()
-                           } else {
-                               scheduleHide()
-                           }
-                       })
-                .tint(.accentColor)
-                .opacity(showSlider ? 1 : 0)
-                .allowsHitTesting(showSlider)
-            }
-        }
-        .contentShape(Rectangle())
-        // 长按和拖动手势
-        .gesture(
-            LongPressGesture(minimumDuration: 0.2)
-                .onChanged { _ in
-                    if !showSlider {
-                        withAnimation { showSlider = true }
-                        hideSliderWorkItem?.cancel()
-                    }
-                }
-                .simultaneously(with: DragGesture(minimumDistance: 0)
-                    .onChanged { value in
-                        guard showSlider, dragWidth > 0, !viewModel.pages.isEmpty else { return }
-                        // 计算拖动百分比转换为页码
-                        let pct = max(0, min(1, value.location.x / dragWidth))
-                        let newIndex = Int(round(pct * Double(max(0, viewModel.pages.count - 1))))
-                        
-                        // 确保新索引在有效范围内
-                        guard newIndex >= 0, newIndex < viewModel.pages.count,
-                              newIndex != viewModel.currentPageIndex else { return }
-                        
-                        haptic.selectionChanged()
-                        viewModel.stopReading()
-                        viewModel.currentPageIndex = newIndex
-                    }
-                    .onEnded { _ in
-                        scheduleHide()
-                    }
-                )
-        )
-        .animation(.easeInOut(duration: 0.2), value: showSlider)
     }
 }
 
