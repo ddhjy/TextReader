@@ -37,9 +37,12 @@ class ContentViewModel: ObservableObject {
     @Published var templates: [PromptTemplate] = []
     @Published var showingTemplatePicker = false
     @Published var generatedPrompt: AlertMessage?
+    // Add edit-related states
+    @Published var showingBookEdit = false
+    @Published var bookToEdit: Book?
 
-    // MARK: - 依赖项
-    private let libraryManager: LibraryManager
+    // MARK: - Dependencies
+    let libraryManager: LibraryManager  // Remove private to allow access by BookEditView
     private let textPaginator: TextPaginator
     private let speechManager: SpeechManager
     private let searchService: SearchService
@@ -499,6 +502,57 @@ class ContentViewModel: ObservableObject {
             }
             
             return formatter.string(from: lastAccessed)
+        }
+    }
+
+    // MARK: - Book Editing
+    
+    /// Update book title
+    func updateBookTitle(book: Book, newTitle: String) {
+        libraryManager.updateBookTitle(book: book, newTitle: newTitle) { [weak self] result in
+            guard let self = self else { return }
+            
+            switch result {
+            case .success(let updatedBook):
+                // Update local book list
+                if let index = self.books.firstIndex(where: { $0.id == book.id }) {
+                    self.books[index] = updatedBook
+                }
+                
+                // If this is the currently opened book, update the title
+                if book.id == self.currentBookId {
+                    self.currentBookTitle = newTitle
+                }
+                
+            case .failure(let error):
+                print("Failed to update book title: \(error)")
+            }
+        }
+    }
+    
+    /// Update book content
+    func updateBookContent(book: Book, newContent: String, completion: @escaping (Bool) -> Void) {
+        libraryManager.updateBookContent(book: book, newContent: newContent) { [weak self] result in
+            guard let self = self else {
+                completion(false)
+                return
+            }
+            
+            switch result {
+            case .success:
+                // If this is the currently opened book, reload content
+                if book.id == self.currentBookId {
+                    self.pages = self.textPaginator.paginate(text: newContent)
+                    self.currentPageIndex = 0
+                    self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
+                    self.searchResults = []
+                }
+                completion(true)
+                
+            case .failure(let error):
+                print("Failed to update book content: \(error)")
+                completion(false)
+            }
         }
     }
 

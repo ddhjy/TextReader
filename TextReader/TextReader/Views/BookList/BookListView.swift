@@ -44,12 +44,23 @@ struct BookListView: View {
                         }
                     }
                 }
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button(role: .destructive) {
                         bookToDelete = book
                         showingDeleteAlert = true
                     } label: {
                         Label("Delete", systemImage: "trash")
+                    }
+                    
+                    // Add edit button (only show for non-built-in books)
+                    if !book.isBuiltIn {
+                        Button {
+                            viewModel.bookToEdit = book
+                            viewModel.showingBookEdit = true
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        .tint(.blue)
                     }
                 }
             }
@@ -95,6 +106,11 @@ struct BookListView: View {
         }
         .sheet(isPresented: $viewModel.showingWiFiTransferView) {
             WiFiTransferView(viewModel: viewModel)
+        }
+        .sheet(isPresented: $viewModel.showingBookEdit) {
+            if let book = viewModel.bookToEdit {
+                BookEditView(viewModel: viewModel, book: book)
+            }
         }
         .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
             Button("Cancel", role: .cancel) {}

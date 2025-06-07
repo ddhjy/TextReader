@@ -344,11 +344,29 @@ class LibraryManager {
         }
     }
     
-    /// 更新书籍内容
+    /// Update book title
+    func updateBookTitle(book: Book, newTitle: String, completion: @escaping (Result<Book, Error>) -> Void) {
+        guard !book.isBuiltIn else {
+            completion(.failure(LibraryError.saveError))
+            return
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            // Create updated book object
+            var updatedBook = book
+            updatedBook.title = newTitle
+            
+            DispatchQueue.main.async {
+                completion(.success(updatedBook))
+            }
+        }
+    }
+    
+    /// Update book content
     func updateBookContent(book: Book, newContent: String, completion: @escaping (Result<Void, Error>) -> Void) {
         guard !book.isBuiltIn else {
-            // 内置书籍不能修改
-            print("[LibraryManager] 无法修改内置书籍: \(book.title)")
+            // Built-in books cannot be modified
+            print("[LibraryManager] Cannot modify built-in book: \(book.title)")
             DispatchQueue.main.async {
                 completion(.failure(LibraryError.saveError))
             }
@@ -361,13 +379,13 @@ class LibraryManager {
                 let fileURL = documentsURL.appendingPathComponent(book.fileName)
                 
                 try newContent.write(to: fileURL, atomically: true, encoding: .utf8)
-                print("[LibraryManager] 成功更新书籍内容: \(book.title)")
+                print("[LibraryManager] Successfully updated book content: \(book.title)")
                 
                 DispatchQueue.main.async {
                     completion(.success(()))
                 }
             } catch {
-                print("[LibraryManager][错误] 更新书籍内容失败: \(error.localizedDescription)")
+                print("[LibraryManager][Error] Failed to update book content: \(error.localizedDescription)")
                 DispatchQueue.main.async {
                     completion(.failure(error))
                 }

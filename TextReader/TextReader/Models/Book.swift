@@ -2,7 +2,7 @@ import Foundation
 
 struct Book: Identifiable {
     var id: String { fileName }
-    let title: String
+    var title: String
     let fileName: String
     let isBuiltIn: Bool
     
