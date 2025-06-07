@@ -17,6 +17,13 @@ struct PasteImportView: View {
                 TextEditor(text: $text)
                     .border(Color.secondary, width: 1)
                     .padding()
+                    .onChange(of: text) { _, newText in
+                        // 当文本变化时，如果标题为空，自动填充前10个字符
+                        if title.isEmpty && !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            let cleanedText = newText.replacingOccurrences(of: "\n", with: " ")
+                            title = String(cleanedText.prefix(10))
+                        }
+                    }
 
                 Spacer()
             }

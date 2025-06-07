@@ -313,8 +313,8 @@ class ContentViewModel: ObservableObject {
         let invalidSet = CharacterSet(charactersIn: "/\\?%*|\"<>:")
         title = title.components(separatedBy: invalidSet).joined()
 
-        // 避免重名，加时间戳
-        let fileName = "\(title)-\(Int(Date().timeIntervalSince1970)).txt"
+        // 移除时间戳后缀，直接使用标题作为文件名
+        let fileName = "\(title).txt"
 
         libraryManager.importBook(fileName: fileName, content: text) { [weak self] result in
             guard let self = self else { return }
