@@ -30,13 +30,13 @@ struct PageControl: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            
-            // 直接使用 Slider，替换原有的 GeometryReader 和 progressStack
+            // 使用自定义 Slider 以支持透明 thumb
             if viewModel.pages.count > 1 {
-                Slider(value: sliderBinding,
-                       in: 0...Double(max(0, viewModel.pages.count - 1)),
-                       step: 1)
-                .tint(.accentColor)
+                CustomSlider(
+                    value: sliderBinding,
+                    range: 0...Double(max(0, viewModel.pages.count - 1))
+                )
+                .frame(height: 20) // 设置合适的高度
                 .padding(.horizontal) // 为 Slider 添加一些边距
             } else {
                 // 如果只有一页或没有内容，显示一个禁用的进度条占位
@@ -97,5 +97,54 @@ private struct NoDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
 
+    }
+}
+
+// 自定义 Slider 支持透明的 thumb
+private struct CustomSlider: UIViewRepresentable {
+    @Binding var value: Double
+    let range: ClosedRange<Double>
+    
+    func makeUIView(context: Context) -> UISlider {
+        let slider = UISlider()
+        
+        // 设置滑块范围
+        slider.minimumValue = Float(range.lowerBound)
+        slider.maximumValue = Float(range.upperBound)
+        
+        // 设置外观
+        slider.tintColor = UIColor(Color.accentColor) // 进度条颜色
+        slider.thumbTintColor = UIColor.clear // 设置 thumb 为透明色
+        slider.minimumTrackTintColor = UIColor(Color.accentColor) // 已滑过的轨道颜色
+        slider.maximumTrackTintColor = UIColor.systemGray4 // 未滑过的轨道颜色
+        
+        // 添加事件监听
+        slider.addTarget(
+            context.coordinator,
+            action: #selector(Coordinator.valueChanged(_:)),
+            for: .valueChanged
+        )
+        
+        return slider
+    }
+    
+    func updateUIView(_ uiView: UISlider, context: Context) {
+        uiView.value = Float(value)
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject {
+        var parent: CustomSlider
+        
+        init(_ parent: CustomSlider) {
+            self.parent = parent
+        }
+        
+        @objc func valueChanged(_ sender: UISlider) {
+            parent.value = Double(sender.value)
+        }
     }
 } 
