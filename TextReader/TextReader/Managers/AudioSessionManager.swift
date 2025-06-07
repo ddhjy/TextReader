@@ -276,8 +276,12 @@ class AudioSessionManager: NSObject {
     
     /// 处理应用前台激活事件
     @objc private func handleAppDidBecomeActive(_ notification: Notification) {
-        // 当应用进入前台后，确保系统媒体控制中心显示正确的状态
-        synchronizePlaybackState(force: true)
+        // 当应用进入前台后，确保音频会话处于激活状态
+        // 旧代码: synchronizePlaybackState(force: true)
+        
+        // 新代码: 强制重新激活音频会话，确保系统准备就绪
+        print("应用返回前台，重新激活音频会话。")
+        setupAudioSession()
     }
     
     /// 处理应用进入后台事件

@@ -56,6 +56,11 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         
         startBackgroundTask()
 
+        // 新增：在开始新的朗读前，立即停止当前任何可能存在的任务，以清理状态。
+        if synthesizer.isSpeaking || synthesizer.isPaused {
+            synthesizer.stopSpeaking(at: .immediate)
+        }
+        
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
