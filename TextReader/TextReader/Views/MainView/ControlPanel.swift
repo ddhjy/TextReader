@@ -23,6 +23,24 @@ struct ControlPanel: View {
                 .accessibilityLabel("夜间模式")
             }
             .padding(.horizontal)
+            
+            Divider()
+            
+            Button(action: {
+                viewModel.showingAccentColorPicker = true
+            }) {
+                HStack {
+                    Image(systemName: "paintpalette")
+                        .foregroundColor(viewModel.currentAccentColor)
+                    Text("强调色")
+                    Spacer()
+                    Circle()
+                        .fill(viewModel.currentAccentColor)
+                        .frame(width: 24, height: 24)
+                }
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal)
         }
         .padding()
     }

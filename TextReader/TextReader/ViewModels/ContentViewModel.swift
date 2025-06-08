@@ -28,6 +28,9 @@ class ContentViewModel: ObservableObject {
     @Published var showingPasteImport = false
     @Published var bookProgressText: String?
     @Published var darkModeEnabled: Bool = false
+    // 强调色相关状态
+    @Published var accentColorThemeId: String = "blue"
+    @Published var showingAccentColorPicker = false
     // BigBang 相关状态
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []
@@ -55,6 +58,12 @@ class ContentViewModel: ObservableObject {
     private let templateManager = TemplateManager()
 
     private var cancellables = Set<AnyCancellable>()
+    
+    // MARK: - 计算属性
+    var currentAccentColor: Color {
+        let theme = AccentColorTheme.presets.first { $0.id == accentColorThemeId } ?? AccentColorTheme.presets[0]
+        return theme.color(for: darkModeEnabled ? .dark : .light)
+    }
 
     // MARK: - 初始化
     /// 初始化视图模型并设置各项依赖和回调
@@ -119,6 +128,7 @@ class ContentViewModel: ObservableObject {
         self.availableVoices = speechManager.getAvailableVoices(languagePrefix: "zh")
         self.selectedVoiceIdentifier = settingsManager.getSelectedVoiceIdentifier() ?? availableVoices.first?.identifier
         self.templates = templateManager.load()
+        self.accentColorThemeId = settingsManager.getAccentColorThemeId()
     }
 
     // MARK: - 绑定与回调
@@ -155,6 +165,13 @@ class ContentViewModel: ObservableObject {
         $darkModeEnabled
             .dropFirst()
             .sink { [weak self] enabled in self?.settingsManager.saveDarkMode(enabled) }
+            .store(in: &cancellables)
+            
+        $accentColorThemeId
+            .dropFirst()
+            .sink { [weak self] id in 
+                self?.settingsManager.saveAccentColorThemeId(id) 
+            }
             .store(in: &cancellables)
             
         setupSyncTimer()

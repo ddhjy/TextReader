@@ -40,7 +40,7 @@ struct BookListView: View {
                         Spacer()
                         if viewModel.currentBookId == book.id {
                             Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
+                                .foregroundColor(viewModel.currentAccentColor)
                         }
                     }
                 }
@@ -60,7 +60,7 @@ struct BookListView: View {
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
-                        .tint(.blue)
+                        .tint(viewModel.currentAccentColor)
                     }
                 }
             }
@@ -89,6 +89,7 @@ struct BookListView: View {
                     }
                 } label: {
                     Image(systemName: "plus.circle")
+                        .foregroundColor(viewModel.currentAccentColor)
                 }
             }
             
@@ -96,6 +97,7 @@ struct BookListView: View {
                 Button("Done") {
                     dismiss()
                 }
+                .foregroundColor(viewModel.currentAccentColor)
             }
         }
         .sheet(isPresented: $viewModel.showingDocumentPicker) {

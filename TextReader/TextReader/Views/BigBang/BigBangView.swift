@@ -219,6 +219,7 @@ struct BigBangView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
+                        .foregroundColor(vm.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     HStack {
@@ -228,6 +229,7 @@ struct BigBangView: View {
                                 HapticFeedback.shared.impactOccurred()
                             }
                         }
+                        .foregroundColor(vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Button("复制") { 
@@ -235,6 +237,7 @@ struct BigBangView: View {
                             vm.copySelected()
                             dismiss() 
                         }
+                        .foregroundColor(vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Menu("模板") {

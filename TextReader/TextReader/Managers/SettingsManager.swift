@@ -8,6 +8,7 @@ class SettingsManager {
         static let selectedVoiceIdentifier = "selectedVoiceIdentifier"
         static let lastOpenedBookId = "currentBookID"
         static let isDarkMode = "isDarkMode"
+        static let accentColorThemeId = "accentColorThemeId"
     }
 
     // MARK: - 朗读速度
@@ -49,5 +50,15 @@ class SettingsManager {
     
     func getDarkMode() -> Bool {
         return defaults.bool(forKey: Keys.isDarkMode)
+    }
+    
+    // MARK: - 强调色主题
+    
+    func saveAccentColorThemeId(_ id: String) {
+        defaults.set(id, forKey: Keys.accentColorThemeId)
+    }
+
+    func getAccentColorThemeId() -> String {
+        return defaults.string(forKey: Keys.accentColorThemeId) ?? "blue"
     }
 } 

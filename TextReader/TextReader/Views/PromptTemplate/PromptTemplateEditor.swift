@@ -35,6 +35,7 @@ struct PromptTemplateEditor: View {
                     Button("取消") {
                         dismiss()
                     }
+                    .foregroundColor(.accentColor)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -47,6 +48,7 @@ struct PromptTemplateEditor: View {
                         }
                         dismiss()
                     }
+                    .foregroundColor(.accentColor)
                     .disabled(
                         template.name.trimmingCharacters(in: .whitespaces).isEmpty ||
                         template.content.trimmingCharacters(in: .whitespaces).isEmpty

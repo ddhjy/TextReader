@@ -10,6 +10,7 @@ struct SearchView: View {
             SearchBar(text: $searchText, onCommit: {
                 performSearch()
             })
+            .accentColor(viewModel.currentAccentColor)
             .onChange(of: searchText) { _, newVal in
                 // 实时搜索
                 performSearch()
@@ -45,6 +46,7 @@ struct SearchView: View {
                 Button("Cancel") {
                     dismiss()
                 }
+                .foregroundColor(viewModel.currentAccentColor)
             }
         }
     }
@@ -124,7 +126,7 @@ struct SearchView: View {
             // 添加高亮背景色
             attributedString.addAttribute(
                 .backgroundColor,
-                value: UIColor.systemYellow.withAlphaComponent(0.3),
+                value: UIColor(viewModel.currentAccentColor).withAlphaComponent(0.2),
                 range: nsRange
             )
             

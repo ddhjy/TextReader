@@ -46,11 +46,13 @@ struct BookEditView: View {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(viewModel.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
                         saveChanges()
                     }
+                    .foregroundColor(viewModel.currentAccentColor)
                     .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

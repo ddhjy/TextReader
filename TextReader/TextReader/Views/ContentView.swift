@@ -18,11 +18,13 @@ struct ContentView: View {
                     
                     Button(action: { viewModel.showingBookList = true }) {
                         Image(systemName: "book")
+                            .foregroundColor(viewModel.currentAccentColor)
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { viewModel.showingSearchView = true }) {
                         Image(systemName: "magnifyingglass")
+                            .foregroundColor(viewModel.currentAccentColor)
                     }
                 }
             }
@@ -45,5 +47,9 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingBigBang) {
             BigBangView(vm: viewModel)
         }
+        .sheet(isPresented: $viewModel.showingAccentColorPicker) {
+            AccentColorPicker(viewModel: viewModel)
+        }
+        .accentColor(viewModel.currentAccentColor)
     }
 } 

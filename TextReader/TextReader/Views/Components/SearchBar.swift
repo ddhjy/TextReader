@@ -21,7 +21,7 @@ struct SearchBar: View {
 
             Button(action: onCommit) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.blue)
+                    .foregroundColor(.accentColor)
                     .accessibility(label: Text("执行搜索"))
                     .padding(.vertical, 8)
             }

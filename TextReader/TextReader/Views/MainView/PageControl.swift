@@ -34,7 +34,8 @@ struct PageControl: View {
             if viewModel.pages.count > 1 {
                 CustomSlider(
                     value: sliderBinding,
-                    range: 0...Double(max(0, viewModel.pages.count - 1))
+                    range: 0...Double(max(0, viewModel.pages.count - 1)),
+                    accentColor: viewModel.currentAccentColor
                 )
                 .frame(height: 20) // 设置合适的高度
                 .padding(.horizontal) // 为 Slider 添加一些边距
@@ -104,6 +105,7 @@ private struct NoDimButtonStyle: ButtonStyle {
 private struct CustomSlider: UIViewRepresentable {
     @Binding var value: Double
     let range: ClosedRange<Double>
+    let accentColor: Color
     
     func makeUIView(context: Context) -> UISlider {
         let slider = UISlider()
@@ -113,9 +115,9 @@ private struct CustomSlider: UIViewRepresentable {
         slider.maximumValue = Float(range.upperBound)
         
         // 设置外观
-        slider.tintColor = UIColor(Color.accentColor) // 进度条颜色
+        slider.tintColor = UIColor(accentColor) // 进度条颜色
         slider.thumbTintColor = UIColor.clear // 设置 thumb 为透明色
-        slider.minimumTrackTintColor = UIColor(Color.accentColor) // 已滑过的轨道颜色
+        slider.minimumTrackTintColor = UIColor(accentColor) // 已滑过的轨道颜色
         slider.maximumTrackTintColor = UIColor.systemGray4 // 未滑过的轨道颜色
         
         // 添加事件监听
@@ -130,6 +132,9 @@ private struct CustomSlider: UIViewRepresentable {
     
     func updateUIView(_ uiView: UISlider, context: Context) {
         uiView.value = Float(value)
+        // 动态更新颜色以响应强调色变化
+        uiView.tintColor = UIColor(accentColor)
+        uiView.minimumTrackTintColor = UIColor(accentColor)
     }
     
     func makeCoordinator() -> Coordinator {

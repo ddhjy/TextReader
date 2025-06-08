@@ -39,12 +39,14 @@ struct PromptTemplatePicker: View {
                     Button("完成") {
                         dismiss()
                     }
+                    .foregroundColor(viewModel.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         editing = PromptTemplate(id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: "", content: "")
                     } label: {
                         Image(systemName: "plus")
+                            .foregroundColor(viewModel.currentAccentColor)
                     }
                 }
             }

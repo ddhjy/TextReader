@@ -15,7 +15,7 @@ struct WiFiTransferView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .foregroundColor(.blue)
+                        .foregroundColor(viewModel.currentAccentColor)
                     Text("WiFi Transfer Active")
                         .font(.title2)
                         .padding(.bottom, 10)
@@ -88,7 +88,7 @@ struct WiFiTransferView: View {
                         viewModel.toggleWiFiTransfer()
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(.blue)
+                    .tint(viewModel.currentAccentColor)
                     .padding(.top)
                 }
 
@@ -103,6 +103,7 @@ struct WiFiTransferView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .foregroundColor(viewModel.currentAccentColor)
                 }
             }
             .onDisappear {

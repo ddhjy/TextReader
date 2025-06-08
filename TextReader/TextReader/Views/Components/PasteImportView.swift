@@ -31,12 +31,14 @@ struct PasteImportView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
+                        .foregroundColor(viewModel.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
                         viewModel.importPastedText(text, title: title)
                         dismiss()
                     }
+                    .foregroundColor(viewModel.currentAccentColor)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
