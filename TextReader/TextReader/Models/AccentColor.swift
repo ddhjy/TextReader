@@ -3,8 +3,8 @@ import SwiftUI
 struct AccentColorTheme: Identifiable, Codable {
     let id: String
     let name: String
-    let lightColor: String  // 浅色模式下的颜色
-    let darkColor: String   // 深色模式下的颜色
+    let lightColor: String
+    let darkColor: String
     
     func color(for colorScheme: ColorScheme) -> Color {
         let hex = colorScheme == .dark ? darkColor : lightColor
@@ -20,18 +20,22 @@ struct AccentColorTheme: Identifiable, Codable {
         AccentColorTheme(id: "red", name: "活力红", lightColor: "#FF3B30", darkColor: "#FF453A"),
         AccentColorTheme(id: "teal", name: "清新青", lightColor: "#5AC8FA", darkColor: "#64D2FF"),
         AccentColorTheme(id: "sky-blue", name: "天蓝色", lightColor: "#4C8CE6", darkColor: "#4C8CE6"),
-        AccentColorTheme(id: "obsidian", name: "Obsidian", lightColor: "#705dcf", darkColor: "#705dcf")
+        AccentColorTheme(id: "obsidian", name: "Obsidian", lightColor: "#705dcf", darkColor: "#705dcf"),
+        AccentColorTheme(id: "black", name: "经典黑", lightColor: "#1C1C1E", darkColor: "#000000")
     ]
 }
 
 // Color扩展支持hex字符串
 extension Color {
     init?(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+        
         var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
+        Scanner(string: hexSanitized).scanHexInt64(&int)
+        
         let a, r, g, b: UInt64
-        switch hex.count {
+        switch hexSanitized.count {
         case 3: // RGB (12-bit)
             (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
         case 6: // RGB (24-bit)
@@ -41,12 +45,13 @@ extension Color {
         default:
             return nil
         }
+        
         self.init(
             .sRGB,
             red: Double(r) / 255,
             green: Double(g) / 255,
-            blue:  Double(b) / 255,
+            blue: Double(b) / 255,
             opacity: Double(a) / 255
         )
     }
-} 
+}
