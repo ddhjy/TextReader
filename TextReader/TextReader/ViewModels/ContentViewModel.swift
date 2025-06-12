@@ -43,6 +43,9 @@ class ContentViewModel: ObservableObject {
     // Add edit-related states
     @Published var showingBookEdit = false
     @Published var bookToEdit: Book?
+    
+    // 添加手动翻页标志，用于区分手动翻页和自动翻页
+    private var isManualPageTurn = false
 
     // MARK: - Dependencies
     let libraryManager: LibraryManager  // Remove private to allow access by BookEditView
@@ -219,6 +222,12 @@ class ContentViewModel: ObservableObject {
     private func setupSpeechCallbacks() {
         speechManager.onSpeechFinish = { [weak self] in
             guard let self = self else { return }
+            
+            // 如果是手动翻页，重置标志并返回，不自动翻页
+            if self.isManualPageTurn {
+                self.isManualPageTurn = false
+                return
+            }
             
             // 保存语音结束时的页面索引，以便稍后验证
             let finishedPageIndex = self.currentPageIndex
@@ -579,6 +588,9 @@ class ContentViewModel: ObservableObject {
         guard currentPageIndex < pages.count - 1 else { return }
         
         let wasReading = self.isReading
+        
+        // 设置手动翻页标志
+        isManualPageTurn = true
 
         if wasReading {
             speechManager.stopReading()
@@ -604,6 +616,9 @@ class ContentViewModel: ObservableObject {
         guard currentPageIndex > 0 else { return }
         
         let wasReading = self.isReading
+        
+        // 设置手动翻页标志
+        isManualPageTurn = true
 
         if wasReading {
             speechManager.stopReading()
@@ -658,6 +673,8 @@ class ContentViewModel: ObservableObject {
 
     /// 停止朗读
     func stopReading() {
+        // 重置手动翻页标志
+        isManualPageTurn = false
         // 卡马克式简单方案：直接停止，直接更新，不要复杂的异步调用
         speechManager.stopReading()
         isReading = false
