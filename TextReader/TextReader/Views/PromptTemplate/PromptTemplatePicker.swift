@@ -52,6 +52,7 @@ struct PromptTemplatePicker: View {
             }
             .sheet(item: $editing) { tpl in
                 PromptTemplateEditor(
+                    viewModel: viewModel,
                     original: tpl,
                     onSave: { viewModel.updateTemplate($0) },
                     onAdd: { viewModel.addTemplate($0) }

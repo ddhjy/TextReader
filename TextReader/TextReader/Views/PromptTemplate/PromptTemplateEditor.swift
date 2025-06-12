@@ -3,15 +3,18 @@ import SwiftUI
 struct PromptTemplateEditor: View {
     @Environment(\.dismiss) private var dismiss
     @State var template: PromptTemplate
+    let viewModel: ContentViewModel
     let onSave: (PromptTemplate) -> Void
     let onAdd: (PromptTemplate) -> Void
     
     // 用于表示新创建的模板
     private let emptyUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
     
-    init(original: PromptTemplate,
+    init(viewModel: ContentViewModel,
+         original: PromptTemplate,
          onSave: @escaping (PromptTemplate) -> Void,
          onAdd: @escaping (PromptTemplate) -> Void) {
+        self.viewModel = viewModel
         _template = State(initialValue: original)
         self.onSave = onSave
         self.onAdd = onAdd
@@ -35,7 +38,7 @@ struct PromptTemplateEditor: View {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(viewModel.currentAccentColor)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -48,7 +51,7 @@ struct PromptTemplateEditor: View {
                         }
                         dismiss()
                     }
-                    .foregroundColor(.accentColor)
+                    .foregroundColor(viewModel.currentAccentColor)
                     .disabled(
                         template.name.trimmingCharacters(in: .whitespaces).isEmpty ||
                         template.content.trimmingCharacters(in: .whitespaces).isEmpty

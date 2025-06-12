@@ -229,7 +229,7 @@ struct BigBangView: View {
                                 HapticFeedback.shared.impactOccurred()
                             }
                         }
-                        .foregroundColor(vm.currentAccentColor)
+                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Button("复制") { 
@@ -237,7 +237,7 @@ struct BigBangView: View {
                             vm.copySelected()
                             dismiss() 
                         }
-                        .foregroundColor(vm.currentAccentColor)
+                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Menu("模板") {
@@ -253,6 +253,7 @@ struct BigBangView: View {
                                 vm.showingTemplatePicker = true
                             }
                         }
+                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                     }
                 }
