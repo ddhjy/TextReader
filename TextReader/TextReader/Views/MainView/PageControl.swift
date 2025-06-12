@@ -74,7 +74,8 @@ struct PageControl: View {
                         .animation(nil, value: viewModel.isReading)
                 }
                 .buttonStyle(NoDimButtonStyle())
-                .accessibilityLabel(viewModel.isReading ? "暂停朗读" : "开始朗读")
+                .disabled(viewModel.isSwitchingPlayState) // 在状态切换期间禁用按钮
+                .accessibilityLabel(viewModel.isSwitchingPlayState ? "切换中..." : (viewModel.isReading ? "暂停朗读" : "开始朗读"))
                 
                 Spacer()
                 
