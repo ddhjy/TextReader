@@ -204,7 +204,7 @@ struct BigBangView: View {
                         .padding(.vertical, 4)
                         .frame(height: tokenHeight)
                         .background(vm.selectedTokenIDs.contains(token.id) ?
-                                    Color.accentColor.opacity(0.8) :
+                                    vm.currentAccentColor.opacity(0.8) :
                                     Color(UIColor.secondarySystemBackground))
                         .cornerRadius(4)
                         .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)

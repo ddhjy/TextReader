@@ -262,8 +262,6 @@ class ContentViewModel: ObservableObject {
                     self.isReading = true
                     self.updateNowPlayingInfo()
                 }
-                // 语音真正开始播放，重置切换状态标志
-                self.isSwitchingPlayState = false
             }
         }
         
@@ -298,8 +296,6 @@ class ContentViewModel: ObservableObject {
                     self.updateNowPlayingInfo()
                     print("语音合成错误，播放已停止")
                 }
-                // 发生错误时也要重置切换状态标志
-                self.isSwitchingPlayState = false
             }
         }
     }
@@ -653,6 +649,14 @@ class ContentViewModel: ObservableObject {
             return 
         }
         
+        // 设置切换状态标志，但快速重置以改善用户体验
+        isSwitchingPlayState = true
+        
+        // 立即重置状态标志，不等待语音操作完成
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            self.isSwitchingPlayState = false
+        }
+        
         if isReading {
             stopReading()
         } else {
@@ -666,58 +670,34 @@ class ContentViewModel: ObservableObject {
               currentPageIndex >= 0,
               currentPageIndex < pages.count else { return }
         
-        // 如果正在切换状态，则忽略新的播放请求
-        guard !isSwitchingPlayState else { 
-            print("正在切换播放状态，忽略播放请求")
-            return 
-        }
-        
         print("开始朗读当前页面")
         let textToRead = pages[currentPageIndex]
         let voice = availableVoices.first { $0.identifier == selectedVoiceIdentifier }
         
-        // 设置切换状态标志
-        isSwitchingPlayState = true
-        
         // 先设置状态为播放中
         isReading = true
         
-        DispatchQueue.main.async {
-            // 立即更新Now Playing信息
-            self.updateNowPlayingInfo()
-            
-            // 然后开始语音播放
-            self.speechManager.startReading(text: textToRead, voice: voice, rate: self.readingSpeed)
-        }
+        // 立即更新Now Playing信息
+        updateNowPlayingInfo()
+        
+        // 然后开始语音播放
+        speechManager.startReading(text: textToRead, voice: voice, rate: readingSpeed)
     }
 
     /// 停止朗读
     func stopReading() {
-        // 如果正在切换状态，则忽略新的停止请求
-        guard !isSwitchingPlayState else { 
-            print("正在切换播放状态，忽略停止请求")
-            return 
-        }
-        
-        // 设置切换状态标志
-        isSwitchingPlayState = true
-        
         // 重置手动翻页标志
         isManualPageTurn = false
-        // 卡马克式简单方案：直接停止，直接更新，不要复杂的异步调用
+        
+        // 直接停止和更新状态
         speechManager.stopReading()
         isReading = false
         updateNowPlayingInfo()
-        
-        // 停止操作相对简单，可以立即重置切换状态
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            self.isSwitchingPlayState = false
-        }
     }
 
     /// 重新开始朗读，添加轻微延迟确保合成器重置
     private func restartReading() {
-        if isReading && !isSwitchingPlayState {
+        if isReading {
             print("重新开始朗读")
             stopReading()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in

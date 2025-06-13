@@ -66,15 +66,20 @@ struct PageControl: View {
                 Button(action: { 
                     viewModel.toggleReading()
                     buttonHaptic.impactOccurred()
-                }) { Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                }) { 
+                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(width: 56, height: 56)
-                        .background(Circle().fill(Color.accentColor.opacity(0.9)))
-                        .animation(nil, value: viewModel.isReading)
+                        .background(
+                            Circle()
+                                .fill(Color.accentColor.opacity(viewModel.isSwitchingPlayState ? 0.6 : 0.9))
+                                .animation(.easeInOut(duration: 0.15), value: viewModel.isSwitchingPlayState)
+                        )
+                        .scaleEffect(viewModel.isSwitchingPlayState ? 0.95 : 1.0)
+                        .animation(.easeInOut(duration: 0.15), value: viewModel.isSwitchingPlayState)
                 }
                 .buttonStyle(NoDimButtonStyle())
-                .disabled(viewModel.isSwitchingPlayState) // 在状态切换期间禁用按钮
                 .accessibilityLabel(viewModel.isSwitchingPlayState ? "切换中..." : (viewModel.isReading ? "暂停朗读" : "开始朗读"))
                 
                 Spacer()
@@ -98,7 +103,9 @@ struct PageControl: View {
 private struct NoDimButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .opacity(1.0) // 确保按钮永远不变灰
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
