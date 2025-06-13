@@ -53,3 +53,7 @@ struct ContentView: View {
         .accentColor(viewModel.currentAccentColor)
     }
 } 
+
+#Preview {
+    ContentView(viewModel: ContentViewModel())
+} 
