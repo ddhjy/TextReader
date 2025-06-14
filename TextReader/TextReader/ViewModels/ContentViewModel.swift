@@ -929,7 +929,30 @@ class ContentViewModel: ObservableObject {
     /// 生成提示词并复制到剪贴板
     func buildPrompt(using template: PromptTemplate) {
         let selection = tokens.filter { selectedTokenIDs.contains($0.id) }.map(\.value).joined()
-        let page = pages.indices.contains(currentPageIndex) ? pages[currentPageIndex] : ""
+        
+        // --- 开始修改 ---
+        // 构建包含前后页面的上下文
+        var contextContent: [String] = []
+
+        // 如果不是第一页，添加上一页内容
+        if currentPageIndex > 0 {
+            contextContent.append(pages[currentPageIndex - 1])
+        }
+
+        // 添加当前页内容
+        if pages.indices.contains(currentPageIndex) {
+            contextContent.append(pages[currentPageIndex])
+        }
+
+        // 如果不是最后一页，添加下一页内容
+        if currentPageIndex < pages.count - 1 {
+            contextContent.append(pages[currentPageIndex + 1])
+        }
+
+        // 使用清晰的分隔符连接页面内容
+        let page = contextContent.joined(separator: "\n\n---\n\n")
+        // --- 结束修改 ---
+
         var result = template.content
         result = result.replacingOccurrences(of: "{selection}", with: selection)
         result = result.replacingOccurrences(of: "{page}", with: page)
