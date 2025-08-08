@@ -21,12 +21,8 @@ struct ControlPanel: View {
             }) {
                 Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                     .font(.title2)
-                    .foregroundColor(.white)
+                    .foregroundColor(.black)
                     .frame(width: 40, height: 40)
-                    .background(
-                        Circle()
-                            .fill(viewModel.currentAccentColor)
-                    )
             }
             .buttonStyle(PlainButtonStyle())
             
