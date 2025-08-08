@@ -5,7 +5,6 @@ struct PageControl: View {
     @ObservedObject var viewModel: ContentViewModel
     
     private let haptic = UISelectionFeedbackGenerator()
-    private let buttonHaptic = UIImpactFeedbackGenerator(style: .medium)
     
     // sliderBinding 保持不变，它将 ViewModel 的 Int 索引安全地绑定到 Slider 的 Double 值
     private var sliderBinding: Binding<Double> {
@@ -29,83 +28,48 @@ struct PageControl: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            // 使用自定义 Slider 以支持透明 thumb
+        HStack(spacing: 8) {
+            // 上一页按钮
+            RepeatButton(
+                action: { viewModel.previousPage() },
+                longPressAction: { if viewModel.currentPageIndex > 0 { viewModel.previousPage() } }
+            ) { 
+                Image(systemName: "chevron.left")
+                    .font(.title3)
+            }
+            .disabled(viewModel.currentPageIndex == 0)
+            
+            // 进度滑杆（保留原 CustomSlider 与 haptic 逻辑）
             if viewModel.pages.count > 1 {
                 CustomSlider(
                     value: sliderBinding,
                     range: 0...Double(max(0, viewModel.pages.count - 1)),
                     accentColor: viewModel.currentAccentColor
                 )
-                .frame(height: 20) // 设置合适的高度
-                .padding(.horizontal) // 为 Slider 添加一些边距
+                .frame(height: 18)
             } else {
                 // 如果只有一页或没有内容，显示一个禁用的进度条占位
                 ProgressView(value: 0)
                     .progressViewStyle(.linear)
-                    .tint(.accentColor)
+                    .tint(viewModel.currentAccentColor)
                     .disabled(true)
-                    .padding(.horizontal)
+                    .frame(height: 18)
             }
             
-            Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pages.count)")
-                .font(.caption)
-                .monospacedDigit()
-                .foregroundColor(.secondary)
-            HStack {
-                // 上一页按钮
-                RepeatButton(
-                    action: { viewModel.previousPage() },
-                    longPressAction: { if viewModel.currentPageIndex > 0 { viewModel.previousPage() } }
-                ) { Image(systemName: "chevron.left").font(.title) }
-                .disabled(viewModel.currentPageIndex == 0)
-                
-                Spacer()
-                
-                // 播放/暂停按钮
-                Button(action: { 
-                    viewModel.toggleReading()
-                    buttonHaptic.impactOccurred()
-                }) { 
-                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
-                        .font(.system(size: 28, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(
-                            Circle()
-                                .fill(Color.accentColor.opacity(viewModel.isSwitchingPlayState ? 0.6 : 0.9))
-                                .animation(.easeInOut(duration: 0.15), value: viewModel.isSwitchingPlayState)
-                        )
-                        .scaleEffect(viewModel.isSwitchingPlayState ? 0.95 : 1.0)
-                        .animation(.easeInOut(duration: 0.15), value: viewModel.isSwitchingPlayState)
-                }
-                .buttonStyle(NoDimButtonStyle())
-                .accessibilityLabel(viewModel.isSwitchingPlayState ? "切换中..." : (viewModel.isReading ? "暂停朗读" : "开始朗读"))
-                
-                Spacer()
-                
-                // 下一页按钮
-                RepeatButton(
-                    action: { viewModel.nextPage() },
-                    longPressAction: { if viewModel.currentPageIndex < viewModel.pages.count - 1 { viewModel.nextPage() } }
-                ) { Image(systemName: "chevron.right").font(.title) }
-                .disabled(viewModel.currentPageIndex >= viewModel.pages.count - 1)
+            // 下一页按钮
+            RepeatButton(
+                action: { viewModel.nextPage() },
+                longPressAction: { if viewModel.currentPageIndex < viewModel.pages.count - 1 { viewModel.nextPage() } }
+            ) { 
+                Image(systemName: "chevron.right")
+                    .font(.title3)
             }
-            .padding(.horizontal)
+            .disabled(viewModel.currentPageIndex >= viewModel.pages.count - 1)
         }
+        .padding(.horizontal, 8)
         .onAppear {
             haptic.prepare()
-            buttonHaptic.prepare()
         }
-    }
-}
-
-private struct NoDimButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
-            .opacity(1.0) // 确保按钮永远不变灰
-            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
 
