@@ -10,11 +10,9 @@ struct ControlPanel: View {
     
     var body: some View {
         HStack(spacing: 12) {
-            // [ ◀  (进度条)  ▶ ]
             PageControl(viewModel: viewModel)
                 .frame(height: 36)
             
-            // 播放/暂停按钮 - 高频操作，放在外面
             Button(action: {
                 viewModel.toggleReading()
             }) {
@@ -25,9 +23,7 @@ struct ControlPanel: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // [⚙] 速度/语音/强调色/夜间模式归拢到菜单
             Menu {
-                // 朗读速度（改为菜单内直接选择）
                 Menu {
                     ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0], id: \.self) { speed in
                         Button {
@@ -48,7 +44,6 @@ struct ControlPanel: View {
                 
                 Divider()
                 
-                // 语音选择
                 Menu {
                     ForEach(viewModel.availableVoices, id: \.identifier) { voice in
                         Button {
@@ -67,7 +62,6 @@ struct ControlPanel: View {
                     Label("语音", systemImage: "speaker.wave.2")
                 }
                 
-                // 强调色选择 - 改为折叠菜单形式
                 Menu {
                     ForEach(AccentColorTheme.presets, id: \.id) { theme in
                         Button {
@@ -89,7 +83,6 @@ struct ControlPanel: View {
                     Label("强调色", systemImage: "paintpalette")
                 }
                 
-                // 夜间模式
                 Button(action: {
                     viewModel.darkModeEnabled.toggle()
                 }) {
@@ -111,4 +104,3 @@ struct ControlPanel: View {
     }
 }
 
-// 删除了原有的 SpeedSheet 结构体与相关弹窗

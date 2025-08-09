@@ -121,14 +121,12 @@ class LibraryManager {
     ///   - suggestedTitle: 建议标题（可选）
     ///   - completion: 完成回调，返回新书籍对象或错误
     func importBook(fileName: String, content: String, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
-        // 增加日志：记录开始保存导入的内容
         print("[LibraryManager] 尝试将导入的内容保存到文件: \(fileName)")
         do {
             let documentsURL = try getDocumentsDirectory()
             let fileURL = documentsURL.appendingPathComponent(fileName)
             print("[LibraryManager] 目标路径: \(fileURL.path)")
 
-            // 检查文件是否存在，如果存在则先删除（避免写入错误）
             if fileManager.fileExists(atPath: fileURL.path) {
                 print("[LibraryManager] 目标文件已存在。删除旧版本。")
                 do {
@@ -136,17 +134,12 @@ class LibraryManager {
                     print("[LibraryManager] 成功删除目标位置的现有文件。")
                 } catch {
                     print("[LibraryManager][错误] 删除现有文件失败 \(fileURL.path): \(error.localizedDescription)")
-                    // 根据策略决定是否继续（覆盖写入）或失败
-                    // 这里选择继续尝试写入
                 }
             }
 
-            print("[LibraryManager] 使用UTF-8编码将内容写入目标。")
-            // 始终使用 UTF-8 编码保存到应用内部存储，确保一致性
             try content.write(to: fileURL, atomically: true, encoding: .utf8)
             print("[LibraryManager] 成功将内容写入目标。")
 
-            // 使用建议的标题（如果提供）或从文件名中获取标题
             let title: String
             if let suggestedTitle = suggestedTitle {
                 title = suggestedTitle
@@ -172,24 +165,20 @@ class LibraryManager {
     ///   - suggestedTitle: 建议标题（可选）
     ///   - completion: 完成回调，返回新书籍对象或错误
     func importBookFromURL(_ url: URL, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
-        // 增加日志：记录 LibraryManager 开始处理 URL
         print("[LibraryManager] 开始导入URL: \(url.absoluteString)")
         print("[LibraryManager] URL方案: \(url.scheme ?? "nil"), 是否为文件URL: \(url.isFileURL)")
         print("[LibraryManager] 建议标题: \(suggestedTitle ?? "无")")
 
-        // 检查是否是应用临时 Inbox 目录中的文件
         let isInInboxDirectory = url.path.contains("/tmp/") && url.path.contains("-Inbox/")
         if isInInboxDirectory {
             print("[LibraryManager] 文件位于应用的Inbox目录中，跳过安全作用域访问")
         }
 
-        // 尝试获取安全作用域访问权限（对于非 Inbox 文件）
         var securityAccessGranted = false
         if !isInInboxDirectory {
             securityAccessGranted = url.startAccessingSecurityScopedResource()
             print("[LibraryManager] 尝试为 \(url.lastPathComponent) 启动安全访问... 成功: \(securityAccessGranted)")
             
-            // 如果成功获取权限，确保在函数退出时停止访问
             if securityAccessGranted {
                 url.stopAccessingSecurityScopedResource()
                 print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
@@ -198,7 +187,6 @@ class LibraryManager {
             }
         }
 
-        // 无论安全访问是否成功，都尝试读取文件内容
         do {
             print("[LibraryManager] 尝试从以下位置读取内容: \(url.path)")
 

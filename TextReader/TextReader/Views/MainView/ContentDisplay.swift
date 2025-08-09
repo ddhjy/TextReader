@@ -15,13 +15,11 @@ struct ContentDisplay: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .contentShape(Rectangle())
             .gesture(
-                // 长按手势触发BigBang功能（文本分词）
                 LongPressGesture(minimumDuration: 0.3)
                     .onEnded { _ in
                         viewModel.triggerBigBang()
                     }
             )
-            // 添加点击手势用于翻页
             .onTapGesture {
                 viewModel.nextPage()
             }

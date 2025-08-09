@@ -165,7 +165,6 @@ class AudioSessionManager: NSObject {
                 self.isSystemPlaybackActive = true
                 
             } else {
-                // 暂停状态：卡马克式最直接方法 - 立即清空播放信息，音频会话操作放后台
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
                 self.isSystemPlaybackActive = false
                 
@@ -191,8 +190,6 @@ class AudioSessionManager: NSObject {
         guard let viewModel = contentViewModel else { return }
         
         let isAppPlaying = viewModel.isReading
-        
-        // 卡马克式简单方案：直接更新，不要复杂的条件判断
         if force || (isAppPlaying != isSystemPlaybackActive) {
             updateNowPlayingInfo(
                 title: viewModel.currentBookTitle,
@@ -276,10 +273,6 @@ class AudioSessionManager: NSObject {
     
     /// 处理应用前台激活事件
     @objc private func handleAppDidBecomeActive(_ notification: Notification) {
-        // 当应用进入前台后，确保音频会话处于激活状态
-        // 旧代码: synchronizePlaybackState(force: true)
-        
-        // 新代码: 强制重新激活音频会话，确保系统准备就绪
         print("应用返回前台，重新激活音频会话。")
         setupAudioSession()
     }

@@ -108,7 +108,6 @@ class ContentViewModel: ObservableObject {
             .sink { [weak self] isReading in
                 guard let self = self else { return }
                 print("isReading状态变化: \(isReading)")
-                // 卡马克式简单方案：状态变化时直接更新媒体信息即可
                 self.updateNowPlayingInfo()
             }
             .store(in: &cancellables)
@@ -182,7 +181,6 @@ class ContentViewModel: ObservableObject {
 
     /// 设置定时器，定期检查并同步系统播放状态
     private func setupSyncTimer() {
-        // 卡马克式简单方案：减少复杂的同步，只做最基本的状态检查
         Timer.publish(every: 2.0, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
@@ -929,28 +927,17 @@ class ContentViewModel: ObservableObject {
     func buildPrompt(using template: PromptTemplate) {
         let selection = tokens.filter { selectedTokenIDs.contains($0.id) }.map(\.value).joined()
         
-        // --- 开始修改 ---
-        // 构建包含前后页面的上下文
         var contextContent: [String] = []
-
-        // 如果不是第一页，添加上一页内容
         if currentPageIndex > 0 {
             contextContent.append(pages[currentPageIndex - 1])
         }
-
-        // 添加当前页内容
         if pages.indices.contains(currentPageIndex) {
             contextContent.append(pages[currentPageIndex])
         }
-
-        // 如果不是最后一页，添加下一页内容
         if currentPageIndex < pages.count - 1 {
             contextContent.append(pages[currentPageIndex + 1])
         }
-
-        // 使用清晰的分隔符连接页面内容
         let page = contextContent.joined(separator: "\n\n---\n\n")
-        // --- 结束修改 ---
 
         var result = template.content
         result = result.replacingOccurrences(of: "{selection}", with: selection)

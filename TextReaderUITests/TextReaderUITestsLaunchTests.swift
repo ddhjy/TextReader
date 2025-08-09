@@ -1,10 +1,3 @@
-//
-//  TextReaderUITestsLaunchTests.swift
-//  TextReaderUITests
-//
-//  Created by zengkai on 2024/9/22.
-//
-
 import XCTest
 
 final class TextReaderUITestsLaunchTests: XCTestCase {
@@ -21,9 +14,6 @@ final class TextReaderUITestsLaunchTests: XCTestCase {
     func testLaunch() throws {
         let app = XCUIApplication()
         app.launch()
-
-        // Insert steps here to perform after app launch but before taking a screenshot,
-        // such as logging into a test account or navigating somewhere in the app
 
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = "Launch Screen"

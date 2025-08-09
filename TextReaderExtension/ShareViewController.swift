@@ -1,10 +1,3 @@
-//
-//  ShareViewController.swift
-//  TextReaderExtension
-//
-//  Created by zengkai on 2025/5/6.
-//
-
 import UIKit
 import Social
 import MobileCoreServices
