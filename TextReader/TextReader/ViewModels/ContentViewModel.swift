@@ -31,7 +31,6 @@ class ContentViewModel: ObservableObject {
     @Published var darkModeEnabled: Bool = false
     // 强调色相关状态
     @Published var accentColorThemeId: String = "blue"
-    @Published var showingAccentColorPicker = false
     // BigBang 相关状态
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []

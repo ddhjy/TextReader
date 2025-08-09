@@ -67,10 +67,25 @@ struct ControlPanel: View {
                     Label("语音", systemImage: "speaker.wave.2")
                 }
                 
-                // 强调色
-                Button(action: {
-                    viewModel.showingAccentColorPicker = true
-                }) {
+                // 强调色选择 - 改为折叠菜单形式
+                Menu {
+                    ForEach(AccentColorTheme.presets, id: \.id) { theme in
+                        Button {
+                            viewModel.accentColorThemeId = theme.id
+                        } label: {
+                            HStack {
+                                Circle()
+                                    .fill(theme.color(for: viewModel.darkModeEnabled ? .dark : .light))
+                                    .frame(width: 16, height: 16)
+                                Text(theme.name)
+                                if viewModel.accentColorThemeId == theme.id {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
                     Label("强调色", systemImage: "paintpalette")
                 }
                 
