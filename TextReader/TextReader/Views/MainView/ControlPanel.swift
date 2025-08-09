@@ -3,7 +3,6 @@ import SwiftUI
 /// 简洁的控制面板组件 - 禅意重构版本
 struct ControlPanel: View {
     @ObservedObject var viewModel: ContentViewModel
-    @State private var showSpeedSheet = false
     
     private func speedText(_ v: Float) -> String {
         v == floor(v) ? String(format: "%.0fx", v) : String(format: "%.2fx", v)
@@ -28,10 +27,22 @@ struct ControlPanel: View {
             
             // [⚙] 速度/语音/强调色/夜间模式归拢到菜单
             Menu {
-                // 朗读速度（低频操作，收进菜单）
-                Button(action: {
-                    showSpeedSheet = true
-                }) {
+                // 朗读速度（改为菜单内直接选择）
+                Menu {
+                    ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0], id: \.self) { speed in
+                        Button {
+                            viewModel.readingSpeed = Float(speed)
+                        } label: {
+                            HStack {
+                                Text(speedText(Float(speed)))
+                                if abs(viewModel.readingSpeed - Float(speed)) < 0.01 {
+                                    Spacer()
+                                    Image(systemName: "checkmark")
+                                }
+                            }
+                        }
+                    }
+                } label: {
                     Label("速度: " + speedText(viewModel.readingSpeed), systemImage: "gauge")
                 }
                 
@@ -82,103 +93,7 @@ struct ControlPanel: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(Color(UIColor.secondarySystemBackground))
-        .sheet(isPresented: $showSpeedSheet) {
-            SpeedSheet(readingSpeed: $viewModel.readingSpeed, accent: viewModel.currentAccentColor)
-        }
     }
 }
 
-// 轻量速度弹层：滑杆 + 常用预设
-private struct SpeedSheet: View {
-    @Binding var readingSpeed: Float
-    let accent: Color
-    @Environment(\.presentationMode) var presentationMode
-    
-    private func speedText(_ v: Float) -> String {
-        v == floor(v) ? String(format: "%.0fx", v) : String(format: "%.2fx", v)
-    }
-    
-    var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                // 当前速度显示
-                Text(speedText(readingSpeed))
-                    .font(.system(size: 36, weight: .bold, design: .rounded))
-                    .foregroundColor(accent)
-                    .padding(.top, 20)
-                
-                // 速度滑杆
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("朗读速度")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    
-                    Slider(
-                        value: Binding(
-                            get: { Double(readingSpeed) },
-                            set: { readingSpeed = Float($0) }
-                        ),
-                        in: 0.8...3.0,
-                        step: 0.05
-                    )
-                    .tint(accent)
-                    
-                    HStack {
-                        Text("0.8x")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Text("3.0x")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-                .padding(.horizontal)
-                
-                // 常用预设
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("常用速度")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                    
-                    LazyVGrid(columns: [
-                        GridItem(.flexible()),
-                        GridItem(.flexible()),
-                        GridItem(.flexible())
-                    ], spacing: 12) {
-                        ForEach([1.0, 1.25, 1.5, 1.75, 2.0, 2.5], id: \.self) { speed in
-                            Button(action: {
-                                readingSpeed = Float(speed)
-                            }) {
-                                Text(speedText(Float(speed)))
-                                    .font(.subheadline.weight(.medium))
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .fill(readingSpeed == Float(speed) ? accent : Color(UIColor.tertiarySystemFill))
-                                    )
-                                    .foregroundColor(readingSpeed == Float(speed) ? .white : .primary)
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-                
-                Spacer()
-            }
-            .navigationTitle("朗读速度")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
-                        presentationMode.wrappedValue.dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
-        }
-    }
-}
+// 删除了原有的 SpeedSheet 结构体与相关弹窗
