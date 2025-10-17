@@ -20,6 +20,28 @@ struct WiFiTransferView: View {
                         .font(.title2)
                         .padding(.bottom, 10)
 
+                    // 上传进度与错误展示
+                    if let p = viewModel.wifiUploadProgress {
+                        VStack(spacing: 8) {
+                            Text("正在接收：\(viewModel.wifiUploadFilename ?? "未知")")
+                                .font(.subheadline)
+                            ProgressView(value: p)
+                            Text("\(Int(p * 100))%")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding()
+                        .background(Color(UIColor.secondarySystemBackground))
+                        .cornerRadius(8)
+                        .padding(.horizontal)
+                    }
+                    if let err = viewModel.wifiUploadError {
+                        Text(err)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .padding(.horizontal)
+                    }
+
                     if let address = viewModel.serverAddress {
                         Text("Visit the following address in a browser on the same WiFi network to upload files:")
                             .font(.subheadline)

@@ -45,6 +45,11 @@ class ContentViewModel: ObservableObject {
     @Published var showingBookEdit = false
     @Published var bookToEdit: Book?
     
+    // WiFi上传进度与错误展示
+    @Published var wifiUploadProgress: Double? // 0.0...1.0
+    @Published var wifiUploadFilename: String?
+    @Published var wifiUploadError: String?
+    
     // 添加手动翻页标志，用于区分手动翻页和自动翻页
     private var isManualPageTurn = false
 
@@ -217,6 +222,28 @@ class ContentViewModel: ObservableObject {
             .assign(to: &$serverAddress)
         wiFiTransferService.$isRunning
             .assign(to: &$isServerRunning)
+        
+        // 订阅上传状态，映射为UI友好属性
+        wiFiTransferService.$uploadState
+            .receive(on: RunLoop.main)
+            .sink { [weak self] s in
+                guard let self = self else { return }
+                guard let state = s else {
+                    self.wifiUploadProgress = nil
+                    self.wifiUploadFilename = nil
+                    self.wifiUploadError = nil
+                    return
+                }
+                if let total = state.totalBytes, total > 0 {
+                    let received = max(0, state.receivedBytes)
+                    self.wifiUploadProgress = min(1.0, max(0.0, Double(received) / Double(total)))
+                } else {
+                    self.wifiUploadProgress = nil
+                }
+                self.wifiUploadFilename = state.fileName
+                self.wifiUploadError = state.errorMessage
+            }
+            .store(in: &cancellables)
     }
 
     /// 设置语音回调函数
