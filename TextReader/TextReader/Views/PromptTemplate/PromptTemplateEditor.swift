@@ -7,7 +7,6 @@ struct PromptTemplateEditor: View {
     let onSave: (PromptTemplate) -> Void
     let onAdd: (PromptTemplate) -> Void
     
-    // 用于表示新创建的模板
     private let emptyUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
     
     init(viewModel: ContentViewModel,

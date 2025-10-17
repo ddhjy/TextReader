@@ -47,9 +47,6 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingBigBang) {
             BigBangView(vm: viewModel)
         }
-        .sheet(isPresented: $viewModel.showingAccentColorPicker) {
-            AccentColorPicker(viewModel: viewModel)
-        }
         .accentColor(viewModel.currentAccentColor)
     }
 } 

@@ -70,10 +70,37 @@ struct BookListView: View {
                 }
                 .contentShape(Rectangle())
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+<<<<<<< HEAD
                     if !isEditing {
                         Button(role: .destructive) {
                             bookToDelete = book
                             showingDeleteAlert = true
+||||||| 4f59dc3
+                    Button(role: .destructive) {
+                        bookToDelete = book
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    
+                    // Add edit button (only show for non-built-in books)
+                    if !book.isBuiltIn {
+                        Button {
+                            viewModel.bookToEdit = book
+                            viewModel.showingBookEdit = true
+=======
+                    Button(role: .destructive) {
+                        bookToDelete = book
+                        showingDeleteAlert = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    
+                    if !book.isBuiltIn {
+                        Button {
+                            viewModel.bookToEdit = book
+                            viewModel.showingBookEdit = true
+>>>>>>> origin/main
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -98,21 +125,21 @@ struct BookListView: View {
             ToolbarItem(placement: .navigationBarLeading) { 
                 Menu {
                     Button {
-                        viewModel.showingDocumentPicker = true    // 原文件导入
+                        viewModel.showingDocumentPicker = true
                     } label: {
                         Label("从文件导入", systemImage: "doc")
                     }
 
                     Button {
-                        showingPasteImport = true                 // 打开粘贴导入
+                        showingPasteImport = true
                     } label: {
                         Label("粘贴文本", systemImage: "doc.on.clipboard")
                     }
                     
                     Button {
-                        viewModel.showingWiFiTransferView = true   // 触发 Sheet
+                        viewModel.showingWiFiTransferView = true
                     } label: {
-                        Label("WiFi 传输", systemImage: "wifi")     // 系统图标
+                        Label("WiFi 传输", systemImage: "wifi")
                     }
                 } label: {
                     Image(systemName: "plus.circle")

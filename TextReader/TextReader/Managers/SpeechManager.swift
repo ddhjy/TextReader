@@ -56,7 +56,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         
         startBackgroundTask()
 
-        // 新增：在开始新的朗读前，立即停止当前任何可能存在的任务，以清理状态。
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }
@@ -79,7 +78,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     }
 
     func stopReading() {
-        // 卡马克式简单方案：直接停止，不要复杂的延迟调用
         if synthesizer.isSpeaking || synthesizer.isPaused {
             synthesizer.stopSpeaking(at: .immediate)
         }

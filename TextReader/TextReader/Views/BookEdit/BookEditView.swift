@@ -21,12 +21,10 @@ struct BookEditView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                // Title editing
                 TextField("Book Title", text: $editedTitle)
                     .textFieldStyle(.roundedBorder)
                     .padding()
                 
-                // Content editing
                 TextEditor(text: $editedContent)
                     .padding(.horizontal)
                     .overlay(

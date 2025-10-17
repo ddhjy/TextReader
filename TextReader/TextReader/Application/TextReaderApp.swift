@@ -1,10 +1,3 @@
-//
-//  TextReaderApp.swift
-//  TextReader
-//
-//  Created by zengkai on 2024/9/22.
-//
-
 import SwiftUI
 
 @main
