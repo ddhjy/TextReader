@@ -21,7 +21,7 @@ struct BookEditView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                TextField("Book Title", text: $editedTitle)
+                TextField("书名", text: $editedTitle)
                     .textFieldStyle(.roundedBorder)
                     .padding()
                 
@@ -30,42 +30,42 @@ struct BookEditView: View {
                     .overlay(
                         Group {
                             if isLoading {
-                                ProgressView("Loading...")
+                                ProgressView("正在加载…")
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .background(Color.black.opacity(0.3))
                             }
                         }
                     )
             }
-            .navigationTitle("Edit Book")
+            .navigationTitle("编辑书籍")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button("取消") {
                         dismiss()
                     }
                     .foregroundColor(viewModel.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
+                    Button("保存") {
                         saveChanges()
                     }
                     .foregroundColor(viewModel.currentAccentColor)
                     .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .alert("Save Successful", isPresented: $showingSaveAlert) {
-                Button("OK") { dismiss() }
+            .alert("保存成功", isPresented: $showingSaveAlert) {
+                Button("好") { dismiss() }
             } message: {
-                Text("Book has been successfully updated")
+                Text("书籍已成功更新")
             }
-            .alert("Save Failed", isPresented: .init(
+            .alert("保存失败", isPresented: .init(
                 get: { saveError != nil },
                 set: { if !$0 { saveError = nil } }
             )) {
-                Button("OK") { }
+                Button("好") { }
             } message: {
-                Text(saveError ?? "Unknown error")
+                Text(saveError ?? "未知错误")
             }
         }
         .onAppear {
@@ -81,7 +81,7 @@ struct BookEditView: View {
                     self.editedContent = content
                     self.isLoading = false
                 case .failure(let error):
-                    self.editedContent = "Loading failed: \(error.localizedDescription)"
+                    self.editedContent = "加载失败：\(error.localizedDescription)"
                     self.isLoading = false
                 }
             }
@@ -108,7 +108,7 @@ struct BookEditView: View {
                 } else if success {
                     self.showingSaveAlert = true
                 } else {
-                    self.saveError = "Save failed, please try again"
+                    self.saveError = "保存失败，请重试"
                 }
             }
         } else if titleChanged {

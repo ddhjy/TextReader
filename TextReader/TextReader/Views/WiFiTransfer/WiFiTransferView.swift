@@ -16,7 +16,7 @@ struct WiFiTransferView: View {
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(viewModel.currentAccentColor)
-                    Text("WiFi Transfer Active")
+                    Text("WiFi 传输已开启")
                         .font(.title2)
                         .padding(.bottom, 10)
 
@@ -43,7 +43,7 @@ struct WiFiTransferView: View {
                     }
 
                     if let address = viewModel.serverAddress {
-                        Text("Visit the following address in a browser on the same WiFi network to upload files:")
+                        Text("请在同一 WiFi 网络下，在浏览器访问以下地址上传文件：")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -79,12 +79,12 @@ struct WiFiTransferView: View {
                         .padding(.horizontal)
 
                     } else {
-                        Text("Fetching IP Address...")
+                        Text("正在获取 IP 地址…")
                             .foregroundColor(.secondary)
                             .padding(.vertical)
                     }
 
-                    Button("Stop WiFi Transfer") {
+                    Button("停止 WiFi 传输") {
                         viewModel.toggleWiFiTransfer()
                     }
                     .buttonStyle(.borderedProminent)
@@ -97,16 +97,16 @@ struct WiFiTransferView: View {
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(.gray)
-                    Text("WiFi Transfer Inactive")
+                    Text("WiFi 传输未开启")
                         .font(.title2)
                         .padding(.bottom, 10)
-                    Text("Tap the button below to start the service and transfer TXT files to the app via WiFi.")
+                    Text("点击下方按钮以启动服务，通过 WiFi 传输 TXT 文件到应用。")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
 
-                    Button("Start WiFi Transfer") {
+                    Button("启动 WiFi 传输") {
                         viewModel.toggleWiFiTransfer()
                     }
                     .buttonStyle(.borderedProminent)
@@ -118,11 +118,11 @@ struct WiFiTransferView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("WiFi Transfer")
+            .navigationTitle("WiFi 传输")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
+                    Button("完成") {
                         dismiss()
                     }
                     .foregroundColor(viewModel.currentAccentColor)

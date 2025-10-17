@@ -34,7 +34,7 @@ struct ReadingControl: View {
         VStack(spacing: 8) {
             // MARK: - 语音选择
             HStack {
-                Text("Voice")
+                Text("语音")
                 Spacer()
                 Menu {
                     ForEach(viewModel.availableVoices, id: \.identifier) { voice in
@@ -49,7 +49,7 @@ struct ReadingControl: View {
 
             // MARK: - 速度选择
             HStack {
-                Text("Speed")
+                Text("速度")
                 Spacer()
                 HStack(spacing: 8) {
                     ForEach(speedOptions, id:\.self) { speed in

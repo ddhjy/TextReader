@@ -75,7 +75,7 @@ struct BookListView: View {
                             bookToDelete = book
                             showingDeleteAlert = true
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("删除", systemImage: "trash")
                         }
                         
                         if !book.isBuiltIn {
@@ -83,7 +83,7 @@ struct BookListView: View {
                                 viewModel.bookToEdit = book
                                 viewModel.showingBookEdit = true
                             } label: {
-                                Label("Edit", systemImage: "pencil")
+                                Label("编辑", systemImage: "pencil")
                             }
                             .tint(viewModel.currentAccentColor)
                         }
@@ -91,7 +91,7 @@ struct BookListView: View {
                 }
             }
         }
-        .navigationTitle("Select Book")
+        .navigationTitle("选择书籍")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { 
@@ -169,9 +169,9 @@ struct BookListView: View {
                 BookEditView(viewModel: viewModel, book: book)
             }
         }
-        .alert(isEditing ? "确认删除所选书籍" : "Confirm Deletion", isPresented: $showingDeleteAlert) {
+        .alert(isEditing ? "确认删除所选书籍" : "确认删除", isPresented: $showingDeleteAlert) {
             Button("取消", role: .cancel) {}
-            Button(isEditing ? "删除" : "Delete", role: .destructive) {
+            Button("删除", role: .destructive) {
                 if isEditing {
                     let toDelete = viewModel.books.filter { selectedBookIDs.contains($0.id) && !$0.isBuiltIn }
                     viewModel.deleteBooks(toDelete)
@@ -185,7 +185,7 @@ struct BookListView: View {
             if isEditing {
                 Text("将删除所选书籍，且无法恢复。")
             } else if let book = bookToDelete {
-                Text("Are you sure you want to delete \"\(book.title)\"? This action cannot be undone.")
+                Text("确定要删除“\(book.title)”吗？该操作无法撤销。")
             }
         }
     }

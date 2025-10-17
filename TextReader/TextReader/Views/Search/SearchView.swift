@@ -34,11 +34,11 @@ struct SearchView: View {
                 }
             }
         }
-        .navigationTitle("Search")
+        .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Cancel") {
+                Button("取消") {
                     dismiss()
                 }
                 .foregroundColor(viewModel.currentAccentColor)
@@ -58,7 +58,7 @@ struct SearchView: View {
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("Page \(idx + 1)")
+                Text("第 \(idx + 1) 页")
                     .font(.headline)
                     .foregroundColor(.primary)
                 
