@@ -97,6 +97,11 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             }
             
             if let data = data, let request = String(data: data, encoding: .utf8) {
+                // 兜底处理预检请求（极端情况下的OPTIONS）
+                if request.hasPrefix("OPTIONS ") {
+                    self?.sendOptionsPreflight(on: connection)
+                    return
+                }
                 if request.contains("Content-Type: multipart/form-data") {
                     self?.receiveFileUpload(connection: connection, initialData: data)
                 } else {
@@ -172,9 +177,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     return
                 }
                 
-                let currentTime = Date()
-                let timeElapsed = currentTime.timeIntervalSince(startTime)
-                
                 if let data = data {
                     buffer.append(data)
                 }
@@ -213,13 +215,9 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                             )
                         }
                     }
-                }
-                
-                if isComplete || (data == nil && timeElapsed > 3.0) {
-                    self?.processReceivedData(buffer: buffer, connection: connection)
-                    // 成功或超时后，若有总长，推送100%/或错误
-                    if isComplete, let total = declaredContentLength, let headerEnd = headerEndOffset {
-                        let receivedBody = max(0, buffer.count - headerEnd)
+                    // 若已收满整个Body（等于或超过Content-Length），立即解析
+                    if receivedBody >= total {
+                        self?.processReceivedData(buffer: buffer, connection: connection)
                         DispatchQueue.main.async { [weak self] in
                             if var s = self?.uploadState {
                                 s.receivedBytes = max(receivedBody, total)
@@ -228,23 +226,17 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                                 s.isCompleted = true
                                 self?.uploadState = s
                             }
-                            // 2秒后清理
                             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                                 self?.uploadState = nil
                             }
                         }
-                    } else if data == nil && timeElapsed > 3.0 {
-                        DispatchQueue.main.async { [weak self] in
-                            if var s = self?.uploadState {
-                                s.errorMessage = "上传超时"
-                                s.isCompleted = false
-                                self?.uploadState = s
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                self?.uploadState = nil
-                            }
-                        }
+                        return
                     }
+                }
+                
+                if isComplete {
+                    // 无Content-Length的兜底解析
+                    self?.processReceivedData(buffer: buffer, connection: connection)
                 } else if error == nil {
                     receive()
                 }
@@ -330,6 +322,11 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     
     /// Processes HTTP requests and responds appropriately
     private func processRequest(_ request: String, on connection: NWConnection) {
+        // 兜底处理预检请求（OPTIONS）
+        if request.hasPrefix("OPTIONS ") {
+            sendOptionsPreflight(on: connection)
+            return
+        }
         if request.contains("Content-Type: multipart/form-data") {
             guard let boundaryStart = request.range(of: "boundary="),
                   let headerEnd = request.range(of: "\r\n\r\n") else {
@@ -363,6 +360,21 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         } else {
             sendUploadForm(on: connection)
         }
+    }
+
+    /// Responds to OPTIONS preflight with permissive CORS headers
+    private func sendOptionsPreflight(on connection: NWConnection) {
+        let resp = """
+        HTTP/1.1 204 No Content\r
+        Access-Control-Allow-Origin: *\r
+        Access-Control-Allow-Methods: POST, GET, OPTIONS\r
+        Access-Control-Allow-Headers: Content-Type\r
+        Connection: close\r
+        \r
+        """
+        connection.send(content: resp.data(using: .utf8), completion: .contentProcessed({ _ in
+            connection.cancel()
+        }))
     }
     
     /// Sends the HTML upload form to the client
