@@ -32,8 +32,10 @@ struct BookListView: View {
                                 selectedBookIDs.insert(book.id)
                             }
                         } else {
-                            viewModel.loadBook(book)
                             dismiss()
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                viewModel.loadBook(book)
+                            }
                         }
                     }) {
                         HStack {
