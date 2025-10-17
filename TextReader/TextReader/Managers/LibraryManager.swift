@@ -321,6 +321,9 @@ class LibraryManager {
                     print("[LibraryManager] 要删除的文件不存在: \(fileURL.path)")
                 }
                 
+                // 同步清理该书籍的阅读进度元数据
+                self.removeBookProgress(bookId: book.id)
+
                 DispatchQueue.main.async {
                     completion(.success(()))
                 }

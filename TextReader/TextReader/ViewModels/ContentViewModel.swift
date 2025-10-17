@@ -468,6 +468,43 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    /// 批量删除书籍
+    /// - Parameter booksToDelete: 需要删除的书籍集合
+    func deleteBooks(_ booksToDelete: [Book]) {
+        // 若当前书在删除列表中，先停止播放
+        let deletingCurrent = booksToDelete.contains { $0.id == currentBookId }
+        if deletingCurrent {
+            stopReading()
+        }
+
+        let group = DispatchGroup()
+        for book in booksToDelete {
+            group.enter()
+            libraryManager.deleteBook(book) { [weak self] _ in
+                group.leave()
+            }
+        }
+
+        group.notify(queue: .main) { [weak self] in
+            guard let self = self else { return }
+            self.books = self.libraryManager.loadBooks()
+            self.sortBooks()
+
+            if deletingCurrent {
+                // 如果当前书被删除，切换到第一本或清空
+                if let firstBook = self.books.first {
+                    self.loadBook(firstBook)
+                } else {
+                    self.pages = []
+                    self.currentPageIndex = 0
+                    self.currentBookId = nil
+                    self.currentBookTitle = "TextReader"
+                    self.isContentLoaded = true
+                }
+            }
+        }
+    }
+
     /// 处理通过WiFi传输接收到的文件
     private func handleReceivedFile(fileName: String, content: String) {
         libraryManager.importBook(fileName: fileName, content: content) { [weak self] result in
