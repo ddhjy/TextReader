@@ -70,42 +70,14 @@ struct BookListView: View {
                 }
                 .contentShape(Rectangle())
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-<<<<<<< HEAD
                     if !isEditing {
                         Button(role: .destructive) {
                             bookToDelete = book
                             showingDeleteAlert = true
-||||||| 4f59dc3
-                    Button(role: .destructive) {
-                        bookToDelete = book
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    // Add edit button (only show for non-built-in books)
-                    if !book.isBuiltIn {
-                        Button {
-                            viewModel.bookToEdit = book
-                            viewModel.showingBookEdit = true
-=======
-                    Button(role: .destructive) {
-                        bookToDelete = book
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    if !book.isBuiltIn {
-                        Button {
-                            viewModel.bookToEdit = book
-                            viewModel.showingBookEdit = true
->>>>>>> origin/main
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
                         
-                        // Add edit button (only show for non-built-in books)
                         if !book.isBuiltIn {
                             Button {
                                 viewModel.bookToEdit = book
