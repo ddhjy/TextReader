@@ -254,27 +254,14 @@ class ContentViewModel: ObservableObject {
                 return
             }
             
-            // 保存语音结束时的页面索引，以便稍后验证
-            let finishedPageIndex = self.currentPageIndex
+            guard self.isReading else { return }
             
-            DispatchQueue.main.async {
-                guard self.isReading else { return }
-                
-                // 验证当前页面索引与语音结束时的索引是否匹配
-                // 这可以防止手动翻页和自动前进之间的竞争条件
-                guard self.currentPageIndex == finishedPageIndex else {
-                    print("页面已更改，跳过自动前进")
-                    return
-                }
-                
-                // 自动前进到下一页
-                if !self.pages.isEmpty && self.currentPageIndex < self.pages.count - 1 {
-                    self.currentPageIndex += 1
-                    self.readCurrentPage()
-                } else {
-                    self.isReading = false // 到达书籍末尾
-                    self.updateNowPlayingInfo()
-                }
+            if !self.pages.isEmpty && self.currentPageIndex < self.pages.count - 1 {
+                self.currentPageIndex += 1
+                self.readCurrentPage()
+            } else {
+                self.isReading = false // 到达书籍末尾
+                self.updateNowPlayingInfo()
             }
         }
         
