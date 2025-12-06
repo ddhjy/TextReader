@@ -14,6 +14,10 @@ struct ContentDisplay: View {
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .contentShape(Rectangle())
+            .id(viewModel.currentPageIndex)
+            .transaction { transaction in
+                transaction.animation = nil
+            }
             .gesture(
                 LongPressGesture(minimumDuration: 0.3)
                     .onEnded { _ in
