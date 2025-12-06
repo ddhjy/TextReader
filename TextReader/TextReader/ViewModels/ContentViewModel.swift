@@ -505,14 +505,14 @@ class ContentViewModel: ObservableObject {
             let totalMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
             
             if totalMinutes < 5 {
-                return "刚刚阅读"
+                return "刚刚"
             } else if totalMinutes < 60 {
-                return "\(totalMinutes)分钟前阅读"
+                return "\(totalMinutes)分钟前"
             } else {
-                return "\(components.hour ?? 0)小时前阅读"
+                return "\(components.hour ?? 0)小时前"
             }
         } else if calendar.isDateInYesterday(lastAccessed) {
-            return "昨天阅读"
+            return "昨天"
         } else {
             let currentYear = calendar.component(.year, from: now)
             let accessedYear = calendar.component(.year, from: lastAccessed)
@@ -522,10 +522,10 @@ class ContentViewModel: ObservableObject {
             
             if currentYear == accessedYear {
                 // 如果是今年，只显示月日
-                formatter.dateFormat = "M月d日阅读"
+                formatter.dateFormat = "M月d日"
             } else {
                 // 否则显示完整日期（年月日）
-                formatter.dateFormat = "yyyy年M月d日阅读"
+                formatter.dateFormat = "yyyy年M月d日"
             }
             
             return formatter.string(from: lastAccessed)
