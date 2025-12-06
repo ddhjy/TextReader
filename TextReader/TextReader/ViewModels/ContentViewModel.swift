@@ -46,6 +46,9 @@ class ContentViewModel: ObservableObject {
     
     // 添加手动翻页标志，用于区分手动翻页和自动翻页
     private var isManualPageTurn = false
+    
+    // 添加自动翻页保护标志，防止状态同步定时器在页面切换间隙干扰
+    private var isAutoAdvancing = false
 
     // MARK: - Dependencies
     let libraryManager: LibraryManager  // Remove private to allow access by BookEditView
@@ -189,6 +192,11 @@ class ContentViewModel: ObservableObject {
                 let speechManagerActive = speechManager.isSpeaking
                 
                 // 只修正明显不一致的状态
+                // 如果正在自动翻页，跳过状态检查，避免在页面切换间隙误判
+                if self.isAutoAdvancing {
+                    return
+                }
+                
                 if self.isReading != speechManagerActive {
                     print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
                     
@@ -230,13 +238,27 @@ class ContentViewModel: ObservableObject {
             // 保存语音结束时的页面索引，以便稍后验证
             let finishedPageIndex = self.currentPageIndex
             
+            // 设置自动翻页保护标志
+            self.isAutoAdvancing = true
+            
             DispatchQueue.main.async {
-                guard self.isReading else { return }
+                defer {
+                    // 延迟重置保护标志，确保新页面朗读已开始
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        self.isAutoAdvancing = false
+                    }
+                }
+                
+                guard self.isReading else {
+                    self.isAutoAdvancing = false
+                    return
+                }
                 
                 // 验证当前页面索引与语音结束时的索引是否匹配
                 // 这可以防止手动翻页和自动前进之间的竞争条件
                 guard self.currentPageIndex == finishedPageIndex else {
                     print("页面已更改，跳过自动前进")
+                    self.isAutoAdvancing = false
                     return
                 }
                 
@@ -246,6 +268,7 @@ class ContentViewModel: ObservableObject {
                     self.readCurrentPage()
                 } else {
                     self.isReading = false // 到达书籍末尾
+                    self.isAutoAdvancing = false
                     self.updateNowPlayingInfo()
                 }
             }
