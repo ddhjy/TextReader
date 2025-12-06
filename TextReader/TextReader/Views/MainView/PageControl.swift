@@ -91,7 +91,16 @@ private struct CustomSlider: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UISlider, context: Context) {
-        uiView.value = Float(value)
+        // 更新范围（当页数变化时需要同步更新）
+        uiView.minimumValue = Float(range.lowerBound)
+        uiView.maximumValue = Float(range.upperBound)
+        
+        // 确保值在有效范围内后再设置
+        let clampedValue = min(max(Float(value), uiView.minimumValue), uiView.maximumValue)
+        if abs(uiView.value - clampedValue) > 0.01 {
+            uiView.value = clampedValue
+        }
+        
         uiView.tintColor = UIColor(accentColor)
         uiView.minimumTrackTintColor = UIColor(accentColor)
     }
@@ -108,7 +117,9 @@ private struct CustomSlider: UIViewRepresentable {
         }
         
         @objc func valueChanged(_ sender: UISlider) {
-            parent.value = Double(sender.value)
+            // 确保值在有效范围内
+            let clampedValue = Double(min(max(sender.value, sender.minimumValue), sender.maximumValue))
+            parent.value = clampedValue
         }
     }
 } 
