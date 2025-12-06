@@ -372,8 +372,11 @@ class ContentViewModel: ObservableObject {
         // 更新最后访问时间
         libraryManager.updateLastAccessed(bookId: book.id)
 
-        sortBooks() // 更新后立即重新排序books数组
-        print("[ContentViewModel] 加载书籍后重新排序: \(book.title)")
+        // 延迟排序，避免与 sheet 关闭动画冲突
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.sortBooks()
+            print("[ContentViewModel] 加载书籍后重新排序: \(book.title)")
+        }
 
         libraryManager.loadBookContent(book: book) { [weak self] result in
             DispatchQueue.main.async {
