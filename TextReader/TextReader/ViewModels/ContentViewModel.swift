@@ -378,6 +378,29 @@ class ContentViewModel: ObservableObject {
             print("[ContentViewModel] 加载书籍后重新排序: \(book.title)")
         }
 
+        // 尝试使用缓存的页面
+        if let cachedPages = libraryManager.getCachedPages(bookId: book.id),
+           !cachedPages.isEmpty {
+            print("[ContentViewModel] 使用缓存的页面数据，共 \(cachedPages.count) 页")
+            self.pages = cachedPages
+            let savedProgress = self.libraryManager.getBookProgress(bookId: book.id)
+            let savedPageIndex = savedProgress?.currentPageIndex ?? 0
+            // 确保恢复的页面索引不会越界
+            self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
+            
+            // 延迟生成页面摘要，减少初始加载时间
+            DispatchQueue.main.async {
+                self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
+                self.searchResults = []
+            }
+            
+            self.isContentLoaded = true
+            self.updateNowPlayingInfo()
+            return
+        }
+
+        // 无缓存时从文件加载
+        print("[ContentViewModel] 无缓存，从文件加载书籍内容")
         libraryManager.loadBookContent(book: book) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
@@ -388,7 +411,9 @@ class ContentViewModel: ObservableObject {
                     let savedPageIndex = savedProgress?.currentPageIndex ?? 0
                     // 确保恢复的页面索引不会越界
                     self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
-                    self.libraryManager.saveTotalPages(bookId: book.id, totalPages: self.pages.count)
+                    
+                    // 保存页面缓存，下次加载时直接使用
+                    self.libraryManager.saveCachedPages(bookId: book.id, pages: self.pages)
                     
                     // 确保生成页面摘要
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
@@ -573,6 +598,12 @@ class ContentViewModel: ObservableObject {
                     self.currentPageIndex = 0
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                     self.searchResults = []
+                    
+                    // 更新缓存为新的分页结果
+                    self.libraryManager.saveCachedPages(bookId: book.id, pages: self.pages)
+                } else {
+                    // 书籍内容已更改，清除其缓存
+                    self.libraryManager.clearCachedPages(bookId: book.id)
                 }
                 completion(true)
                 

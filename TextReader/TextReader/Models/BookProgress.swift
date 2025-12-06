@@ -1,7 +1,8 @@
 import Foundation
 
 struct BookProgress: Codable {
-    let currentPageIndex: Int
-    let totalPages: Int
+    var currentPageIndex: Int
+    var totalPages: Int
     var lastAccessed: Date?
+    var cachedPages: [String]?  // 缓存的分页结果，避免重复分页
 } 
