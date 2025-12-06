@@ -5,6 +5,10 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>txt</string>
+			</array>
 			<key>CFBundleTypeName</key>
 			<string>Plain Text</string>
 			<key>CFBundleTypeRole</key>
@@ -16,17 +20,7 @@
 				<string>public.plain-text</string>
 				<string>public.text</string>
 			</array>
-			<key>CFBundleTypeExtensions</key>
-			<array>
-				<string>txt</string>
-			</array>
 		</dict>
-	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
@@ -38,6 +32,10 @@
 				<string>textreader</string>
 			</array>
 		</dict>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
 	</array>
 </dict>
 </plist>
