@@ -5,44 +5,28 @@ struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
 
     var body: some View {
-        Group {
-            if !viewModel.isContentLoaded {
-                // 加载中状态
-                VStack {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                    Text("加载中...")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.top, 8)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                // 正文内容
-                Text(currentPageText)
-                    .font(.system(size: 19))
-                    .kerning(0.3)
-                    .lineSpacing(8)
-                    .multilineTextAlignment(.leading)
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .contentShape(Rectangle())
-                    .id(viewModel.currentPageIndex)
-                    .transaction { transaction in
-                        transaction.animation = nil
-                    }
-                    .gesture(
-                        LongPressGesture(minimumDuration: 0.3)
-                            .onEnded { _ in
-                                viewModel.triggerBigBang()
-                            }
-                    )
-                    .onTapGesture {
-                        viewModel.nextPage()
-                    }
+        Text(currentPageText)
+            .font(.system(size: 19))
+            .kerning(0.3)
+            .lineSpacing(8)
+            .multilineTextAlignment(.leading)
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .contentShape(Rectangle())
+            .id(viewModel.currentPageIndex)
+            .transaction { transaction in
+                transaction.animation = nil
             }
-        }
+            .gesture(
+                LongPressGesture(minimumDuration: 0.3)
+                    .onEnded { _ in
+                        viewModel.triggerBigBang()
+                    }
+            )
+            .onTapGesture {
+                viewModel.nextPage()
+            }
     }
     
     // MARK: - 计算属性

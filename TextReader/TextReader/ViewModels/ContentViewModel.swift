@@ -200,15 +200,19 @@ class ContentViewModel: ObservableObject {
     // MARK: - 绑定与回调
     /// 设置数据绑定，监听状态变化并保存相关设置
     private func setupBindings() {
-        // 页面改变时保存进度和当前页内容
+        // 页面改变时保存进度和当前页内容（使用 debounce 和异步执行避免卡顿）
         $currentPageIndex
             .dropFirst()
             .debounce(for: .seconds(0.5), scheduler: RunLoop.main)
             .sink { [weak self] index in
                 guard let self = self, let bookId = self.currentBookId else { return }
-                self.libraryManager.saveBookProgress(bookId: bookId, pageIndex: index)
+                // UserDefaults 保存（快速）
                 self.saveCurrentPageToCache()
                 self.updateNowPlayingInfo()
+                // 文件 I/O 保存放到后台线程
+                DispatchQueue.global(qos: .utility).async {
+                    self.libraryManager.saveBookProgress(bookId: bookId, pageIndex: index)
+                }
             }
             .store(in: &cancellables)
 
@@ -728,11 +732,6 @@ class ContentViewModel: ObservableObject {
 
         currentPageIndex += 1
 
-        if let bookId = self.currentBookId {
-            libraryManager.updateLastAccessed(bookId: bookId)
-            sortBooks()
-        }
-
         if wasReading {
             DispatchQueue.main.async {
                 self.readCurrentPage()
@@ -755,11 +754,6 @@ class ContentViewModel: ObservableObject {
         }
 
         currentPageIndex -= 1
-
-        if let bookId = self.currentBookId {
-            libraryManager.updateLastAccessed(bookId: bookId)
-            sortBooks()
-        }
 
         if wasReading {
             DispatchQueue.main.async {
