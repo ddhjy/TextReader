@@ -6,6 +6,19 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private var listener: NWListener?
     @Published var isRunning = false
     @Published var serverAddress: String?
+    
+    /// 上传状态
+    struct UploadState {
+        var fileName: String?
+        var receivedBytes: Int
+        var totalBytes: Int?
+        var startedAt: Date
+        var isCompleted: Bool
+        var errorMessage: String?
+    }
+    
+    /// 当前上传状态（用于手机端展示进度与错误）
+    @Published var uploadState: UploadState?
     var onFileReceived: ((String, String) -> Void)?
     
     /// Starts the WiFi transfer server on port 8080
@@ -84,6 +97,11 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             }
             
             if let data = data, let request = String(data: data, encoding: .utf8) {
+                // 兜底处理预检请求（极端情况下的OPTIONS）
+                if request.hasPrefix("OPTIONS ") {
+                    self?.sendOptionsPreflight(on: connection)
+                    return
+                }
                 if request.contains("Content-Type: multipart/form-data") {
                     self?.receiveFileUpload(connection: connection, initialData: data)
                 } else {
@@ -99,22 +117,125 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private func receiveFileUpload(connection: NWConnection, initialData: Data) {
         var buffer = initialData
         let startTime = Date()
+        var headerEndOffset: Int? = nil
+        var declaredContentLength: Int? = nil
+        var detectedFileName: String? = nil
+        
+        // 解析首包中的Header，提取Content-Length
+        if let headerDelimiter = "\r\n\r\n".data(using: .utf8),
+           let range = buffer.range(of: headerDelimiter) {
+            headerEndOffset = range.upperBound
+            let headerData = buffer.subdata(in: 0..<range.upperBound)
+            if let headerString = String(data: headerData, encoding: .utf8) {
+                if let lenLine = headerString.components(separatedBy: "\r\n").first(where: { $0.lowercased().hasPrefix("content-length:") }) {
+                    let numPart = lenLine.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces)
+                    if let n = numPart, let v = Int(n) {
+                        declaredContentLength = v
+                    }
+                }
+            }
+        }
+        
+        // 初始化上传状态（注意：receivedBytes统计主体部分长度，若无header分界则暂置0）
+        DispatchQueue.main.async { [weak self] in
+            let receivedBody = headerEndOffset.map { max(0, buffer.count - $0) } ?? 0
+            self?.uploadState = UploadState(
+                fileName: detectedFileName,
+                receivedBytes: receivedBody,
+                totalBytes: declaredContentLength,
+                startedAt: startTime,
+                isCompleted: false,
+                errorMessage: nil
+            )
+        }
         
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
                 if error != nil {
                     self?.sendErrorResponse(on: connection, message: "接收数据时发生错误")
+                    // 发布错误状态
+                    DispatchQueue.main.async {
+                        if var s = self?.uploadState {
+                            s.errorMessage = "接收数据时发生错误"
+                            s.isCompleted = false
+                            self?.uploadState = s
+                        } else {
+                            self?.uploadState = UploadState(
+                                fileName: detectedFileName,
+                                receivedBytes: 0,
+                                totalBytes: declaredContentLength,
+                                startedAt: startTime,
+                                isCompleted: false,
+                                errorMessage: "接收数据时发生错误"
+                            )
+                        }
+                        // 2秒后清空状态
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            self?.uploadState = nil
+                        }
+                    }
                     return
                 }
-                
-                let currentTime = Date()
-                let timeElapsed = currentTime.timeIntervalSince(startTime)
                 
                 if let data = data {
                     buffer.append(data)
                 }
                 
-                if isComplete || (data == nil && timeElapsed > 3.0) {
+                // 如果尚未确定header结束位置，尝试再次定位，便于计算主体部分已收字节
+                if headerEndOffset == nil, let headerDelimiter = "\r\n\r\n".data(using: .utf8), let range = buffer.range(of: headerDelimiter) {
+                    headerEndOffset = range.upperBound
+                }
+                
+                // 尝试从缓冲中解析文件名（仅解析一次）
+                if detectedFileName == nil, let contentStr = String(data: buffer, encoding: .utf8) {
+                    if let filenameRange = contentStr.range(of: "filename=\"") {
+                        if let filenameEnd = contentStr[filenameRange.upperBound...].range(of: "\"") {
+                            detectedFileName = String(contentStr[filenameRange.upperBound..<filenameEnd.lowerBound])
+                        }
+                    }
+                }
+                
+                // 进度更新（如果有Content-Length且已找到header终点）
+                if let total = declaredContentLength, let headerEnd = headerEndOffset {
+                    let receivedBody = max(0, buffer.count - headerEnd)
+                    DispatchQueue.main.async { [weak self] in
+                        if var s = self?.uploadState {
+                            s.receivedBytes = receivedBody
+                            s.totalBytes = total
+                            s.fileName = s.fileName ?? detectedFileName
+                            self?.uploadState = s
+                        } else {
+                            self?.uploadState = UploadState(
+                                fileName: detectedFileName,
+                                receivedBytes: receivedBody,
+                                totalBytes: total,
+                                startedAt: startTime,
+                                isCompleted: false,
+                                errorMessage: nil
+                            )
+                        }
+                    }
+                    // 若已收满整个Body（等于或超过Content-Length），立即解析
+                    if receivedBody >= total {
+                        self?.processReceivedData(buffer: buffer, connection: connection)
+                        DispatchQueue.main.async { [weak self] in
+                            if var s = self?.uploadState {
+                                s.receivedBytes = max(receivedBody, total)
+                                s.totalBytes = total
+                                s.fileName = s.fileName ?? detectedFileName
+                                s.isCompleted = true
+                                self?.uploadState = s
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                self?.uploadState = nil
+                            }
+                        }
+                        return
+                    }
+                }
+                
+                if isComplete {
+                    // 无Content-Length的兜底解析
                     self?.processReceivedData(buffer: buffer, connection: connection)
                 } else if error == nil {
                     receive()
@@ -129,6 +250,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private func processReceivedData(buffer: Data, connection: NWConnection) {
         let encodings: [String.Encoding] = [.utf8]
         var fileContent: String?
+        var filenameToPublish: String? = nil
         
         for encoding in encodings {
             if let content = String(data: buffer, encoding: encoding) {
@@ -145,6 +267,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 if let filenameRange = content.range(of: "filename=\""),
                    let filenameEnd = content[filenameRange.upperBound...].range(of: "\"") {
                     let filename = String(content[filenameRange.upperBound..<filenameEnd.lowerBound])
+                    filenameToPublish = filename
                     
                     let boundaryEnd = "\(boundary)--"
                     if let contentStart = content.range(of: "\r\n\r\n", range: headerEnd.upperBound..<content.endIndex),
@@ -153,6 +276,15 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         
                         DispatchQueue.main.async { [weak self] in
                             self?.onFileReceived?(filename, fileContent)
+                            // 上传完成状态留存2秒
+                            if var s = self?.uploadState {
+                                s.fileName = s.fileName ?? filename
+                                s.isCompleted = true
+                                self?.uploadState = s
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    self?.uploadState = nil
+                                }
+                            }
                         }
                         
                         sendSuccessResponse(on: connection, filename: filename)
@@ -161,13 +293,40 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 }
             }
             sendErrorResponse(on: connection, message: "文件格式解析失败")
+            // 发布错误
+            DispatchQueue.main.async { [weak self] in
+                if var s = self?.uploadState {
+                    s.fileName = s.fileName ?? filenameToPublish
+                    s.errorMessage = "文件格式解析失败"
+                    s.isCompleted = false
+                    self?.uploadState = s
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self?.uploadState = nil
+                }
+            }
         } else {
             sendErrorResponse(on: connection, message: "不支持的文件编码格式")
+            DispatchQueue.main.async { [weak self] in
+                if var s = self?.uploadState {
+                    s.errorMessage = "不支持的文件编码格式"
+                    s.isCompleted = false
+                    self?.uploadState = s
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self?.uploadState = nil
+                }
+            }
         }
     }
     
     /// Processes HTTP requests and responds appropriately
     private func processRequest(_ request: String, on connection: NWConnection) {
+        // 兜底处理预检请求（OPTIONS）
+        if request.hasPrefix("OPTIONS ") {
+            sendOptionsPreflight(on: connection)
+            return
+        }
         if request.contains("Content-Type: multipart/form-data") {
             guard let boundaryStart = request.range(of: "boundary="),
                   let headerEnd = request.range(of: "\r\n\r\n") else {
@@ -201,6 +360,21 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         } else {
             sendUploadForm(on: connection)
         }
+    }
+
+    /// Responds to OPTIONS preflight with permissive CORS headers
+    private func sendOptionsPreflight(on connection: NWConnection) {
+        let resp = """
+        HTTP/1.1 204 No Content\r
+        Access-Control-Allow-Origin: *\r
+        Access-Control-Allow-Methods: POST, GET, OPTIONS\r
+        Access-Control-Allow-Headers: Content-Type\r
+        Connection: close\r
+        \r
+        """
+        connection.send(content: resp.data(using: .utf8), completion: .contentProcessed({ _ in
+            connection.cancel()
+        }))
     }
     
     /// Sends the HTML upload form to the client
@@ -255,6 +429,10 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         margin: 10px 0;
                         display: none;
                     }
+                    #progress { margin-top: 14px; display: none; }
+                    #progress .bar-wrap { width: 100%; height: 4px; background: #E5E5EA; border-radius: 2px; overflow: hidden; }
+                    #progress .bar { height: 100%; width: 0%; background: #34C759; }
+                    #progress .percent { margin-top: 8px; color: #666; }
                 </style>
             </head>
             <body>
@@ -269,6 +447,10 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         <div id="selected-file"></div>
                         <div class="error" id="error-message">请选择有效的文本文件</div>
                         <button type="submit" class="upload-button" style="margin-top: 10px;">上传</button>
+                        <div id="progress">
+                            <div class="bar-wrap"><div id="bar" class="bar"></div></div>
+                            <div id="percent" class="percent">0%</div>
+                        </div>
                     </form>
                 </div>
                 <script>
@@ -292,22 +474,56 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         }
                     }
                     
-                    function validateForm() {
+                    function uploadViaXHR() {
                         const input = document.getElementById('file-input');
                         const errorMsg = document.getElementById('error-message');
+                        const progress = document.getElementById('progress');
+                        const bar = document.getElementById('bar');
+                        const percent = document.getElementById('percent');
                         
                         if (input.files.length === 0) {
                             errorMsg.style.display = 'block';
                             return false;
                         }
-                        
                         const file = input.files[0];
                         if (!file.name.toLowerCase().endsWith('.txt')) {
                             errorMsg.style.display = 'block';
                             return false;
                         }
+                        errorMsg.style.display = 'none';
+                        progress.style.display = 'block';
+                        bar.style.width = '0%';
+                        percent.textContent = '0%';
                         
-                        return true;
+                        const fd = new FormData();
+                        fd.append('book', file, file.name);
+                        const xhr = new XMLHttpRequest();
+                        xhr.open('POST', '/upload');
+                        xhr.upload.onprogress = function(e) {
+                            if (e.lengthComputable) {
+                                const p = Math.round(e.loaded * 100 / e.total);
+                                bar.style.width = p + '%';
+                                percent.textContent = p + '%';
+                            }
+                        };
+                        xhr.onload = function() {
+                            if (xhr.status === 200) {
+                                setTimeout(function() { window.location.href = '/'; }, 2000);
+                            } else {
+                                errorMsg.textContent = '上传失败：' + xhr.status + ' ' + (xhr.statusText || '');
+                                errorMsg.style.display = 'block';
+                            }
+                        };
+                        xhr.onerror = function() {
+                            errorMsg.textContent = '网络错误，请重试';
+                            errorMsg.style.display = 'block';
+                        };
+                        xhr.send(fd);
+                        return false;
+                    }
+                    
+                    function validateForm() {
+                        return uploadViaXHR();
                     }
                 </script>
             </body>

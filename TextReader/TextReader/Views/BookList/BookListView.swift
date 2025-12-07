@@ -6,60 +6,87 @@ struct BookListView: View {
     @State private var showingDeleteAlert = false
     @State private var bookToDelete: Book?
     @State private var showingPasteImport = false
+    @State private var isEditing = false
+    @State private var selectedBookIDs = Set<String>()
 
     var body: some View {
-        List {
+        List(selection: isEditing ? $selectedBookIDs : .constant(Set<String>())) {
             ForEach(viewModel.books) { book in
-                Button(action: {
-                    viewModel.loadBook(book)
-                    dismiss()
-                }) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(book.title)
-                                .foregroundColor(.primary)
-                                .font(.headline)
-                                .lineLimit(1)
-                            
-                            VStack(alignment: .leading, spacing: 2) {
-                                if let progressText = viewModel.getBookProgressDisplay(book: book) {
-                                    Text(progressText)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                }
-                                
-                                if let lastAccessedText = viewModel.getLastAccessedTimeDisplay(book: book) {
-                                    Text(lastAccessedText)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
+                HStack {
+                    if isEditing {
+                        Image(systemName: selectedBookIDs.contains(book.id) ? "checkmark.circle.fill" : "circle")
+                            .foregroundColor(selectedBookIDs.contains(book.id) ? viewModel.currentAccentColor : .secondary)
+                            .onTapGesture {
+                                if selectedBookIDs.contains(book.id) {
+                                    selectedBookIDs.remove(book.id)
+                                } else {
+                                    selectedBookIDs.insert(book.id)
                                 }
                             }
+                    }
+                    Button(action: {
+                        if isEditing {
+                            if selectedBookIDs.contains(book.id) {
+                                selectedBookIDs.remove(book.id)
+                            } else {
+                                selectedBookIDs.insert(book.id)
+                            }
+                        } else {
+                            viewModel.loadBook(book)
+                            dismiss()
                         }
-                        Spacer()
-                        if viewModel.currentBookId == book.id {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(viewModel.currentAccentColor)
+                    }) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(book.title)
+                                    .foregroundColor(.primary)
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                
+                                VStack(alignment: .leading, spacing: 2) {
+                                    if let progressText = viewModel.getBookProgressDisplay(book: book) {
+                                        Text(progressText)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                    
+                                    if let lastAccessedText = viewModel.getLastAccessedTimeDisplay(book: book) {
+                                        Text(lastAccessedText)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .lineLimit(1)
+                                    }
+                                }
+                            }
+                            Spacer()
+                            if viewModel.currentBookId == book.id && !isEditing {
+                                Image(systemName: "checkmark")
+                                    .foregroundColor(viewModel.currentAccentColor)
+                            }
                         }
                     }
+                    .disabled(isEditing && book.isBuiltIn)
                 }
+                .contentShape(Rectangle())
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    Button(role: .destructive) {
-                        bookToDelete = book
-                        showingDeleteAlert = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    
-                    if !book.isBuiltIn {
-                        Button {
-                            viewModel.bookToEdit = book
-                            viewModel.showingBookEdit = true
+                    if !isEditing {
+                        Button(role: .destructive) {
+                            bookToDelete = book
+                            showingDeleteAlert = true
                         } label: {
-                            Label("Edit", systemImage: "pencil")
+                            Label("Delete", systemImage: "trash")
                         }
-                        .tint(viewModel.currentAccentColor)
+                        
+                        if !book.isBuiltIn {
+                            Button {
+                                viewModel.bookToEdit = book
+                                viewModel.showingBookEdit = true
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(viewModel.currentAccentColor)
+                        }
                     }
                 }
             }
@@ -93,10 +120,39 @@ struct BookListView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Done") {
-                    dismiss()
+                if isEditing {
+                    HStack(spacing: 16) {
+                        Button("全选") {
+                            selectedBookIDs = Set(viewModel.books.filter { !$0.isBuiltIn }.map { $0.id })
+                        }
+                        .disabled(viewModel.books.filter { !$0.isBuiltIn }.isEmpty)
+
+                        Button(role: .destructive) {
+                            // 弹出确认删除对话框（批量）
+                            showingDeleteAlert = true
+                        } label: {
+                            Text("删除")
+                        }
+                        .disabled(selectedBookIDs.isEmpty)
+
+                        Button("完成") {
+                            isEditing = false
+                            selectedBookIDs.removeAll()
+                        }
+                        .foregroundColor(viewModel.currentAccentColor)
+                    }
+                } else {
+                    HStack(spacing: 16) {
+                        Button("编辑") {
+                            isEditing = true
+                            selectedBookIDs.removeAll()
+                        }
+                        Button("完成") {
+                            dismiss()
+                        }
+                        .foregroundColor(viewModel.currentAccentColor)
+                    }
                 }
-                .foregroundColor(viewModel.currentAccentColor)
             }
         }
         .sheet(isPresented: $viewModel.showingDocumentPicker) {
@@ -113,15 +169,22 @@ struct BookListView: View {
                 BookEditView(viewModel: viewModel, book: book)
             }
         }
-        .alert("Confirm Deletion", isPresented: $showingDeleteAlert) {
-            Button("Cancel", role: .cancel) {}
-            Button("Delete", role: .destructive) {
-                if let book = bookToDelete {
+        .alert(isEditing ? "确认删除所选书籍" : "Confirm Deletion", isPresented: $showingDeleteAlert) {
+            Button("取消", role: .cancel) {}
+            Button(isEditing ? "删除" : "Delete", role: .destructive) {
+                if isEditing {
+                    let toDelete = viewModel.books.filter { selectedBookIDs.contains($0.id) && !$0.isBuiltIn }
+                    viewModel.deleteBooks(toDelete)
+                    selectedBookIDs.removeAll()
+                    isEditing = false
+                } else if let book = bookToDelete {
                     viewModel.deleteBook(book)
                 }
             }
         } message: {
-            if let book = bookToDelete {
+            if isEditing {
+                Text("将删除所选书籍，且无法恢复。")
+            } else if let book = bookToDelete {
                 Text("Are you sure you want to delete \"\(book.title)\"? This action cannot be undone.")
             }
         }
