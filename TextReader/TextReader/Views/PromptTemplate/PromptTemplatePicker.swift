@@ -9,28 +9,39 @@ struct PromptTemplatePicker: View {
         NavigationStack {
             List {
                 ForEach(viewModel.templates) { tpl in
-                    Button {
-                        viewModel.buildPrompt(using: tpl)
-                        dismiss()
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(tpl.name).font(.headline)
-                            Text(tpl.content).font(.caption).lineLimit(2)
-                        }
-                    }
-                    .swipeActions {
-                        Button(role: .destructive) {
-                            viewModel.deleteTemplate(tpl)
+                    Menu {
+                        Button {
+                            viewModel.buildPrompt(using: tpl, openPerplexity: true)
+                            dismiss()
                         } label: {
-                            Label("删除", systemImage: "trash")
+                            Label("打开 Perplexity", systemImage: "safari")
                         }
-                        
+                        Button {
+                            viewModel.buildPrompt(using: tpl, openPerplexity: false)
+                            dismiss()
+                        } label: {
+                            Label("仅复制", systemImage: "doc.on.doc")
+                        }
+                        Divider()
                         Button {
                             editing = tpl
                         } label: {
                             Label("编辑", systemImage: "square.and.pencil")
                         }
+                        Button(role: .destructive) {
+                            viewModel.deleteTemplate(tpl)
+                        } label: {
+                            Label("删除", systemImage: "trash")
+                        }
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(tpl.name).font(.headline)
+                            Text(tpl.content).font(.caption).lineLimit(2)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .navigationTitle("提示词模板")

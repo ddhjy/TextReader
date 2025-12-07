@@ -242,10 +242,21 @@ struct BigBangView: View {
                         
                         Menu("模板") {
                             ForEach(vm.templates) { tpl in
-                                Button(tpl.name) { 
-                                    vm.buildPrompt(using: tpl)
-                                    HapticFeedback.shared.impactOccurred()
-                                    dismiss()
+                                Menu(tpl.name) {
+                                    Button {
+                                        vm.buildPrompt(using: tpl, openPerplexity: true)
+                                        HapticFeedback.shared.impactOccurred()
+                                        dismiss()
+                                    } label: {
+                                        Label("打开 Perplexity", systemImage: "safari")
+                                    }
+                                    Button {
+                                        vm.buildPrompt(using: tpl, openPerplexity: false)
+                                        HapticFeedback.shared.impactOccurred()
+                                        dismiss()
+                                    } label: {
+                                        Label("仅复制", systemImage: "doc.on.doc")
+                                    }
                                 }
                             }
                             Divider()

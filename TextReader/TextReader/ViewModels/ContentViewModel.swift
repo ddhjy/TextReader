@@ -1115,7 +1115,10 @@ class ContentViewModel: ObservableObject {
     }
     
     /// 生成提示词并复制到剪贴板
-    func buildPrompt(using template: PromptTemplate) {
+    /// - Parameters:
+    ///   - template: 要使用的提示词模板
+    ///   - openPerplexity: 是否打开 Perplexity AI 搜索，默认为 true
+    func buildPrompt(using template: PromptTemplate, openPerplexity: Bool = true) {
         let selection = tokens.filter { selectedTokenIDs.contains($0.id) }.map(\.value).joined()
         
         var contextContent: [String] = []
@@ -1136,10 +1139,12 @@ class ContentViewModel: ObservableObject {
         result = result.replacingOccurrences(of: "{book}", with: currentBookTitle)
         UIPasteboard.general.string = result
         
-        // 构建Perplexity AI搜索URL
-        if let encodedQuery = result.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
-           let url = URL(string: "https://www.perplexity.ai/search/new?q=\(encodedQuery)") {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        // 根据参数决定是否打开 Perplexity AI 搜索
+        if openPerplexity {
+            if let encodedQuery = result.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+               let url = URL(string: "https://www.perplexity.ai/search/new?q=\(encodedQuery)") {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }
         }
     }
 
