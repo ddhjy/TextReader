@@ -411,7 +411,8 @@ class LibraryManager {
             metadata.progress[bookId] = BookProgress(
                 currentPageIndex: 0,
                 totalPages: 0,
-                lastAccessed: now
+                lastAccessed: now,
+                cachedPages: nil
             )
         }
 
@@ -425,14 +426,18 @@ class LibraryManager {
     func saveBookProgress(bookId: String, pageIndex: Int) {
         var metadata = loadMetadata()
         
-        let totalPages = metadata.progress[bookId]?.totalPages ?? 0
-        let lastAccessed = metadata.progress[bookId]?.lastAccessed
-        
-        metadata.progress[bookId] = BookProgress(
-            currentPageIndex: pageIndex,
-            totalPages: totalPages,
-            lastAccessed: lastAccessed
-        )
+        // 保留现有的缓存和其他字段
+        if var progress = metadata.progress[bookId] {
+            progress.currentPageIndex = pageIndex
+            metadata.progress[bookId] = progress
+        } else {
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: pageIndex,
+                totalPages: 0,
+                lastAccessed: nil,
+                cachedPages: nil
+            )
+        }
         
         saveMetadata(metadata)
     }
@@ -444,14 +449,87 @@ class LibraryManager {
     func saveTotalPages(bookId: String, totalPages: Int) {
         var metadata = loadMetadata()
         
-        let currentPage = metadata.progress[bookId]?.currentPageIndex ?? 0
-        let lastAccessed = metadata.progress[bookId]?.lastAccessed
+        // 保留现有的缓存和其他字段
+        if var progress = metadata.progress[bookId] {
+            progress.totalPages = totalPages
+            metadata.progress[bookId] = progress
+        } else {
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: 0,
+                totalPages: totalPages,
+                lastAccessed: nil,
+                cachedPages: nil
+            )
+        }
         
-        metadata.progress[bookId] = BookProgress(
-            currentPageIndex: currentPage,
-            totalPages: totalPages,
-            lastAccessed: lastAccessed
-        )
+        saveMetadata(metadata)
+    }
+    
+    /// 获取缓存的页面数据
+    /// - Parameter bookId: 书籍ID
+    /// - Returns: 缓存的页面数组，如果不存在则返回nil
+    func getCachedPages(bookId: String) -> [String]? {
+        return getBookProgress(bookId: bookId)?.cachedPages
+    }
+    
+    /// 保存页面缓存
+    /// - Parameters:
+    ///   - bookId: 书籍ID
+    ///   - pages: 分页后的页面数组
+    func saveCachedPages(bookId: String, pages: [String]) {
+        var metadata = loadMetadata()
+        
+        if var progress = metadata.progress[bookId] {
+            progress.cachedPages = pages
+            progress.totalPages = pages.count
+            metadata.progress[bookId] = progress
+            print("[LibraryManager] 已缓存书籍 \(bookId) 的 \(pages.count) 页内容")
+        } else {
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: 0,
+                totalPages: pages.count,
+                lastAccessed: Date(),
+                cachedPages: pages
+            )
+            print("[LibraryManager] 为新书籍 \(bookId) 创建缓存，共 \(pages.count) 页")
+        }
+        
+        saveMetadata(metadata)
+    }
+    
+    /// 清除页面缓存
+    /// - Parameter bookId: 书籍ID
+    func clearCachedPages(bookId: String) {
+        var metadata = loadMetadata()
+        
+        if var progress = metadata.progress[bookId] {
+            progress.cachedPages = nil
+            metadata.progress[bookId] = progress
+            print("[LibraryManager] 已清除书籍 \(bookId) 的页面缓存")
+        }
+        
+        saveMetadata(metadata)
+    }
+    
+    /// 保存当前页内容缓存，用于快速启动
+    /// - Parameters:
+    ///   - bookId: 书籍ID
+    ///   - content: 当前页内容
+    func saveLastPageContent(bookId: String, content: String) {
+        var metadata = loadMetadata()
+        
+        if var progress = metadata.progress[bookId] {
+            progress.lastPageContent = content
+            metadata.progress[bookId] = progress
+        } else {
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: 0,
+                totalPages: 0,
+                lastAccessed: Date(),
+                cachedPages: nil,
+                lastPageContent: content
+            )
+        }
         
         saveMetadata(metadata)
     }
