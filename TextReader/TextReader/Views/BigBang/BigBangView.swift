@@ -244,14 +244,21 @@ struct BigBangView: View {
                             ForEach(vm.templates) { tpl in
                                 Menu(tpl.name) {
                                     Button {
-                                        vm.buildPrompt(using: tpl, openPerplexity: true)
+                                        vm.buildPrompt(using: tpl, destination: .perplexity)
                                         HapticFeedback.shared.impactOccurred()
                                         dismiss()
                                     } label: {
                                         Label("打开 Perplexity", systemImage: "safari")
                                     }
                                     Button {
-                                        vm.buildPrompt(using: tpl, openPerplexity: false)
+                                        vm.buildPrompt(using: tpl, destination: .raycast)
+                                        HapticFeedback.shared.impactOccurred()
+                                        dismiss()
+                                    } label: {
+                                        Label("打开 Raycast", systemImage: "command")
+                                    }
+                                    Button {
+                                        vm.buildPrompt(using: tpl, destination: .copyOnly)
                                         HapticFeedback.shared.impactOccurred()
                                         dismiss()
                                     } label: {

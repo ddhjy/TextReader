@@ -1114,11 +1114,18 @@ class ContentViewModel: ObservableObject {
         templateManager.save(templates)
     }
     
+    /// 提示词目标应用
+    enum PromptDestination {
+        case copyOnly       // 仅复制到剪贴板
+        case perplexity     // 打开 Perplexity AI 搜索
+        case raycast        // 打开 Raycast AI
+    }
+    
     /// 生成提示词并复制到剪贴板
     /// - Parameters:
     ///   - template: 要使用的提示词模板
-    ///   - openPerplexity: 是否打开 Perplexity AI 搜索，默认为 true
-    func buildPrompt(using template: PromptTemplate, openPerplexity: Bool = true) {
+    ///   - destination: 目标应用
+    func buildPrompt(using template: PromptTemplate, destination: PromptDestination = .perplexity) {
         let selection = tokens.filter { selectedTokenIDs.contains($0.id) }.map(\.value).joined()
         
         var contextContent: [String] = []
@@ -1139,10 +1146,17 @@ class ContentViewModel: ObservableObject {
         result = result.replacingOccurrences(of: "{book}", with: currentBookTitle)
         UIPasteboard.general.string = result
         
-        // 根据参数决定是否打开 Perplexity AI 搜索
-        if openPerplexity {
+        // 根据目标应用打开对应的 URL
+        switch destination {
+        case .copyOnly:
+            break // 仅复制，不打开任何应用
+        case .perplexity:
             if let encodedQuery = result.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
                let url = URL(string: "https://www.perplexity.ai/search/new?q=\(encodedQuery)") {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }
+        case .raycast:
+            if let url = URL(string: "raycast://extensions/") {
                 UIApplication.shared.open(url, options: [:], completionHandler: nil)
             }
         }

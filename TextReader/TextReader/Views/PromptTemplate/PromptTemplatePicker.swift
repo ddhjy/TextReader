@@ -11,13 +11,19 @@ struct PromptTemplatePicker: View {
                 ForEach(viewModel.templates) { tpl in
                     Menu {
                         Button {
-                            viewModel.buildPrompt(using: tpl, openPerplexity: true)
+                            viewModel.buildPrompt(using: tpl, destination: .perplexity)
                             dismiss()
                         } label: {
                             Label("打开 Perplexity", systemImage: "safari")
                         }
                         Button {
-                            viewModel.buildPrompt(using: tpl, openPerplexity: false)
+                            viewModel.buildPrompt(using: tpl, destination: .raycast)
+                            dismiss()
+                        } label: {
+                            Label("打开 Raycast", systemImage: "command")
+                        }
+                        Button {
+                            viewModel.buildPrompt(using: tpl, destination: .copyOnly)
                             dismiss()
                         } label: {
                             Label("仅复制", systemImage: "doc.on.doc")
