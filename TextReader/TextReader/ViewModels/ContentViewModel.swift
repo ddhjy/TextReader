@@ -90,7 +90,10 @@ class ContentViewModel: ObservableObject {
         self.settingsManager = settingsManager
         self.darkModeEnabled = settingsManager.getDarkMode()
 
-        loadInitialData()
+        // 异步加载初始数据，避免阻塞主线程导致启动白屏
+        DispatchQueue.main.async {
+            self.loadInitialData()
+        }
         
         audioSessionManager.registerViewModel(self)
         audioSessionManager.setupAudioSession()
