@@ -508,6 +508,29 @@ class LibraryManager {
         saveMetadata(metadata)
     }
     
+    /// 保存当前页内容缓存，用于快速启动
+    /// - Parameters:
+    ///   - bookId: 书籍ID
+    ///   - content: 当前页内容
+    func saveLastPageContent(bookId: String, content: String) {
+        var metadata = loadMetadata()
+        
+        if var progress = metadata.progress[bookId] {
+            progress.lastPageContent = content
+            metadata.progress[bookId] = progress
+        } else {
+            metadata.progress[bookId] = BookProgress(
+                currentPageIndex: 0,
+                totalPages: 0,
+                lastAccessed: Date(),
+                cachedPages: nil,
+                lastPageContent: content
+            )
+        }
+        
+        saveMetadata(metadata)
+    }
+    
     /// 删除书籍的进度信息
     /// - Parameter bookId: 书籍ID
     private func removeBookProgress(bookId: String) {

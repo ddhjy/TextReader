@@ -9,6 +9,10 @@ class SettingsManager {
         static let lastOpenedBookId = "currentBookID"
         static let isDarkMode = "isDarkMode"
         static let accentColorThemeId = "accentColorThemeId"
+        static let lastPageContent = "lastPageContent"
+        static let lastPageIndex = "lastPageIndex"
+        static let lastBookTitle = "lastBookTitle"
+        static let lastTotalPages = "lastTotalPages"
     }
 
     // MARK: - 朗读速度
@@ -60,5 +64,43 @@ class SettingsManager {
 
     func getAccentColorThemeId() -> String {
         return defaults.string(forKey: Keys.accentColorThemeId) ?? "blue"
+    }
+    
+    // MARK: - 快速启动缓存
+    
+    /// 保存上次阅读的页面内容，用于快速启动显示
+    func saveLastPageContent(_ content: String) {
+        defaults.set(content, forKey: Keys.lastPageContent)
+    }
+    
+    func getLastPageContent() -> String? {
+        return defaults.string(forKey: Keys.lastPageContent)
+    }
+    
+    /// 保存上次阅读的页面索引
+    func saveLastPageIndex(_ index: Int) {
+        defaults.set(index, forKey: Keys.lastPageIndex)
+    }
+    
+    func getLastPageIndex() -> Int {
+        return defaults.integer(forKey: Keys.lastPageIndex)
+    }
+    
+    /// 保存上次阅读的书名
+    func saveLastBookTitle(_ title: String) {
+        defaults.set(title, forKey: Keys.lastBookTitle)
+    }
+    
+    func getLastBookTitle() -> String? {
+        return defaults.string(forKey: Keys.lastBookTitle)
+    }
+    
+    /// 保存上次阅读的总页数
+    func saveLastTotalPages(_ count: Int) {
+        defaults.set(count, forKey: Keys.lastTotalPages)
+    }
+    
+    func getLastTotalPages() -> Int {
+        return defaults.integer(forKey: Keys.lastTotalPages)
     }
 } 
