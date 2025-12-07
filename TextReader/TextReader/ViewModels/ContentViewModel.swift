@@ -174,22 +174,29 @@ class ContentViewModel: ObservableObject {
         let savedPageIndex = settingsManager.getLastPageIndex()
         
         libraryManager.loadBookContent(book: book) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self, self.currentBookId == book.id else { return }
-                switch result {
-                case .success(let content):
-                    self.pages = self.textPaginator.paginate(text: content)
-                    // 恢复到保存的页面索引
-                    self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
-                    // 更新缓存
-                    self.saveCurrentPageToCache()
-                    // 生成页面摘要
-                    self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
-                    self.searchResults = []
-                    self.isContentLoaded = true
-                    self.updateNowPlayingInfo()
-                    print("[ContentViewModel] 完整内容加载完成，共 \(self.pages.count) 页，当前页 \(self.currentPageIndex)")
-                case .failure(let error):
+            guard let self = self else { return }
+            switch result {
+            case .success(let content):
+                // 在后台线程进行分页（耗时操作）
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let paginatedPages = self.textPaginator.paginate(text: content)
+                    let summaries = self.searchService.pageSummaries(pages: paginatedPages)
+                    
+                    // 回到主线程更新 UI
+                    DispatchQueue.main.async {
+                        guard self.currentBookId == book.id else { return }
+                        self.pages = paginatedPages
+                        self.currentPageIndex = min(max(0, savedPageIndex), max(0, paginatedPages.count - 1))
+                        self.pageSummaries = summaries
+                        self.searchResults = []
+                        self.saveCurrentPageToCache()
+                        self.isContentLoaded = true
+                        self.updateNowPlayingInfo()
+                        print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页，当前页 \(self.currentPageIndex)")
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
                     print("后台加载书籍内容失败: \(error)")
                     self.isContentLoaded = true
                 }
