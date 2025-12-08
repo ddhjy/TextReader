@@ -33,8 +33,11 @@ struct BookListView: View {
                             }
                         } else {
                             dismiss()
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                viewModel.loadBook(book)
+                            // 如果选择的是当前书籍，则不需要重新加载
+                            if viewModel.currentBookId != book.id {
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                                    viewModel.loadBook(book)
+                                }
                             }
                         }
                     }) {
