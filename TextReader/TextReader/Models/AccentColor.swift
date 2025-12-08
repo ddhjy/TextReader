@@ -11,7 +11,6 @@ struct AccentColorTheme: Identifiable, Codable {
         return Color(hex: hex) ?? .accentColor
     }
     
-    // 预设主题
     static let presets: [AccentColorTheme] = [
         AccentColorTheme(id: "blue", name: "默认蓝", lightColor: "#007AFF", darkColor: "#0A84FF"),
         AccentColorTheme(id: "green", name: "护眼绿", lightColor: "#34C759", darkColor: "#30D158"),
@@ -25,7 +24,6 @@ struct AccentColorTheme: Identifiable, Codable {
     ]
 }
 
-// Color扩展支持hex字符串
 extension Color {
     init?(hex: String) {
         var hexSanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)

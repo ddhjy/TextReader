@@ -114,8 +114,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         }
     }
 
-    // MARK: - AVSpeechSynthesizerDelegate 代理方法
-
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -166,8 +164,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
                            willSpeakRangeOfSpeechString characterRange: NSRange, 
                            utterance: AVSpeechUtterance) {
     }
-
-    // MARK: - 后台任务管理
 
     private func startBackgroundTask() {
         endBackgroundTask()

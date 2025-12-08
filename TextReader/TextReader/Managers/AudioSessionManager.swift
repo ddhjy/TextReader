@@ -54,17 +54,10 @@ class AudioSessionManager: NSObject {
     func setupAudioSession() {
         do {
             let session = AVAudioSession.sharedInstance()
-            
-            // 设置音频会话类别为播放，模式为语音朗读
             try session.setCategory(.playback, mode: .spokenAudio, options: [])
-            
-            // 激活音频会话
             try session.setActive(true)
             isAudioSessionActive = true
-            
-            // 强制同步播放状态
             synchronizePlaybackState(force: true)
-            
         } catch {
             isAudioSessionActive = false
         }
@@ -115,7 +108,6 @@ class AudioSessionManager: NSObject {
         print("Remote command center configured")
     }
     
-    /// 清除远程命令中心的现有目标
     private func clearRemoteCommandTargets() {
         let commandCenter = MPRemoteCommandCenter.shared()
         commandCenter.playCommand.removeTarget(nil)
@@ -124,13 +116,9 @@ class AudioSessionManager: NSObject {
         commandCenter.previousTrackCommand.removeTarget(nil)
     }
 
-    /// 更新控制中心的媒体信息
     func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
-        // 确保在主线程执行
         DispatchQueue.main.async {
             if isPlaying {
-                // 播放状态：激活音频会话并设置播放信息
-                // 音频会话操作移到后台线程，避免阻塞UI
                 DispatchQueue.global(qos: .userInitiated).async {
                     do {
                         let audioSession = AVAudioSession.sharedInstance()
@@ -139,11 +127,9 @@ class AudioSessionManager: NSObject {
                             self.isAudioSessionActive = true
                         }
                     } catch {
-                        // 音频会话设置失败，但不影响播放信息显示
                     }
                 }
                 
-                // 立即设置播放信息，不等待音频会话
                 var nowPlayingInfo: [String: Any] = [:]
                 nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
                 nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
@@ -168,7 +154,6 @@ class AudioSessionManager: NSObject {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
                 self.isSystemPlaybackActive = false
                 
-                // 音频会话停用操作移到后台，避免阻塞UI
                 if self.isAudioSessionActive {
                     DispatchQueue.global(qos: .utility).async {
                         do {
@@ -177,7 +162,6 @@ class AudioSessionManager: NSObject {
                                 self.isAudioSessionActive = false
                             }
                         } catch {
-                            // 停用音频会话失败，不影响播放信息清空
                         }
                     }
                 }
@@ -185,7 +169,6 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    /// 同步播放状态，确保系统控制中心和应用内状态一致
     func synchronizePlaybackState(force: Bool = false) {
         guard let viewModel = contentViewModel else { return }
         
@@ -200,9 +183,6 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    // MARK: - 通知处理方法
-    
-    /// 处理音频会话中断（如电话呼入）
     @objc private func handleAudioSessionInterruption(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let typeRawValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
@@ -212,14 +192,12 @@ class AudioSessionManager: NSObject {
         
         switch type {
         case .began:
-            // 中断开始，暂停播放
             print("音频会话被中断：开始")
             isSystemPlaybackActive = false
             
             contentViewModel?.stopReading()
             
         case .ended:
-            // 中断结束，根据选项判断是否需要恢复播放
             print("音频会话中断：结束")
             guard let optionsRawValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt else {
                 return
@@ -227,12 +205,10 @@ class AudioSessionManager: NSObject {
             
             let options = AVAudioSession.InterruptionOptions(rawValue: optionsRawValue)
             
-            // 如果带有"可以恢复"选项，并且中断前处于播放状态，则恢复音频会话和播放
             if options.contains(.shouldResume) {
                 do {
                     try AVAudioSession.sharedInstance().setActive(true)
                     isAudioSessionActive = true
-                    // 不要自动恢复语音播放，避免意外语音干扰用户
                 } catch {
                     print("恢复音频会话失败: \(error)")
                 }
@@ -243,7 +219,6 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    /// 处理音频路由变更（如耳机插拔）
     @objc private func handleAudioRouteChange(_ notification: Notification) {
         guard let userInfo = notification.userInfo,
               let reasonRawValue = userInfo[AVAudioSessionRouteChangeReasonKey] as? UInt,
@@ -251,15 +226,12 @@ class AudioSessionManager: NSObject {
             return
         }
         
-        // 仅处理旧输出设备被断开的情况
         if reason == .oldDeviceUnavailable {
-            // 获取之前的音频路由
             guard let routeDescription = userInfo[AVAudioSessionRouteChangePreviousRouteKey] as? AVAudioSessionRouteDescription,
                   let output = routeDescription.outputs.first else {
                 return
             }
             
-            // 如果之前是耳机或外部设备，断开后自动暂停播放
             let portTypes: [AVAudioSession.Port] = [.headphones, .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .airPlay, .carAudio]
             if portTypes.contains(output.portType) {
                 print("音频输出设备断开：\(output.portType.rawValue)")
@@ -271,18 +243,14 @@ class AudioSessionManager: NSObject {
         }
     }
     
-    /// 处理应用前台激活事件
     @objc private func handleAppDidBecomeActive(_ notification: Notification) {
         print("应用返回前台，重新激活音频会话。")
         setupAudioSession()
     }
     
-    /// 处理应用进入后台事件
     @objc private func handleAppDidEnterBackground(_ notification: Notification) {
-        // 应用进入后台时的处理可以在这里添加
     }
     
-    /// 取消激活音频会话
     func deactivateAudioSession() {
         guard isAudioSessionActive else { return }
         
@@ -290,14 +258,11 @@ class AudioSessionManager: NSObject {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             isAudioSessionActive = false
         } catch {
-            // 停用音频会话失败，但不影响应用功能
         }
     }
 }
 
-// 扩展提供可读的路由变化原因描述
 extension AVAudioSession.RouteChangeReason {
-    /// 获取路由变化原因的文字描述
     var description: String {
         switch self {
         case .unknown: return "未知原因"

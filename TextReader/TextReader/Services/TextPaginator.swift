@@ -32,7 +32,6 @@ class TextPaginator {
             let sentenceCharCount = sentence.count
 
             if sentenceCharCount > maxPageSize {
-                // 处理非常长的句子，将其拆分到多个页面
                 if !currentPageContent.isEmpty {
                     pages.append(currentPageContent)
                     currentPageContent = ""
@@ -50,7 +49,6 @@ class TextPaginator {
                 }
 
             } else if currentPageCharCount + sentenceCharCount <= maxPageSize {
-                // 将句子添加到当前页面
                 if !currentPageContent.isEmpty {
                     currentPageContent += " "
                     currentPageCharCount += 1
@@ -58,7 +56,6 @@ class TextPaginator {
                 currentPageContent += sentence
                 currentPageCharCount += sentenceCharCount
             } else {
-                // 当前页面已满，开始新页面
                 if !currentPageContent.isEmpty {
                     pages.append(currentPageContent)
                 }
@@ -71,7 +68,6 @@ class TextPaginator {
             pages.append(currentPageContent)
         }
         
-        print("分页完成，共 \(pages.count) 页。")
-        return pages.isEmpty ? ["无内容"] : pages // 确保UI至少有一个元素
+        return pages.isEmpty ? ["无内容"] : pages
     }
 } 
