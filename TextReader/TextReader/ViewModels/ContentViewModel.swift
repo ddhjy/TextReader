@@ -6,6 +6,24 @@ import UIKit
 /// 内容视图模型，负责管理应用的核心功能和状态
 /// 管理文本分页与显示、朗读控制、书籍库、搜索、WiFi传输等功能
 class ContentViewModel: ObservableObject {
+    // MARK: - 静态缓存（性能优化）
+    private static let dateFormatterMonthDay: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "M月d日"
+        return formatter
+    }()
+    
+    private static let dateFormatterFull: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "yyyy年M月d日"
+        return formatter
+    }()
+    
+    // 书籍进度缓存，避免列表滑动时重复查询
+    private var bookProgressCache: [String: BookProgress] = [:]
+    private var bookDisplayCache: [String: (progress: String?, lastAccessed: String?)] = [:]
     // MARK: - UI绑定的发布属性
     @Published var pages: [String] = []
     @Published var currentPageIndex: Int = 0
@@ -405,9 +423,12 @@ class ContentViewModel: ObservableObject {
     
     /// 对书籍进行排序，最近访问的排在前面
     private func sortBooks() {
+        // 先刷新进度缓存
+        refreshBookProgressCache()
+        
         let sortedBooks = books.sorted { book1, book2 in
-            let lastAccessed1 = libraryManager.getBookProgress(bookId: book1.id)?.lastAccessed
-            let lastAccessed2 = libraryManager.getBookProgress(bookId: book2.id)?.lastAccessed
+            let lastAccessed1 = bookProgressCache[book1.id]?.lastAccessed
+            let lastAccessed2 = bookProgressCache[book2.id]?.lastAccessed
 
             // 排序逻辑:
             // 1. 如果book1有访问时间但book2没有，book1排在前面
@@ -426,6 +447,55 @@ class ContentViewModel: ObservableObject {
             }
         }
         self.books = sortedBooks
+    }
+    
+    /// 刷新书籍进度缓存
+    private func refreshBookProgressCache() {
+        bookProgressCache.removeAll()
+        bookDisplayCache.removeAll()
+        
+        for book in books {
+            if let progress = libraryManager.getBookProgress(bookId: book.id) {
+                bookProgressCache[book.id] = progress
+                
+                // 预计算显示文本
+                let progressText = "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
+                let lastAccessedText = formatLastAccessedTime(progress.lastAccessed)
+                bookDisplayCache[book.id] = (progressText, lastAccessedText)
+            }
+        }
+    }
+    
+    /// 格式化最后访问时间（内部使用静态缓存的 DateFormatter）
+    private func formatLastAccessedTime(_ lastAccessed: Date?) -> String? {
+        guard let lastAccessed = lastAccessed else { return nil }
+        
+        let now = Date()
+        let calendar = Calendar.current
+        
+        if calendar.isDateInToday(lastAccessed) {
+            let components = calendar.dateComponents([.minute, .hour], from: lastAccessed, to: now)
+            let totalMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+            
+            if totalMinutes < 5 {
+                return "刚刚"
+            } else if totalMinutes < 60 {
+                return "\(totalMinutes)分钟前"
+            } else {
+                return "\(components.hour ?? 0)小时前"
+            }
+        } else if calendar.isDateInYesterday(lastAccessed) {
+            return "昨天"
+        } else {
+            let currentYear = calendar.component(.year, from: now)
+            let accessedYear = calendar.component(.year, from: lastAccessed)
+            
+            if currentYear == accessedYear {
+                return Self.dateFormatterMonthDay.string(from: lastAccessed)
+            } else {
+                return Self.dateFormatterFull.string(from: lastAccessed)
+            }
+        }
     }
     
     /// 导入粘贴的文本内容为新书籍
@@ -660,55 +730,31 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    /// 获取书籍阅读进度的显示文本
+    /// 获取书籍阅读进度的显示文本（使用缓存，避免列表滑动时重复查询）
     func getBookProgressDisplay(book: Book) -> String? {
+        // 优先使用缓存
+        if let cached = bookDisplayCache[book.id] {
+            return cached.progress
+        }
+        // 缓存未命中时回退到直接查询
         if let progress = libraryManager.getBookProgress(bookId: book.id) {
             return "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
         }
         return nil
     }
 
-    /// 获取书籍最后访问时间的用户友好描述
+    /// 获取书籍最后访问时间的用户友好描述（使用缓存，避免列表滑动时重复查询）
     func getLastAccessedTimeDisplay(book: Book) -> String? {
+        // 优先使用缓存
+        if let cached = bookDisplayCache[book.id] {
+            return cached.lastAccessed
+        }
+        // 缓存未命中时回退到直接查询
         guard let progress = libraryManager.getBookProgress(bookId: book.id),
               let lastAccessed = progress.lastAccessed else {
             return nil
         }
-        
-        let now = Date()
-        let calendar = Calendar.current
-        
-        // 根据距离上次访问的时间长短决定合适的格式
-        if calendar.isDateInToday(lastAccessed) {
-            let components = calendar.dateComponents([.minute, .hour], from: lastAccessed, to: now)
-            let totalMinutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
-            
-            if totalMinutes < 5 {
-                return "刚刚"
-            } else if totalMinutes < 60 {
-                return "\(totalMinutes)分钟前"
-            } else {
-                return "\(components.hour ?? 0)小时前"
-            }
-        } else if calendar.isDateInYesterday(lastAccessed) {
-            return "昨天"
-        } else {
-            let currentYear = calendar.component(.year, from: now)
-            let accessedYear = calendar.component(.year, from: lastAccessed)
-            
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: "zh_CN")
-            
-            if currentYear == accessedYear {
-                // 如果是今年，只显示月日
-                formatter.dateFormat = "M月d日"
-            } else {
-                // 否则显示完整日期（年月日）
-                formatter.dateFormat = "yyyy年M月d日"
-            }
-            
-            return formatter.string(from: lastAccessed)
-        }
+        return formatLastAccessedTime(lastAccessed)
     }
 
     // MARK: - Book Editing
