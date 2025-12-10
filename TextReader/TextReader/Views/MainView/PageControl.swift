@@ -27,16 +27,7 @@ struct PageControl: View {
     }
     
     var body: some View {
-        HStack(spacing: 8) {
-            RepeatButton(
-                action: { viewModel.previousPage() },
-                longPressAction: { if viewModel.currentPageIndex > 0 { viewModel.previousPage() } }
-            ) { 
-                Image(systemName: "chevron.left")
-                    .font(.title3)
-            }
-            .disabled(viewModel.currentPageIndex == 0)
-            
+        Group {
             if viewModel.pages.count > 1 {
                 CustomSlider(
                     value: sliderBinding,
@@ -51,15 +42,6 @@ struct PageControl: View {
                     .disabled(true)
                     .frame(height: 18)
             }
-            
-            RepeatButton(
-                action: { viewModel.nextPage() },
-                longPressAction: { if viewModel.currentPageIndex < viewModel.pages.count - 1 { viewModel.nextPage() } }
-            ) { 
-                Image(systemName: "chevron.right")
-                    .font(.title3)
-            }
-            .disabled(viewModel.currentPageIndex >= viewModel.pages.count - 1)
         }
         .padding(.horizontal, 8)
         .onAppear {

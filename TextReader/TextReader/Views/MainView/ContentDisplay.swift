@@ -24,9 +24,12 @@ struct ContentDisplay: View {
                         viewModel.triggerBigBang()
                     }
             )
-            .onTapGesture {
-                viewModel.nextPage()
-            }
+            .simultaneousGesture(
+                SpatialTapGesture()
+                    .onEnded { value in
+                        handleTapGesture(at: value.location)
+                    }
+            )
     }
     
     // MARK: - 计算属性
@@ -39,5 +42,22 @@ struct ContentDisplay: View {
             return "无内容"
         }
         return viewModel.pages[viewModel.currentPageIndex]
+    }
+    
+    // MARK: - 私有方法
+    
+    /// 处理点击手势，根据点击位置决定翻页方向
+    /// - Parameter location: 点击位置
+    private func handleTapGesture(at location: CGPoint) {
+        // 获取屏幕宽度
+        let screenWidth = UIScreen.main.bounds.width
+        // 左边 1/3 区域是上一页，右边 2/3 区域是下一页
+        let isLeftArea = location.x < screenWidth / 3
+        
+        if isLeftArea {
+            viewModel.previousPage()
+        } else {
+            viewModel.nextPage()
+        }
     }
 } 
