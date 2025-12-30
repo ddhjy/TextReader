@@ -4,8 +4,8 @@ import SwiftUI
 struct ControlPanel: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // 是否显示进度条
-    @State private var showProgressSlider = false
+    // 进度条显示状态（由父视图控制）
+    @Binding var showProgressSlider: Bool
     
     // 进度条的值（用于拖拽）
     private var sliderBinding: Binding<Double> {
@@ -44,11 +44,10 @@ struct ControlPanel: View {
                         .foregroundStyle(.secondary)
                 }
                 .padding(.horizontal, 24)
-                .padding(.vertical, 8)
+                .padding(.vertical, 12)
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .onTapGesture { } // 阻止点击穿透
             }
             
             // 底部按钮栏
@@ -193,19 +192,5 @@ struct ControlPanel: View {
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
-        // 点击空白处关闭进度条
-        .background(
-            Group {
-                if showProgressSlider {
-                    Color.black.opacity(0.001) // 几乎透明但可点击
-                        .ignoresSafeArea()
-                        .onTapGesture {
-                            withAnimation(.spring(response: 0.3)) {
-                                showProgressSlider = false
-                            }
-                        }
-                }
-            }
-        )
     }
 }
