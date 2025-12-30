@@ -5,29 +5,26 @@ struct ContentView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ZStack {
+                // 背景颜色
+                (viewModel.darkModeEnabled ? Color.black : Color(UIColor.systemBackground))
+                    .ignoresSafeArea()
+                
+                // 内容显示区域
                 ContentDisplay(viewModel: viewModel)
-                ControlPanel(viewModel: viewModel)
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .padding(.bottom, 100) // 留出底部控制栏的空间
+                
+                // 底部控制面板
+                VStack {
+                    Spacer()
+                    ControlPanel(viewModel: viewModel)
+                        .padding(.bottom, 20)
+                }
             }
             .navigationTitle(viewModel.currentBookTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(UIColor.systemGray6), for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    
-                    Button(action: { viewModel.showingBookList = true }) {
-                        Image(systemName: "book")
-                            .foregroundColor(viewModel.currentAccentColor)
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { viewModel.showingSearchView = true }) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(viewModel.currentAccentColor)
-                    }
-                }
-            }
+            // 隐藏原有的导航栏背景，让界面更沉浸
+            .toolbarBackground(.hidden, for: .navigationBar)
             .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
         }
         .navigationViewStyle(StackNavigationViewStyle())
