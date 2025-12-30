@@ -4,7 +4,7 @@ import SwiftUI
 struct ControlPanel: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // 是否显示临时的进度条（长按播放键触发）
+    // 是否显示进度条
     @State private var showProgressSlider = false
     
     // 进度条的值（用于拖拽）
@@ -25,78 +25,104 @@ struct ControlPanel: View {
         )
     }
     
+    // 进度百分比
+    private var progress: Double {
+        guard viewModel.pages.count > 0 else { return 0 }
+        return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
+    }
+    
     var body: some View {
-        VStack(spacing: 20) {
-            // 临时进度条层
+        VStack(spacing: 16) {
+            // 进度条（点击进度按钮后显示）
             if showProgressSlider {
-                VStack {
-                    Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .padding(8)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(8)
-                    
+                VStack(spacing: 4) {
                     Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
                         .tint(viewModel.currentAccentColor)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 12)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(16)
-                        .shadow(color: .black.opacity(0.1), radius: 10, y: 5)
+                    
+                    Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
-                .padding(.horizontal)
             }
             
             // 底部按钮栏
-            HStack(spacing: 24) {
-                // 1. 选择书籍
-                LiquidButton(action: {
+            HStack(spacing: 16) {
+                // 1. 进度圆环按钮（点击打开进度条）
+                Button {
+                    withAnimation(.spring(response: 0.3)) {
+                        showProgressSlider.toggle()
+                    }
+                } label: {
+                    ZStack {
+                        // 背景
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                        
+                        // 进度条背景
+                        Circle()
+                            .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 3)
+                            .padding(6)
+                        
+                        // 进度条
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .padding(6)
+                        
+                        // 百分比文字
+                        Text("\(Int(progress * 100))%")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                            .foregroundColor(viewModel.currentAccentColor)
+                    }
+                    .frame(width: 56, height: 56)
+                }
+                .buttonStyle(.plain)
+                
+                // 2. 选择书籍
+                Button {
                     viewModel.showingBookList = true
-                }) {
+                } label: {
                     Image(systemName: "books.vertical.fill")
                         .font(.title2)
                         .foregroundColor(viewModel.currentAccentColor)
+                        .frame(width: 56, height: 56)
+                        .background(.ultraThinMaterial, in: Circle())
                 }
+                .buttonStyle(.plain)
                 
-                // 2. 播放/暂停 (带进度环)
-                CircularProgressButton(
-                    progress: Double(viewModel.currentPageIndex + 1) / Double(max(1, viewModel.pages.count)),
-                    isPlaying: viewModel.isReading,
-                    color: viewModel.currentAccentColor,
-                    action: {
-                        viewModel.toggleReading()
-                    },
-                    longPressAction: {
-                        withAnimation(.spring()) {
-                            showProgressSlider.toggle()
-                        }
-                        
-                        // 3秒后自动隐藏进度条
-                        if showProgressSlider {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                                withAnimation {
-                                    showProgressSlider = false
-                                }
-                            }
-                        }
-                    }
-                )
-                .offset(y: -10) // 稍微突出一点
+                // 3. 播放/暂停
+                Button {
+                    viewModel.toggleReading()
+                } label: {
+                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                        .font(.title)
+                        .foregroundColor(.white)
+                        .frame(width: 64, height: 64)
+                        .background(viewModel.currentAccentColor, in: Circle())
+                }
+                .buttonStyle(.plain)
                 
-                // 3. 查询
-                LiquidButton(action: {
+                // 4. 查询
+                Button {
                     viewModel.showingSearchView = true
-                }) {
+                } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
                         .foregroundColor(viewModel.currentAccentColor)
+                        .frame(width: 56, height: 56)
+                        .background(.ultraThinMaterial, in: Circle())
                 }
+                .buttonStyle(.plain)
                 
-                // 4. 设置
+                // 5. 设置
                 Menu {
-                    // 原 ReadingControl 中的设置项
                     Section("阅读设置") {
                         Menu("语速") {
                             ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0], id: \.self) { speed in
@@ -155,22 +181,15 @@ struct ControlPanel: View {
                             )
                         }
                     }
-
                 } label: {
-                    ZStack {
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
-                        
-                        Image(systemName: "gearshape.fill")
-                            .font(.title2)
-                            .foregroundColor(viewModel.currentAccentColor)
-                    }
-                    .frame(width: 64, height: 64)
+                    Image(systemName: "gearshape.fill")
+                        .font(.title2)
+                        .foregroundColor(viewModel.currentAccentColor)
+                        .frame(width: 56, height: 56)
+                        .background(.ultraThinMaterial, in: Circle())
                 }
-                .buttonStyle(ScaleButtonStyle())
             }
-            .padding(.horizontal, 20)
+            .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
     }
