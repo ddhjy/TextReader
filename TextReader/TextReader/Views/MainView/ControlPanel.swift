@@ -58,7 +58,6 @@ struct ControlPanel: View {
                     Image(systemName: "books.vertical.fill")
                         .font(.title2)
                         .foregroundColor(viewModel.currentAccentColor)
-                        .frame(width: 64, height: 64)
                 }
                 
                 // 2. 播放/暂停 (带进度环)
@@ -93,7 +92,6 @@ struct ControlPanel: View {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
                         .foregroundColor(viewModel.currentAccentColor)
-                        .frame(width: 64, height: 64)
                 }
                 
                 // 4. 设置
@@ -162,13 +160,13 @@ struct ControlPanel: View {
                     ZStack {
                         Circle()
                             .fill(.ultraThinMaterial)
-                            .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                            .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                         
                         Image(systemName: "gearshape.fill")
                             .font(.title2)
                             .foregroundColor(viewModel.currentAccentColor)
-                            .frame(width: 64, height: 64)
                     }
+                    .frame(width: 64, height: 64)
                 }
                 .buttonStyle(ScaleButtonStyle())
             }

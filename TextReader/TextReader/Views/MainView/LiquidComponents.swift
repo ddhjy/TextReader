@@ -15,10 +15,11 @@ struct LiquidButton<Content: View>: View {
             ZStack {
                 Circle()
                     .fill(.ultraThinMaterial)
-                    .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+                    .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
                 
                 content
             }
+            .frame(width: 64, height: 64) // 强制统一大小
         }
         .buttonStyle(ScaleButtonStyle())
     }
