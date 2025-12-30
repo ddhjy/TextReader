@@ -32,23 +32,36 @@ struct ControlPanel: View {
     }
     
     var body: some View {
-        VStack(spacing: 16) {
-            // 进度条（点击进度按钮后显示）
+        ZStack {
+            // 点击空白处关闭进度条
             if showProgressSlider {
-                VStack(spacing: 4) {
-                    Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
-                        .tint(viewModel.currentAccentColor)
-                    
-                    Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal, 16)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                Color.clear
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3)) {
+                            showProgressSlider = false
+                        }
+                    }
+                    .ignoresSafeArea()
             }
+            
+            VStack(spacing: 16) {
+                // 进度条（点击进度按钮后显示）
+                if showProgressSlider {
+                    VStack(spacing: 4) {
+                        Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
+                            .tint(viewModel.currentAccentColor)
+                        
+                        Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 8)
+                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             
             // 底部按钮栏
             HStack(spacing: 16) {
@@ -191,6 +204,7 @@ struct ControlPanel: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
+            }
         }
     }
 }
