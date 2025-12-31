@@ -33,7 +33,6 @@ struct BookListView: View {
                             }
                         } else {
                             dismiss()
-                            // 如果选择的是当前书籍，则不需要重新加载
                             if viewModel.currentBookId != book.id {
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                                     viewModel.loadBook(book)
@@ -133,7 +132,6 @@ struct BookListView: View {
                         .disabled(viewModel.books.filter { !$0.isBuiltIn }.isEmpty)
 
                         Button(role: .destructive) {
-                            // 弹出确认删除对话框（批量）
                             showingDeleteAlert = true
                         } label: {
                             Text("删除")

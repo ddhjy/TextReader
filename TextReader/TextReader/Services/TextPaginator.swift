@@ -1,24 +1,16 @@
 import Foundation
 
-/// 文本分页器，负责将长文本分割成适合阅读的页面
 class TextPaginator {
-    /// 根据字符数将文本分割成页面
-    /// - Parameters:
-    ///   - text: 要分页的文本
-    ///   - maxPageSize: 每页最大字符数
-    /// - Returns: 分页后的字符串数组
     func paginate(text: String, maxPageSize: Int = 100) -> [String] {
         print("开始分页...")
         var sentences = [String]()
         
-        // 使用String.enumerateSubstrings进行更可靠的句子分割
         text.enumerateSubstrings(in: text.startIndex..<text.endIndex, options: [.bySentences, .localized]) { substring, _, _, _ in
             if let sentence = substring {
                 sentences.append(sentence.trimmingCharacters(in: .whitespacesAndNewlines))
             }
         }
         
-        // 处理枚举未找到句子的情况（例如，没有标点符号）
         if sentences.isEmpty && !text.isEmpty {
             sentences = text.components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
         }

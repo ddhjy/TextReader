@@ -1,35 +1,18 @@
 import Foundation
 
-/// 书籍库管理器，负责书籍的加载、导入、存储和删除等操作
-///
-/// 该类处理以下功能：
-/// - 加载内置书籍和用户导入的书籍
-/// - 从文件系统读取书籍内容
-/// - 导入新书籍（从文本内容或URL）
-/// - 保存和管理阅读进度
-/// - 书籍删除功能
 class LibraryManager {
     
     private let bookMetadataFile = "library.json"
     private let fileManager = FileManager.default
     
-    /// 书籍库操作可能出现的错误类型
     enum LibraryError: Error {
-        /// 文件未找到
         case fileNotFound
-        /// 目录访问失败
         case directoryAccessFailed
-        /// 保存错误
         case saveError
-        /// 读取错误
         case readError(String)
-        /// 文件导入错误
         case fileImportError(String)
-        /// 删除错误
         case deleteError
-        /// 安全访问权限错误
         case securityAccessError
-        /// 不支持的编码
         case unsupportedEncoding
     }
     
@@ -212,7 +195,6 @@ class LibraryManager {
             baseName = url.deletingPathExtension().lastPathComponent
         }
         
-        // 确保文件名合法并添加.txt扩展名
         let safeName = baseName.replacingOccurrences(of: "[^a-zA-Z0-9_\\-\\.]", with: "_", options: .regularExpression)
         return safeName.hasSuffix(".txt") ? safeName : safeName + ".txt"
     }
@@ -301,7 +283,6 @@ class LibraryManager {
         }
         
         DispatchQueue.global(qos: .userInitiated).async {
-            // Create updated book object
             var updatedBook = book
             updatedBook.title = newTitle
             

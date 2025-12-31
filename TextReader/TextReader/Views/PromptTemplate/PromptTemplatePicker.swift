@@ -3,7 +3,7 @@ import SwiftUI
 struct PromptTemplatePicker: View {
     @ObservedObject var viewModel: ContentViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var editing: PromptTemplate?  // nil = new
+    @State private var editing: PromptTemplate?
     
     var body: some View {
         NavigationStack {

@@ -50,7 +50,6 @@ struct SearchView: View {
         viewModel.searchContent(searchText)
     }
     
-    /// 共用 Cell，支持关键词高亮控制
     @ViewBuilder
     private func resultCell(page idx: Int, preview: String, shouldHighlight: Bool) -> some View {
         Button {
@@ -78,7 +77,6 @@ struct SearchView: View {
         .buttonStyle(PlainButtonStyle())
     }
     
-    /// 生成带高亮的文本
     @ViewBuilder
     private func highlightedText(preview: String, searchQuery: String) -> some View {
         let attributedString = createHighlightedAttributedString(
@@ -128,7 +126,6 @@ struct SearchView: View {
     }
 }
 
-// MARK: - String Extension for Range Finding
 extension String {
     func ranges(of searchString: String, options: String.CompareOptions = []) -> [Range<String.Index>] {
         var ranges: [Range<String.Index>] = []

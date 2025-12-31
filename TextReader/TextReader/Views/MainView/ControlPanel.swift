@@ -1,13 +1,10 @@
 import SwiftUI
 
-/// 液体玻璃风格控制面板
 struct ControlPanel: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // 进度条显示状态（由父视图控制）
     @Binding var showProgressSlider: Bool
     
-    // 进度条的值（用于拖拽）
     private var sliderBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(viewModel.currentPageIndex) },
@@ -18,14 +15,12 @@ struct ControlPanel: View {
                       newIndex >= 0,
                       newIndex < viewModel.pages.count else { return }
                 
-                // 拖动时暂停阅读
                 viewModel.stopReading()
                 viewModel.currentPageIndex = newIndex
             }
         )
     }
     
-    // 进度百分比
     private var progress: Double {
         guard viewModel.pages.count > 0 else { return 0 }
         return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
@@ -33,7 +28,6 @@ struct ControlPanel: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // 进度条（点击进度按钮后显示）
             if showProgressSlider {
                 VStack(spacing: 4) {
                     Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
@@ -50,26 +44,21 @@ struct ControlPanel: View {
                 .transition(.blurReplace)
             }
             
-            // 底部按钮栏
             HStack(spacing: 16) {
-                // 1. 进度圆环按钮（点击打开进度条）
                 Button {
                     withAnimation(.spring(response: 0.3)) {
                         showProgressSlider.toggle()
                     }
                 } label: {
                     ZStack {
-                        // 进度条背景
                         Circle()
                             .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
                         
-                        // 进度条
                         Circle()
                             .trim(from: 0, to: progress)
                             .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                         
-                        // 百分比文字
                         Text("\(Int(progress * 100))%")
                             .font(.system(size: 10))
                             .fontWeight(.medium)
@@ -81,7 +70,6 @@ struct ControlPanel: View {
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
-                // 2. 书架
                 Button {
                     viewModel.showingBookList = true
                 } label: {
@@ -92,7 +80,6 @@ struct ControlPanel: View {
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
-                // 3. 播放/暂停
                 Button {
                     viewModel.toggleReading()
                 } label: {
@@ -103,7 +90,6 @@ struct ControlPanel: View {
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
-                // 4. 查询
                 Button {
                     viewModel.showingSearchView = true
                 } label: {
@@ -114,7 +100,6 @@ struct ControlPanel: View {
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
-                // 5. 设置
                 Menu {
                     Section("阅读设置") {
                         Menu("语速") {

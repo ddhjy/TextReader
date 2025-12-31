@@ -43,7 +43,6 @@ struct PromptTemplateEditor: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("保存") {
                         if template.id == emptyUUID {
-                            // 新增
                             onAdd(PromptTemplate(name: template.name, content: template.content))
                         } else {
                             onSave(template)

@@ -20,7 +20,6 @@ struct WiFiTransferView: View {
                         .font(.title2)
                         .padding(.bottom, 10)
 
-                    // 上传进度与错误展示
                     if let p = viewModel.wifiUploadProgress {
                         VStack(spacing: 8) {
                             Text("正在接收：\(viewModel.wifiUploadFilename ?? "未知")")

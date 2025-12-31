@@ -59,10 +59,10 @@ private struct CustomSlider: UIViewRepresentable {
         let slider = UISlider()
         slider.minimumValue = Float(range.lowerBound)
         slider.maximumValue = Float(range.upperBound)
-        slider.tintColor = UIColor(accentColor) // 进度条颜色
-        slider.thumbTintColor = UIColor.clear // 设置 thumb 为透明色
-        slider.minimumTrackTintColor = UIColor(accentColor) // 已滑过的轨道颜色
-        slider.maximumTrackTintColor = UIColor.systemGray4 // 未滑过的轨道颜色
+        slider.tintColor = UIColor(accentColor)
+        slider.thumbTintColor = UIColor.clear
+        slider.minimumTrackTintColor = UIColor(accentColor)
+        slider.maximumTrackTintColor = UIColor.systemGray4
         slider.addTarget(
             context.coordinator,
             action: #selector(Coordinator.valueChanged(_:)),
@@ -73,11 +73,9 @@ private struct CustomSlider: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: UISlider, context: Context) {
-        // 更新范围（当页数变化时需要同步更新）
         uiView.minimumValue = Float(range.lowerBound)
         uiView.maximumValue = Float(range.upperBound)
         
-        // 确保值在有效范围内后再设置
         let clampedValue = min(max(Float(value), uiView.minimumValue), uiView.maximumValue)
         if abs(uiView.value - clampedValue) > 0.01 {
             uiView.value = clampedValue
@@ -99,7 +97,6 @@ private struct CustomSlider: UIViewRepresentable {
         }
         
         @objc func valueChanged(_ sender: UISlider) {
-            // 确保值在有效范围内
             let clampedValue = Double(min(max(sender.value, sender.minimumValue), sender.maximumValue))
             parent.value = clampedValue
         }

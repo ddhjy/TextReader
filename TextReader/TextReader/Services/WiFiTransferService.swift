@@ -1,13 +1,11 @@
 import Network
 import Foundation
 
-/// WiFi传输服务，提供无线文件传输功能
 class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private var listener: NWListener?
     @Published var isRunning = false
     @Published var serverAddress: String?
     
-    /// 上传状态
     struct UploadState {
         var fileName: String?
         var receivedBytes: Int
@@ -17,12 +15,9 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         var errorMessage: String?
     }
     
-    /// 当前上传状态（用于手机端展示进度与错误）
     @Published var uploadState: UploadState?
     var onFileReceived: ((String, String) -> Void)?
     
-    /// Starts the WiFi transfer server on port 8080
-    /// - Returns: Whether the server started successfully
     func startServer() -> Bool {
         let parameters = NWParameters.tcp
         guard listener == nil else {
@@ -64,7 +59,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }
     }
     
-    /// Stops the WiFi transfer server
     func stopServer() {
         listener?.cancel()
         listener = nil
@@ -74,7 +68,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }
     }
     
-    /// Handles a new client connection
     private func handleConnection(_ connection: NWConnection) {
         connection.stateUpdateHandler = { state in
             switch state {
@@ -89,7 +82,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         connection.start(queue: .main)
     }
     
-    /// Receives initial data from the connection to determine request type
     private func receiveData(on connection: NWConnection) {
         connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
             if error != nil {
@@ -97,7 +89,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             }
             
             if let data = data, let request = String(data: data, encoding: .utf8) {
-                // 兜底处理预检请求（极端情况下的OPTIONS）
                 if request.hasPrefix("OPTIONS ") {
                     self?.sendOptionsPreflight(on: connection)
                     return
@@ -113,7 +104,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }
     }
     
-    /// Handles file upload requests using a buffer to collect all data
     private func receiveFileUpload(connection: NWConnection, initialData: Data) {
         var buffer = initialData
         let startTime = Date()
@@ -121,7 +111,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         var declaredContentLength: Int? = nil
         var detectedFileName: String? = nil
         
-        // 解析首包中的Header，提取Content-Length
         if let headerDelimiter = "\r\n\r\n".data(using: .utf8),
            let range = buffer.range(of: headerDelimiter) {
             headerEndOffset = range.upperBound
@@ -136,7 +125,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             }
         }
         
-        // 初始化上传状态（注意：receivedBytes统计主体部分长度，若无header分界则暂置0）
         DispatchQueue.main.async { [weak self] in
             let receivedBody = headerEndOffset.map { max(0, buffer.count - $0) } ?? 0
             self?.uploadState = UploadState(
@@ -153,7 +141,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
                 if error != nil {
                     self?.sendErrorResponse(on: connection, message: "接收数据时发生错误")
-                    // 发布错误状态
                     DispatchQueue.main.async {
                         if var s = self?.uploadState {
                             s.errorMessage = "接收数据时发生错误"
@@ -169,7 +156,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                                 errorMessage: "接收数据时发生错误"
                             )
                         }
-                        // 2秒后清空状态
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                             self?.uploadState = nil
                         }
@@ -181,12 +167,10 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     buffer.append(data)
                 }
                 
-                // 如果尚未确定header结束位置，尝试再次定位，便于计算主体部分已收字节
                 if headerEndOffset == nil, let headerDelimiter = "\r\n\r\n".data(using: .utf8), let range = buffer.range(of: headerDelimiter) {
                     headerEndOffset = range.upperBound
                 }
                 
-                // 尝试从缓冲中解析文件名（仅解析一次）
                 if detectedFileName == nil, let contentStr = String(data: buffer, encoding: .utf8) {
                     if let filenameRange = contentStr.range(of: "filename=\"") {
                         if let filenameEnd = contentStr[filenameRange.upperBound...].range(of: "\"") {
@@ -195,7 +179,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     }
                 }
                 
-                // 进度更新（如果有Content-Length且已找到header终点）
                 if let total = declaredContentLength, let headerEnd = headerEndOffset {
                     let receivedBody = max(0, buffer.count - headerEnd)
                     DispatchQueue.main.async { [weak self] in
@@ -215,7 +198,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                             )
                         }
                     }
-                    // 若已收满整个Body（等于或超过Content-Length），立即解析
                     if receivedBody >= total {
                         self?.processReceivedData(buffer: buffer, connection: connection)
                         DispatchQueue.main.async { [weak self] in
@@ -235,7 +217,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 }
                 
                 if isComplete {
-                    // 无Content-Length的兜底解析
                     self?.processReceivedData(buffer: buffer, connection: connection)
                 } else if error == nil {
                     receive()
@@ -246,7 +227,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         receive()
     }
     
-    /// Process received data to extract file content
     private func processReceivedData(buffer: Data, connection: NWConnection) {
         let encodings: [String.Encoding] = [.utf8]
         var fileContent: String?
@@ -276,7 +256,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         
                         DispatchQueue.main.async { [weak self] in
                             self?.onFileReceived?(filename, fileContent)
-                            // 上传完成状态留存2秒
                             if var s = self?.uploadState {
                                 s.fileName = s.fileName ?? filename
                                 s.isCompleted = true
@@ -293,7 +272,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 }
             }
             sendErrorResponse(on: connection, message: "文件格式解析失败")
-            // 发布错误
             DispatchQueue.main.async { [weak self] in
                 if var s = self?.uploadState {
                     s.fileName = s.fileName ?? filenameToPublish
@@ -320,9 +298,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }
     }
     
-    /// Processes HTTP requests and responds appropriately
     private func processRequest(_ request: String, on connection: NWConnection) {
-        // 兜底处理预检请求（OPTIONS）
         if request.hasPrefix("OPTIONS ") {
             sendOptionsPreflight(on: connection)
             return
@@ -362,7 +338,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }
     }
 
-    /// Responds to OPTIONS preflight with permissive CORS headers
     private func sendOptionsPreflight(on connection: NWConnection) {
         let resp = """
         HTTP/1.1 204 No Content\r
@@ -377,7 +352,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }))
     }
     
-    /// Sends the HTML upload form to the client
     private func sendUploadForm(on connection: NWConnection) {
         let response = """
         HTTP/1.1 200 OK\r
@@ -534,7 +508,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }))
     }
     
-    /// Sends a success response page to the client
     private func sendSuccessResponse(on connection: NWConnection, filename: String) {
         let successResponse = """
         HTTP/1.1 200 OK\r
@@ -598,7 +571,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }))
     }
     
-    /// Sends an error response page to the client
     private func sendErrorResponse(on connection: NWConnection, message: String) {
         let errorResponse = """
         HTTP/1.1 400 Bad Request\r
@@ -651,7 +623,6 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         }))
     }
     
-    /// Returns the local IP address of the device
     func getLocalIPAddress() -> String? {
         var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?

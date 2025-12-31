@@ -1,8 +1,6 @@
 import AVFoundation
 import MediaPlayer
 
-/// Audio session manager for handling audio-related system interactions
-/// Including session configuration, control center display, audio interruption and remote control commands
 class AudioSessionManager: NSObject {
     private weak var contentViewModel: ContentViewModel?
     private var isAudioSessionActive = false

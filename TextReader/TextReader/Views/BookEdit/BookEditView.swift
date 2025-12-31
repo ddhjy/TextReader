@@ -92,7 +92,6 @@ struct BookEditView: View {
         let trimmedTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else { return }
         
-        // If content hasn't changed, only update title
         let titleChanged = trimmedTitle != book.title
         let contentChanged = editedContent != viewModel.pages.joined(separator: " ")
         
@@ -103,7 +102,6 @@ struct BookEditView: View {
         if contentChanged {
             viewModel.updateBookContent(book: book, newContent: editedContent) { success in
                 if success && titleChanged {
-                    // If title also changed, show alert after content save succeeds
                     self.showingSaveAlert = true
                 } else if success {
                     self.showingSaveAlert = true
@@ -112,10 +110,8 @@ struct BookEditView: View {
                 }
             }
         } else if titleChanged {
-            // Only title changed
             showingSaveAlert = true
         } else {
-            // No changes, close directly
             dismiss()
         }
     }

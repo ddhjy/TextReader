@@ -12,7 +12,6 @@ class ShareViewController: SLComposeServiceViewController {
     }
     
     override func isContentValid() -> Bool {
-        // 始终允许用户进行分享，无论内容如何
         return true
     }
     
@@ -42,11 +41,8 @@ class ShareViewController: SLComposeServiceViewController {
     }
     
     override func configurationItems() -> [Any]! {
-        // 自定义分享面板的配置项
         return []
     }
-    
-    // MARK: - 内容处理方法
     
     private func processSharedItems(completion: @escaping (Bool) -> Void) {
         guard let extensionContext = self.extensionContext else {

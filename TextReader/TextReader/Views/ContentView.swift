@@ -3,21 +3,17 @@ import SwiftUI
 struct ContentView: View {
     @ObservedObject var viewModel: ContentViewModel
     
-    // 控制进度条显示状态
     @State private var showProgressSlider = false
 
     var body: some View {
         NavigationStack {
             ZStack {
-                // 背景颜色
                 (viewModel.darkModeEnabled ? Color.black : Color(UIColor.systemBackground))
                     .ignoresSafeArea()
                 
-                // 内容显示区域
                 ContentDisplay(viewModel: viewModel)
-                    .padding(.bottom, 100) // 留出底部控制栏的空间
+                    .padding(.bottom, 100)
                 
-                // 蒙层（进度条显示时出现，点击关闭进度条）
                 if showProgressSlider {
                     Color.clear
                         .contentShape(Rectangle())
@@ -29,7 +25,6 @@ struct ContentView: View {
                         }
                 }
                 
-                // 底部控制面板
                 VStack {
                     Spacer()
                     ControlPanel(viewModel: viewModel, showProgressSlider: $showProgressSlider)
@@ -38,7 +33,6 @@ struct ContentView: View {
             }
             .navigationTitle(viewModel.currentBookTitle)
             .navigationBarTitleDisplayMode(.inline)
-            // 隐藏原有的导航栏背景，让界面更沉浸
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {

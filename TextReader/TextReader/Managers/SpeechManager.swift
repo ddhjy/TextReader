@@ -1,8 +1,6 @@
 import AVFoundation
 import UIKit
 
-/// 语音管理器，负责文本的语音合成和朗读控制
-/// 封装AVSpeechSynthesizer功能，提供朗读控制并管理后台任务
 class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @unchecked Sendable {
     private let synthesizer = AVSpeechSynthesizer()
     @Published private(set) var isSpeaking: Bool = false

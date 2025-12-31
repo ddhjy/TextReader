@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// 内容显示组件，负责显示当前页面的文本内容
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
 
@@ -34,9 +33,6 @@ struct ContentDisplay: View {
         }
     }
     
-    // MARK: - 计算属性
-    
-    /// 获取当前页面的文本内容，如果页面为空则显示"无内容"
     private var currentPageText: String {
         guard !viewModel.pages.isEmpty, 
               viewModel.currentPageIndex >= 0,
@@ -45,14 +41,8 @@ struct ContentDisplay: View {
         }
         return viewModel.pages[viewModel.currentPageIndex]
     }
-    
-    // MARK: - 私有方法
-    
-    /// 处理点击手势，根据点击位置决定翻页方向
-    /// - Parameter location: 点击位置
-    /// - Parameter containerWidth: 容器宽度
+
     private func handleTapGesture(at location: CGPoint, containerWidth: CGFloat) {
-        // 左边 1/3 区域是上一页，右边 2/3 区域是下一页
         let isLeftArea = location.x < containerWidth / 3
         
         if isLeftArea {
