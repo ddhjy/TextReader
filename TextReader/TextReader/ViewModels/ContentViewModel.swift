@@ -665,7 +665,7 @@ class ContentViewModel: ObservableObject {
         let group = DispatchGroup()
         for book in booksToDelete {
             group.enter()
-            libraryManager.deleteBook(book) { [weak self] _ in
+            libraryManager.deleteBook(book) { _ in
                 group.leave()
             }
         }
