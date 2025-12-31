@@ -178,8 +178,6 @@ struct ControlPanel: View {
                     Image(systemName: "gearshape.fill")
                         .font(.title2)
                 }
-                .menuStyle(.button)
-                .buttonStyle(.glass)
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
             }
