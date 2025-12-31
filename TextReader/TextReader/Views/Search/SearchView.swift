@@ -34,7 +34,7 @@ struct SearchView: View {
                 }
             }
         }
-        .navigationTitle("搜索")
+        .navigationTitle("查询")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {

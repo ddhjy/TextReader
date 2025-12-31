@@ -96,7 +96,7 @@ struct BookListView: View {
                 }
             }
         }
-        .navigationTitle("选择书籍")
+        .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) { 

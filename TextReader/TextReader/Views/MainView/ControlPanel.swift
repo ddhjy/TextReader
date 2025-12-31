@@ -85,7 +85,7 @@ struct ControlPanel: View {
                 }
                 .buttonStyle(.plain)
                 
-                // 2. 选择书籍
+                // 2. 书架
                 Button {
                     viewModel.showingBookList = true
                 } label: {
