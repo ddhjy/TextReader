@@ -45,7 +45,7 @@ struct ControlPanel: View {
                 }
                 .padding(.horizontal, 24)
                 .padding(.vertical, 12)
-                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 16))
+                .glassEffect(.regular.interactive(), in: .capsule)
                 .padding(.horizontal, 16)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
