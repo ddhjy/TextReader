@@ -47,7 +47,7 @@ struct ControlPanel: View {
                 .padding(.vertical, 12)
                 .glassEffect(.regular.interactive(), in: .capsule)
                 .padding(.horizontal, 16)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .transition(.blurReplace)
             }
             
             // 底部按钮栏
