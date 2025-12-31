@@ -59,10 +59,6 @@ struct ControlPanel: View {
                     }
                 } label: {
                     ZStack {
-                        // 背景
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                        
                         // 进度条背景
                         Circle()
                             .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 3)
@@ -81,9 +77,10 @@ struct ControlPanel: View {
                             .fontWeight(.medium)
                             .foregroundColor(viewModel.currentAccentColor)
                     }
-                    .frame(width: 56, height: 56)
+                    .frame(width: 44, height: 44)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .tint(viewModel.currentAccentColor)
                 
                 // 2. 书架
                 Button {
