@@ -61,25 +61,24 @@ struct ControlPanel: View {
                     ZStack {
                         // 进度条背景
                         Circle()
-                            .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 3)
-                            .padding(6)
+                            .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
                         
                         // 进度条
                         Circle()
                             .trim(from: 0, to: progress)
-                            .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                             .rotationEffect(.degrees(-90))
-                            .padding(6)
                         
                         // 百分比文字
                         Text("\(Int(progress * 100))%")
-                            .font(.caption2)
+                            .font(.system(size: 10))
                             .fontWeight(.medium)
                             .foregroundColor(viewModel.currentAccentColor)
                     }
-                    .frame(width: 44, height: 44)
+                    .frame(width: 32, height: 32)
                 }
                 .buttonStyle(.glass)
+                .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
                 // 2. 书架
@@ -90,6 +89,7 @@ struct ControlPanel: View {
                         .font(.title2)
                 }
                 .buttonStyle(.glass)
+                .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
                 // 3. 播放/暂停
@@ -100,6 +100,7 @@ struct ControlPanel: View {
                         .font(.title)
                 }
                 .buttonStyle(.glass)
+                .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
                 // 4. 查询
@@ -110,6 +111,7 @@ struct ControlPanel: View {
                         .font(.title2)
                 }
                 .buttonStyle(.glass)
+                .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
                 
                 // 5. 设置
@@ -178,6 +180,7 @@ struct ControlPanel: View {
                 }
                 .menuStyle(.button)
                 .buttonStyle(.glass)
+                .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
             }
             .padding(.horizontal, 16)
