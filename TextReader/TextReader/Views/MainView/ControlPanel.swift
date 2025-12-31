@@ -91,11 +91,9 @@ struct ControlPanel: View {
                 } label: {
                     Image(systemName: "books.vertical.fill")
                         .font(.title2)
-                        .foregroundColor(viewModel.currentAccentColor)
-                        .frame(width: 56, height: 56)
-                        .background(.ultraThinMaterial, in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .tint(viewModel.currentAccentColor)
                 
                 // 3. 播放/暂停
                 Button {
@@ -103,11 +101,9 @@ struct ControlPanel: View {
                 } label: {
                     Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                         .font(.title)
-                        .foregroundColor(.white)
-                        .frame(width: 64, height: 64)
-                        .background(viewModel.currentAccentColor, in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .tint(viewModel.currentAccentColor)
                 
                 // 4. 查询
                 Button {
@@ -115,11 +111,9 @@ struct ControlPanel: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.title2)
-                        .foregroundColor(viewModel.currentAccentColor)
-                        .frame(width: 56, height: 56)
-                        .background(.ultraThinMaterial, in: Circle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.glass)
+                .tint(viewModel.currentAccentColor)
                 
                 // 5. 设置
                 Menu {
@@ -184,10 +178,10 @@ struct ControlPanel: View {
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.title2)
-                        .foregroundColor(viewModel.currentAccentColor)
-                        .frame(width: 56, height: 56)
-                        .background(.ultraThinMaterial, in: Circle())
                 }
+                .menuStyle(.button)
+                .buttonStyle(.glass)
+                .tint(viewModel.currentAccentColor)
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
