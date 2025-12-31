@@ -40,6 +40,12 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             // 隐藏原有的导航栏背景，让界面更沉浸
             .toolbarBackground(.hidden, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(viewModel.currentBookTitle)
+                        .foregroundColor(.secondary)
+                }
+            }
             .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
         }
         .navigationViewStyle(StackNavigationViewStyle())
