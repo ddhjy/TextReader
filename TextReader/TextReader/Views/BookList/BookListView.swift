@@ -147,15 +147,9 @@ struct BookListView: View {
                         .foregroundColor(viewModel.currentAccentColor)
                     }
                 } else {
-                    HStack(spacing: 16) {
-                        Button("编辑") {
-                            isEditing = true
-                            selectedBookIDs.removeAll()
-                        }
-                        Button("完成") {
-                            dismiss()
-                        }
-                        .foregroundColor(viewModel.currentAccentColor)
+                    Button("编辑") {
+                        isEditing = true
+                        selectedBookIDs.removeAll()
                     }
                 }
             }
