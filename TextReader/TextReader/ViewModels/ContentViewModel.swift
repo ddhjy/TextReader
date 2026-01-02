@@ -734,7 +734,7 @@ class ContentViewModel: ObservableObject {
 
         manualTurnResumeWorkItem = workItem
         // 轻微去抖：快速连翻时只朗读最终停下的那一页，避免因回调时序导致“读停了”
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: workItem)
     }
 
     /// 手动跳转到指定页。若当前正在朗读（或处于手动连翻的续读状态），会在短暂去抖后继续朗读目标页。
