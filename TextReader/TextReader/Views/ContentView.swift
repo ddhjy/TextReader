@@ -37,7 +37,8 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.currentBookTitle)
-                        .foregroundColor(.secondary)
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
                 }
             }
             .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
