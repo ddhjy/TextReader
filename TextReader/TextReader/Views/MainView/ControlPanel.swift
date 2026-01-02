@@ -75,7 +75,8 @@ struct ControlPanel: View {
                         viewModel.showingBookList = true
                     } label: {
                         Image(systemName: "books.vertical.fill")
-                            .font(.title2)
+                            .font(.body)
+                            .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.glass)
                     .clipShape(.circle)
@@ -85,7 +86,8 @@ struct ControlPanel: View {
                         viewModel.toggleReading()
                     } label: {
                         Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
-                            .font(.title)
+                            .font(.title3)
+                            .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.glass)
                     .clipShape(.circle)
@@ -95,7 +97,8 @@ struct ControlPanel: View {
                         viewModel.showingSearchView = true
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.title2)
+                            .font(.body)
+                            .frame(width: 32, height: 32)
                     }
                     .buttonStyle(.glass)
                     .clipShape(.circle)
@@ -162,7 +165,8 @@ struct ControlPanel: View {
                         }
                     } label: {
                         Image(systemName: "gearshape.fill")
-                            .font(.title2)
+                            .font(.body)
+                            .frame(width: 32, height: 32)
                     }
                     .menuStyle(.button)
                     .buttonStyle(.glass)
