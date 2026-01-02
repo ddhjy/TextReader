@@ -343,6 +343,9 @@ class ContentViewModel: ObservableObject {
                     self.isReading = false
                     self.updateNowPlayingInfo()
                 }
+                // 手动翻页时通常会触发 stop -> cancel -> pause，但不会触发 finish。
+                // 如果这里不清理标记，下一次真正的 finish 会被错误吞掉，导致无法自动朗读下一页。
+                self.isManualPageTurn = false
             }
         }
         
@@ -708,7 +711,8 @@ class ContentViewModel: ObservableObject {
         
         let wasReading = self.isReading
         
-        isManualPageTurn = true
+        // 只有在“朗读过程中”手动翻页才需要该标记（用于吞掉潜在的竞争态 finish 回调）
+        isManualPageTurn = wasReading
 
         if wasReading {
             speechManager.stopReading()
@@ -730,7 +734,8 @@ class ContentViewModel: ObservableObject {
         
         let wasReading = self.isReading
         
-        isManualPageTurn = true
+        // 只有在“朗读过程中”手动翻页才需要该标记（用于吞掉潜在的竞争态 finish 回调）
+        isManualPageTurn = wasReading
 
         if wasReading {
             speechManager.stopReading()

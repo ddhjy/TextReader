@@ -83,7 +83,6 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         if isSpeaking {
             isSpeaking = false
             endBackgroundTask()
-            onSpeechPause?()
         }
     }
 
