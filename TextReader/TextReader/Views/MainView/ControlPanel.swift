@@ -44,134 +44,136 @@ struct ControlPanel: View {
                 .transition(.blurReplace)
             }
             
-            HStack(spacing: 16) {
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        showProgressSlider.toggle()
-                    }
-                } label: {
-                    ZStack {
-                        Circle()
-                            .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
-                        
-                        Circle()
-                            .trim(from: 0, to: progress)
-                            .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        
-                        Text("\(Int(progress * 100))%")
-                            .font(.system(size: 10))
-                            .fontWeight(.medium)
-                            .foregroundColor(viewModel.currentAccentColor)
-                    }
-                    .frame(width: 32, height: 32)
-                }
-                .buttonStyle(.glass)
-                .clipShape(.circle)
-                .tint(viewModel.currentAccentColor)
-                
-                Button {
-                    viewModel.showingBookList = true
-                } label: {
-                    Image(systemName: "books.vertical.fill")
-                        .font(.title2)
-                }
-                .buttonStyle(.glass)
-                .clipShape(.circle)
-                .tint(viewModel.currentAccentColor)
-                
-                Button {
-                    viewModel.toggleReading()
-                } label: {
-                    Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
-                        .font(.title)
-                }
-                .buttonStyle(.glass)
-                .clipShape(.circle)
-                .tint(viewModel.currentAccentColor)
-                
-                Button {
-                    viewModel.showingSearchView = true
-                } label: {
-                    Image(systemName: "magnifyingglass")
-                        .font(.title2)
-                }
-                .buttonStyle(.glass)
-                .clipShape(.circle)
-                .tint(viewModel.currentAccentColor)
-                
-                Menu {
-                    Section("阅读设置") {
-                        Menu("语速") {
-                            ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0], id: \.self) { speed in
-                                Button {
-                                    viewModel.readingSpeed = Float(speed)
-                                } label: {
-                                    if abs(viewModel.readingSpeed - Float(speed)) < 0.01 {
-                                        Label(String(format: "%.1fx", speed), systemImage: "checkmark")
-                                    } else {
-                                        Text(String(format: "%.1fx", speed))
-                                    }
-                                }
-                            }
+            ZStack {
+                HStack(spacing: 16) {
+                    Button {
+                        withAnimation(.spring(response: 0.3)) {
+                            showProgressSlider.toggle()
                         }
-                        
-                        Menu("语音") {
-                            ForEach(viewModel.availableVoices, id: \.identifier) { voice in
-                                Button {
-                                    viewModel.selectedVoiceIdentifier = voice.identifier
-                                } label: {
-                                    if voice.identifier == viewModel.selectedVoiceIdentifier {
-                                        Label(voice.name, systemImage: "checkmark")
-                                    } else {
-                                        Text(voice.name)
-                                    }
-                                }
-                            }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
+                            
+                            Circle()
+                                .trim(from: 0, to: progress)
+                                .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                            
+                            Text("\(Int(progress * 100))%")
+                                .font(.system(size: 10))
+                                .fontWeight(.medium)
+                                .foregroundColor(viewModel.currentAccentColor)
                         }
+                        .frame(width: 32, height: 32)
                     }
+                    .buttonStyle(.glass)
+                    .clipShape(.circle)
+                    .tint(viewModel.currentAccentColor)
                     
-                    Section("外观") {
-                        Menu("强调色") {
-                            ForEach(AccentColorTheme.presets) { theme in
-                                Button {
-                                    viewModel.accentColorThemeId = theme.id
-                                } label: {
-                                    HStack {
-                                        Text(theme.name)
-                                        if viewModel.accentColorThemeId == theme.id {
-                                            Image(systemName: "checkmark")
+                    Button {
+                        viewModel.showingBookList = true
+                    } label: {
+                        Image(systemName: "books.vertical.fill")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.glass)
+                    .clipShape(.circle)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    Button {
+                        viewModel.toggleReading()
+                    } label: {
+                        Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                            .font(.title)
+                    }
+                    .buttonStyle(.glass)
+                    .clipShape(.circle)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    Button {
+                        viewModel.showingSearchView = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.title2)
+                    }
+                    .buttonStyle(.glass)
+                    .clipShape(.circle)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    Menu {
+                        Section("阅读设置") {
+                            Menu("语速") {
+                                ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0], id: \.self) { speed in
+                                    Button {
+                                        viewModel.readingSpeed = Float(speed)
+                                    } label: {
+                                        if abs(viewModel.readingSpeed - Float(speed)) < 0.01 {
+                                            Label(String(format: "%.1fx", speed), systemImage: "checkmark")
+                                        } else {
+                                            Text(String(format: "%.1fx", speed))
                                         }
-                                        Circle()
-                                            .fill(theme.color(for: .light))
-                                            .frame(width: 12, height: 12)
+                                    }
+                                }
+                            }
+                            
+                            Menu("语音") {
+                                ForEach(viewModel.availableVoices, id: \.identifier) { voice in
+                                    Button {
+                                        viewModel.selectedVoiceIdentifier = voice.identifier
+                                    } label: {
+                                        if voice.identifier == viewModel.selectedVoiceIdentifier {
+                                            Label(voice.name, systemImage: "checkmark")
+                                        } else {
+                                            Text(voice.name)
+                                        }
                                     }
                                 }
                             }
                         }
                         
-                        Button {
-                            viewModel.darkModeEnabled.toggle()
-                        } label: {
-                            Label(
-                                viewModel.darkModeEnabled ? "切换到日间模式" : "切换到夜间模式",
-                                systemImage: viewModel.darkModeEnabled ? "sun.max" : "moon"
-                            )
+                        Section("外观") {
+                            Menu("强调色") {
+                                ForEach(AccentColorTheme.presets) { theme in
+                                    Button {
+                                        viewModel.accentColorThemeId = theme.id
+                                    } label: {
+                                        HStack {
+                                            Text(theme.name)
+                                            if viewModel.accentColorThemeId == theme.id {
+                                                Image(systemName: "checkmark")
+                                            }
+                                            Circle()
+                                                .fill(theme.color(for: .light))
+                                                .frame(width: 12, height: 12)
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            Button {
+                                viewModel.darkModeEnabled.toggle()
+                            } label: {
+                                Label(
+                                    viewModel.darkModeEnabled ? "切换到日间模式" : "切换到夜间模式",
+                                    systemImage: viewModel.darkModeEnabled ? "sun.max" : "moon"
+                                )
+                            }
                         }
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.title2)
                     }
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.title2)
+                    .menuStyle(.button)
+                    .buttonStyle(.glass)
+                    .clipShape(.circle)
+                    .tint(viewModel.currentAccentColor)
                 }
-                .menuStyle(.button)
-                .buttonStyle(.glass)
-                .clipShape(.circle)
-                .tint(viewModel.currentAccentColor)
-            }
-            .overlay {
+                // 弹出进度调节时，彻底禁用按钮命中，避免 pressed 动画/高亮等视觉反馈。
+                .allowsHitTesting(!showProgressSlider)
+                
                 if showProgressSlider {
-                    // 弹出进度调节时，拦截按钮区域的点击，避免“点透”触发其它按钮动作；
-                    // 点击任意按钮区域都只会关闭弹窗。
+                    // 由独立遮罩接管点击：点击按钮区域只关闭弹窗，不触发任何按钮视觉状态或动作。
                     Color.black.opacity(0.001)
                         .contentShape(Rectangle())
                         .onTapGesture {
