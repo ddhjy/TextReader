@@ -183,6 +183,7 @@ struct ControlPanel: View {
                         }
                 }
             }
+            .frame(height: 48)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }

@@ -51,4 +51,4 @@ struct ContentDisplay: View {
             viewModel.nextPage()
         }
     }
-} 
+}
