@@ -20,8 +20,7 @@ struct PageControl: View {
                 haptic.selectionChanged()
                 haptic.prepare()
                 
-                viewModel.stopReading()
-                viewModel.currentPageIndex = newIndex
+                viewModel.goToPage(newIndex)
             }
         )
     }

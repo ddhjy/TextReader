@@ -60,6 +60,8 @@ class ContentViewModel: ObservableObject {
     private var isAutoAdvancing = false
     private var activeUtteranceId: UUID?
     private var activeUtterancePageIndex: Int?
+    private var pendingResumeAfterManualTurn: Bool = false
+    private var manualTurnResumeWorkItem: DispatchWorkItem?
 
     let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
@@ -249,7 +251,7 @@ class ContentViewModel: ObservableObject {
                 
                 let speechManagerActive = speechManager.isSpeaking
                 
-                if self.isAutoAdvancing {
+                if self.isAutoAdvancing || self.pendingResumeAfterManualTurn {
                     return
                 }
                 
@@ -706,40 +708,56 @@ class ContentViewModel: ObservableObject {
     }
 
     func nextPage() {
-        guard currentPageIndex < pages.count - 1 else { return }
-        
-        let wasReading = self.isReading
-
-        if wasReading {
-            speechManager.stopReading()
-        }
-
-        currentPageIndex += 1
-
-        if wasReading {
-            DispatchQueue.main.async {
-                self.readCurrentPage()
-            }
-        } else {
-            updateNowPlayingInfo()
-        }
+        goToPage(currentPageIndex + 1)
     }
 
     func previousPage() {
-        guard currentPageIndex > 0 else { return }
-        
-        let wasReading = self.isReading
+        goToPage(currentPageIndex - 1)
+    }
 
-        if wasReading {
+    private func cancelPendingManualResume() {
+        manualTurnResumeWorkItem?.cancel()
+        manualTurnResumeWorkItem = nil
+        pendingResumeAfterManualTurn = false
+    }
+
+    private func scheduleResumeAfterManualTurn() {
+        manualTurnResumeWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.manualTurnResumeWorkItem = nil
+            guard self.pendingResumeAfterManualTurn else { return }
+            self.pendingResumeAfterManualTurn = false
+            self.readCurrentPage()
+        }
+
+        manualTurnResumeWorkItem = workItem
+        // 轻微去抖：快速连翻时只朗读最终停下的那一页，避免因回调时序导致“读停了”
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12, execute: workItem)
+    }
+
+    /// 手动跳转到指定页。若当前正在朗读（或处于手动连翻的续读状态），会在短暂去抖后继续朗读目标页。
+    func goToPage(_ index: Int) {
+        guard !pages.isEmpty, pages.indices.contains(index) else { return }
+        guard index != currentPageIndex else { return }
+
+        let shouldResume = pendingResumeAfterManualTurn || isReading || speechManager.isSpeaking
+        pendingResumeAfterManualTurn = shouldResume
+
+        if shouldResume {
+            // 维持“继续朗读”的意图，避免快速连翻时 isReading 被异步 pause/cancel 改成 false
+            if !isReading {
+                isReading = true
+                updateNowPlayingInfo()
+            }
             speechManager.stopReading()
         }
 
-        currentPageIndex -= 1
+        currentPageIndex = index
 
-        if wasReading {
-            DispatchQueue.main.async {
-                self.readCurrentPage()
-            }
+        if shouldResume {
+            scheduleResumeAfterManualTurn()
         } else {
             updateNowPlayingInfo()
         }
@@ -765,6 +783,11 @@ class ContentViewModel: ObservableObject {
     }
 
     func readCurrentPage() {
+        // 若是手动连翻后的去抖续读，进入朗读时清掉待执行任务，避免重复触发
+        manualTurnResumeWorkItem?.cancel()
+        manualTurnResumeWorkItem = nil
+        pendingResumeAfterManualTurn = false
+
         guard !pages.isEmpty, 
               currentPageIndex >= 0,
               currentPageIndex < pages.count else { return }
@@ -782,6 +805,9 @@ class ContentViewModel: ObservableObject {
     }
 
     func stopReading() {
+        cancelPendingManualResume()
+        activeUtteranceId = nil
+        activeUtterancePageIndex = nil
         speechManager.stopReading()
         isReading = false
         updateNowPlayingInfo()

@@ -15,8 +15,7 @@ struct ControlPanel: View {
                       newIndex >= 0,
                       newIndex < viewModel.pages.count else { return }
                 
-                viewModel.stopReading()
-                viewModel.currentPageIndex = newIndex
+                viewModel.goToPage(newIndex)
             }
         )
     }
