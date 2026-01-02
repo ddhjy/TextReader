@@ -168,6 +168,19 @@ struct ControlPanel: View {
                 .clipShape(.circle)
                 .tint(viewModel.currentAccentColor)
             }
+            .overlay {
+                if showProgressSlider {
+                    // 弹出进度调节时，拦截按钮区域的点击，避免“点透”触发其它按钮动作；
+                    // 点击任意按钮区域都只会关闭弹窗。
+                    Color.black.opacity(0.001)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.3)) {
+                                showProgressSlider = false
+                            }
+                        }
+                }
+            }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
