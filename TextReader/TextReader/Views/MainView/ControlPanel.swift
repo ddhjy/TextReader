@@ -64,10 +64,10 @@ struct ControlPanel: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(viewModel.currentAccentColor)
                         }
-                        .frame(width: 32, height: 32)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .buttonStyle(.glass)
-                    .clipShape(.circle)
+                    .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
                     Button {
@@ -75,10 +75,10 @@ struct ControlPanel: View {
                     } label: {
                         Image(systemName: "books.vertical.fill")
                             .font(.body)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .buttonStyle(.glass)
-                    .clipShape(.circle)
+                    .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
                     Button {
@@ -86,10 +86,10 @@ struct ControlPanel: View {
                     } label: {
                         Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
                             .font(.title3)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .buttonStyle(.glass)
-                    .clipShape(.circle)
+                    .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
                     Button {
@@ -97,10 +97,10 @@ struct ControlPanel: View {
                     } label: {
                         Image(systemName: "magnifyingglass")
                             .font(.body)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .buttonStyle(.glass)
-                    .clipShape(.circle)
+                    .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
                     Menu {
@@ -165,11 +165,11 @@ struct ControlPanel: View {
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.body)
-                            .frame(width: 32, height: 32)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
                     .menuStyle(.button)
-                    .buttonStyle(.glass)
-                    .clipShape(.circle)
+                    .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                 }
                 // 弹出进度调节时，彻底禁用按钮命中，避免 pressed 动画/高亮等视觉反馈。
@@ -186,7 +186,7 @@ struct ControlPanel: View {
                         }
                 }
             }
-            .frame(height: 48)
+            .frame(height: 56)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
