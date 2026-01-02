@@ -53,14 +53,16 @@ struct ControlPanel: View {
                         ZStack {
                             Circle()
                                 .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
+                                .frame(width: 22, height: 22)
                             
                             Circle()
                                 .trim(from: 0, to: progress)
                                 .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                                 .rotationEffect(.degrees(-90))
+                                .frame(width: 22, height: 22)
                             
                             Text("\(Int(progress * 100))%")
-                                .font(.system(size: 10))
+                                .font(.system(size: 8))
                                 .fontWeight(.medium)
                                 .foregroundColor(viewModel.currentAccentColor)
                         }
