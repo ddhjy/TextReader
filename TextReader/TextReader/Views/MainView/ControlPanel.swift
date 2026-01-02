@@ -45,6 +45,43 @@ struct ControlPanel: View {
             
             ZStack {
                 HStack(spacing: 16) {
+                    // 书架
+                    Button {
+                        viewModel.showingBookList = true
+                    } label: {
+                        Image(systemName: "books.vertical.fill")
+                            .font(.body)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    // 搜索
+                    Button {
+                        viewModel.showingSearchView = true
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.body)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    // 播放
+                    Button {
+                        viewModel.toggleReading()
+                    } label: {
+                        Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
+                            .font(.title3)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                    .buttonStyle(.plain)
+                    .tint(viewModel.currentAccentColor)
+                    
+                    // 进度
                     Button {
                         withAnimation(.spring(response: 0.3)) {
                             showProgressSlider.toggle()
@@ -72,39 +109,7 @@ struct ControlPanel: View {
                     .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
-                    Button {
-                        viewModel.showingBookList = true
-                    } label: {
-                        Image(systemName: "books.vertical.fill")
-                            .font(.body)
-                            .frame(width: 44, height: 44)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .buttonStyle(.plain)
-                    .tint(viewModel.currentAccentColor)
-                    
-                    Button {
-                        viewModel.toggleReading()
-                    } label: {
-                        Image(systemName: viewModel.isReading ? "pause.fill" : "play.fill")
-                            .font(.title3)
-                            .frame(width: 44, height: 44)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .buttonStyle(.plain)
-                    .tint(viewModel.currentAccentColor)
-                    
-                    Button {
-                        viewModel.showingSearchView = true
-                    } label: {
-                        Image(systemName: "magnifyingglass")
-                            .font(.body)
-                            .frame(width: 44, height: 44)
-                            .glassEffect(.regular.interactive(), in: .circle)
-                    }
-                    .buttonStyle(.plain)
-                    .tint(viewModel.currentAccentColor)
-                    
+                    // 设置
                     Button {
                         viewModel.showingSettings = true
                     } label: {
