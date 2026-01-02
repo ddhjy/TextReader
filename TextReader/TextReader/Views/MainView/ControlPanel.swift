@@ -105,69 +105,14 @@ struct ControlPanel: View {
                     .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                     
-                    Menu {
-                        Section("阅读设置") {
-                            Menu("语速") {
-                                ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0], id: \.self) { speed in
-                                    Button {
-                                        viewModel.readingSpeed = Float(speed)
-                                    } label: {
-                                        if abs(viewModel.readingSpeed - Float(speed)) < 0.01 {
-                                            Label(String(format: "%.1fx", speed), systemImage: "checkmark")
-                                        } else {
-                                            Text(String(format: "%.1fx", speed))
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Menu("语音") {
-                                ForEach(viewModel.availableVoices, id: \.identifier) { voice in
-                                    Button {
-                                        viewModel.selectedVoiceIdentifier = voice.identifier
-                                    } label: {
-                                        if voice.identifier == viewModel.selectedVoiceIdentifier {
-                                            Label(voice.name, systemImage: "checkmark")
-                                        } else {
-                                            Text(voice.name)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Section("外观") {
-                            Menu("强调色") {
-                                ForEach(AccentColorTheme.presets) { theme in
-                                    Button {
-                                        viewModel.accentColorThemeId = theme.id
-                                    } label: {
-                                        HStack {
-                                            Text(theme.name)
-                                            if viewModel.accentColorThemeId == theme.id {
-                                                Image(systemName: "checkmark")
-                                            }
-                                            Circle()
-                                                .fill(theme.color(for: .light))
-                                                .frame(width: 12, height: 12)
-                                        }
-                                    }
-                                }
-                            }
-                            
-                            Button {
-                                viewModel.darkModeEnabled.toggle()
-                            } label: {
-                                Text(viewModel.darkModeEnabled ? "切换到日间模式" : "切换到夜间模式")
-                            }
-                        }
+                    Button {
+                        viewModel.showingSettings = true
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.body)
                             .frame(width: 44, height: 44)
                             .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .menuStyle(.button)
                     .buttonStyle(.plain)
                     .tint(viewModel.currentAccentColor)
                 }

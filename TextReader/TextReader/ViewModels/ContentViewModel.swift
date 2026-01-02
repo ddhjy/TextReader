@@ -51,6 +51,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingTemplatePicker = false
     @Published var generatedPrompt: AlertMessage?
     @Published var showingBookEdit = false
+    @Published var showingSettings = false
     @Published var bookToEdit: Book?
     
     @Published var wifiUploadProgress: Double?

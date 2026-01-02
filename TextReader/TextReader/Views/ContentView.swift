@@ -60,6 +60,9 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingBigBang) {
             BigBangView(vm: viewModel)
         }
+        .sheet(isPresented: $viewModel.showingSettings) {
+            SettingsView(viewModel: viewModel)
+        }
         .accentColor(viewModel.currentAccentColor)
     }
 } 
