@@ -11,11 +11,13 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
     private var lastText: String?
     private var lastVoice: AVSpeechSynthesisVoice?
     private var lastRate: Float = 1.0
+    private var utteranceIdMap: [ObjectIdentifier: UUID] = [:]
+    private var currentUtteranceId: UUID?
 
-    var onSpeechFinish: (() -> Void)?
-    var onSpeechStart: (() -> Void)?
-    var onSpeechPause: (() -> Void)?
-    var onSpeechResume: (() -> Void)?
+    var onSpeechFinish: ((UUID) -> Void)?
+    var onSpeechStart: ((UUID) -> Void)?
+    var onSpeechPause: ((UUID) -> Void)?
+    var onSpeechResume: ((UUID) -> Void)?
     var onSpeechError: (() -> Void)?
 
     override init() {
@@ -35,7 +37,8 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         return AVSpeechSynthesisVoice.speechVoices().filter { $0.language.starts(with: languagePrefix) }
     }
 
-    func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) {
+    @discardableResult
+    func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) -> UUID? {
         print("语音管理器: 收到开始朗读请求")
         
         guard !text.isEmpty else {
@@ -44,7 +47,7 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             DispatchQueue.main.async {
                 self.onSpeechError?()
             }
-            return 
+            return nil
         }
         
         lastText = text
@@ -62,6 +65,10 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
         utterance.voice = voice ?? AVSpeechSynthesisVoice(language: "zh-CN")
         utterance.rate = AVSpeechUtteranceDefaultSpeechRate * rate
         
+        let utteranceId = UUID()
+        utteranceIdMap[ObjectIdentifier(utterance)] = utteranceId
+        currentUtteranceId = utteranceId
+        
         print("语音管理器: 开始语音合成")
         self.synthesizer.speak(utterance)
         
@@ -73,6 +80,8 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
                 self.onSpeechError?()
             }
         }
+        
+        return utteranceId
     }
 
     func stopReading() {
@@ -91,7 +100,9 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             print("语音管理器: 暂停朗读")
             synthesizer.pauseSpeaking(at: .word)
             isSpeaking = false
-            onSpeechPause?()
+            if let id = currentUtteranceId {
+                onSpeechPause?(id)
+            }
         }
     }
 
@@ -100,14 +111,16 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             print("语音管理器: 恢复朗读")
             synthesizer.continueSpeaking()
             isSpeaking = true
-            onSpeechResume?()
+            if let id = currentUtteranceId {
+                onSpeechResume?(id)
+            }
         }
     }
     
     func retryLastReading() {
         if let text = lastText, let voice = lastVoice {
             print("语音管理器: 重试上次朗读")
-            startReading(text: text, voice: voice, rate: lastRate)
+            _ = startReading(text: text, voice: voice, rate: lastRate)
         }
     }
 
@@ -117,7 +130,11 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             print("语音管理器: 朗读完成")
             self.isSpeaking = false
             self.endBackgroundTask()
-            self.onSpeechFinish?()
+            let key = ObjectIdentifier(utterance)
+            let id = self.utteranceIdMap[key] ?? self.currentUtteranceId ?? UUID()
+            self.utteranceIdMap.removeValue(forKey: key)
+            if id == self.currentUtteranceId { self.currentUtteranceId = nil }
+            self.onSpeechFinish?(id)
         }
     }
 
@@ -126,7 +143,11 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             guard let self = self else { return }
             self.isSpeaking = false
             self.endBackgroundTask()
-            self.onSpeechPause?()
+            let key = ObjectIdentifier(utterance)
+            let id = self.utteranceIdMap[key] ?? self.currentUtteranceId ?? UUID()
+            self.utteranceIdMap.removeValue(forKey: key)
+            if id == self.currentUtteranceId { self.currentUtteranceId = nil }
+            self.onSpeechPause?(id)
         }
     }
 
@@ -135,7 +156,9 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             guard let self = self else { return }
             print("语音管理器: 朗读被暂停")
             self.isSpeaking = false
-            self.onSpeechPause?()
+            let key = ObjectIdentifier(utterance)
+            let id = self.utteranceIdMap[key] ?? self.currentUtteranceId ?? UUID()
+            self.onSpeechPause?(id)
         }
     }
 
@@ -144,7 +167,9 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             guard let self = self else { return }
             print("语音管理器: 朗读已恢复")
             self.isSpeaking = true
-            self.onSpeechResume?()
+            let key = ObjectIdentifier(utterance)
+            let id = self.utteranceIdMap[key] ?? self.currentUtteranceId ?? UUID()
+            self.onSpeechResume?(id)
         }
     }
     
@@ -153,7 +178,9 @@ class SpeechManager: NSObject, AVSpeechSynthesizerDelegate, ObservableObject, @u
             guard let self = self else { return }
             print("语音管理器: 朗读已开始")
             self.isSpeaking = true
-            self.onSpeechStart?()
+            let key = ObjectIdentifier(utterance)
+            let id = self.utteranceIdMap[key] ?? self.currentUtteranceId ?? UUID()
+            self.onSpeechStart?(id)
         }
     }
     

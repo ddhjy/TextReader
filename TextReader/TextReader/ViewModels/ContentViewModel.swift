@@ -57,9 +57,9 @@ class ContentViewModel: ObservableObject {
     @Published var wifiUploadFilename: String?
     @Published var wifiUploadError: String?
     
-    private var isManualPageTurn = false
-    
     private var isAutoAdvancing = false
+    private var activeUtteranceId: UUID?
+    private var activeUtterancePageIndex: Int?
 
     let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
@@ -301,15 +301,14 @@ class ContentViewModel: ObservableObject {
     }
 
     private func setupSpeechCallbacks() {
-        speechManager.onSpeechFinish = { [weak self] in
+        speechManager.onSpeechFinish = { [weak self] utteranceId in
             guard let self = self else { return }
-            
-            if self.isManualPageTurn {
-                self.isManualPageTurn = false
-                return
-            }
-            
+
             guard self.isReading else { return }
+            guard utteranceId == self.activeUtteranceId else { return }
+            // 如果用户在本轮朗读期间手动翻页（或拖动进度条）改变了 currentPageIndex，
+            // 该 finish 不应再触发自动翻页，否则会出现“手动翻页翻两页”的问题。
+            guard self.activeUtterancePageIndex == self.currentPageIndex else { return }
             
             self.isAutoAdvancing = true
             
@@ -326,9 +325,10 @@ class ContentViewModel: ObservableObject {
             }
         }
         
-        speechManager.onSpeechStart = { [weak self] in
+        speechManager.onSpeechStart = { [weak self] utteranceId in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                guard utteranceId == self.activeUtteranceId else { return }
                 if !self.isReading {
                     self.isReading = true
                     self.updateNowPlayingInfo()
@@ -336,22 +336,21 @@ class ContentViewModel: ObservableObject {
             }
         }
         
-        speechManager.onSpeechPause = { [weak self] in
+        speechManager.onSpeechPause = { [weak self] utteranceId in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                guard utteranceId == self.activeUtteranceId else { return }
                 if self.isReading {
                     self.isReading = false
                     self.updateNowPlayingInfo()
                 }
-                // 手动翻页时通常会触发 stop -> cancel -> pause，但不会触发 finish。
-                // 如果这里不清理标记，下一次真正的 finish 会被错误吞掉，导致无法自动朗读下一页。
-                self.isManualPageTurn = false
             }
         }
         
-        speechManager.onSpeechResume = { [weak self] in
+        speechManager.onSpeechResume = { [weak self] utteranceId in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                guard utteranceId == self.activeUtteranceId else { return }
                 if !self.isReading {
                     self.isReading = true
                     self.updateNowPlayingInfo()
@@ -710,9 +709,6 @@ class ContentViewModel: ObservableObject {
         guard currentPageIndex < pages.count - 1 else { return }
         
         let wasReading = self.isReading
-        
-        // 只有在“朗读过程中”手动翻页才需要该标记（用于吞掉潜在的竞争态 finish 回调）
-        isManualPageTurn = wasReading
 
         if wasReading {
             speechManager.stopReading()
@@ -733,9 +729,6 @@ class ContentViewModel: ObservableObject {
         guard currentPageIndex > 0 else { return }
         
         let wasReading = self.isReading
-        
-        // 只有在“朗读过程中”手动翻页才需要该标记（用于吞掉潜在的竞争态 finish 回调）
-        isManualPageTurn = wasReading
 
         if wasReading {
             speechManager.stopReading()
@@ -781,15 +774,14 @@ class ContentViewModel: ObservableObject {
         let voice = availableVoices.first { $0.identifier == selectedVoiceIdentifier }
         
         isReading = true
+        activeUtterancePageIndex = currentPageIndex
         
         updateNowPlayingInfo()
         
-        speechManager.startReading(text: textToRead, voice: voice, rate: readingSpeed)
+        activeUtteranceId = speechManager.startReading(text: textToRead, voice: voice, rate: readingSpeed)
     }
 
     func stopReading() {
-        isManualPageTurn = false
-        
         speechManager.stopReading()
         isReading = false
         updateNowPlayingInfo()
