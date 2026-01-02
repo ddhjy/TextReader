@@ -158,10 +158,7 @@ struct ControlPanel: View {
                             Button {
                                 viewModel.darkModeEnabled.toggle()
                             } label: {
-                                Label(
-                                    viewModel.darkModeEnabled ? "切换到日间模式" : "切换到夜间模式",
-                                    systemImage: viewModel.darkModeEnabled ? "sun.max" : "moon"
-                                )
+                                Text(viewModel.darkModeEnabled ? "切换到日间模式" : "切换到夜间模式")
                             }
                         }
                     } label: {
