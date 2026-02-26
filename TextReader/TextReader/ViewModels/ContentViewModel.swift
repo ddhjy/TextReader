@@ -208,7 +208,7 @@ class ContentViewModel: ObservableObject {
                 self.saveCurrentPageToCache()
                 self.updateNowPlayingInfo()
                 DispatchQueue.global(qos: .utility).async {
-                    self.libraryManager.saveBookProgress(bookId: bookId, pageIndex: index)
+                    self.libraryManager.saveBookProgress(bookId: bookId, pageIndex: index, totalPages: self.pages.count)
                 }
             }
             .store(in: &cancellables)

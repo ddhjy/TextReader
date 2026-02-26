@@ -347,16 +347,17 @@ class LibraryManager {
         saveMetadata(metadata)
     }
     
-    func saveBookProgress(bookId: String, pageIndex: Int) {
+    func saveBookProgress(bookId: String, pageIndex: Int, totalPages: Int) {
         var metadata = loadMetadata()
         
         if var progress = metadata.progress[bookId] {
             progress.currentPageIndex = pageIndex
+            progress.totalPages = totalPages
             metadata.progress[bookId] = progress
         } else {
             metadata.progress[bookId] = BookProgress(
                 currentPageIndex: pageIndex,
-                totalPages: 0,
+                totalPages: totalPages,
                 lastAccessed: nil,
                 cachedPages: nil
             )
