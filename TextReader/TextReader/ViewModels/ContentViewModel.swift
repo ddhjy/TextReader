@@ -185,6 +185,7 @@ class ContentViewModel: ObservableObject {
                         self.pageSummaries = summaries
                         self.searchResults = []
                         self.saveCurrentPageToCache()
+                        self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: paginatedPages.count)
                         self.isContentLoaded = true
                         self.updateNowPlayingInfo()
                         print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页，当前页 \(self.currentPageIndex)")
@@ -500,6 +501,7 @@ class ContentViewModel: ObservableObject {
                         self.pages = self.textPaginator.paginate(text: content)
                         self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
                         self.saveCurrentPageToCache()
+                        self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
                         self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                         self.searchResults = []
                         self.updateNowPlayingInfo()
@@ -522,6 +524,7 @@ class ContentViewModel: ObservableObject {
                     self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
                     
                     self.saveCurrentPageToCache()
+                    self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
                     
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                     self.searchResults = []
