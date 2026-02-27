@@ -374,8 +374,13 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     .upload-form {
                         border: 2px dashed #ccc;
                         border-radius: 10px;
-                        padding: 20px;
+                        padding: 40px 20px;
                         margin: 20px 0;
+                        transition: border-color 0.2s, background-color 0.2s;
+                    }
+                    .upload-form.drag-over {
+                        border-color: #007AFF;
+                        background-color: rgba(0, 122, 255, 0.05);
                     }
                     .file-input {
                         display: none;
@@ -413,7 +418,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 <h1>WiFi 传书</h1>
                 <div class="upload-form">
                     <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-                        <label class="file-label">支持的格式：TXT</label>
+                        <label class="file-label">将 TXT 文件拖到此处，或点击下方按钮选择</label>
                         <input type="file" name="book" accept=".txt" class="file-input" id="file-input" onchange="updateFileName()">
                         <button type="button" class="upload-button" onclick="document.getElementById('file-input').click()">
                             选择文件
@@ -428,6 +433,31 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     </form>
                 </div>
                 <script>
+                    const dropZone = document.querySelector('.upload-form');
+                    const fileInput = document.getElementById('file-input');
+
+                    ['dragenter', 'dragover'].forEach(evt => {
+                        dropZone.addEventListener(evt, function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dropZone.classList.add('drag-over');
+                        });
+                    });
+                    ['dragleave', 'drop'].forEach(evt => {
+                        dropZone.addEventListener(evt, function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            dropZone.classList.remove('drag-over');
+                        });
+                    });
+                    dropZone.addEventListener('drop', function(e) {
+                        const files = e.dataTransfer.files;
+                        if (files.length > 0) {
+                            fileInput.files = files;
+                            updateFileName();
+                        }
+                    });
+
                     function updateFileName() {
                         const input = document.getElementById('file-input');
                         const fileInfo = document.getElementById('selected-file');
