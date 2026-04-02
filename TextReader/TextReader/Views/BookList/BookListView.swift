@@ -8,10 +8,24 @@ struct BookListView: View {
     @State private var showingPasteImport = false
     @State private var isEditing = false
     @State private var selectedBookIDs = Set<String>()
+    @State private var searchText = ""
+
+    private var filteredBooks: [Book] {
+        if searchText.isEmpty {
+            return viewModel.books
+        }
+        return viewModel.books.filter { book in
+            book.title.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    private var deletableFilteredBooks: [Book] {
+        filteredBooks.filter { !$0.isBuiltIn }
+    }
 
     var body: some View {
         List(selection: isEditing ? $selectedBookIDs : .constant(Set<String>())) {
-            ForEach(viewModel.books) { book in
+            ForEach(filteredBooks) { book in
                 HStack {
                     if isEditing {
                         Image(systemName: selectedBookIDs.contains(book.id) ? "checkmark.circle.fill" : "circle")
@@ -97,6 +111,15 @@ struct BookListView: View {
         }
         .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
+        .searchable(text: $searchText, prompt: "搜索书名")
+        .onChange(of: searchText) { _ in
+            selectedBookIDs = selectedBookIDs.intersection(Set(deletableFilteredBooks.map { $0.id }))
+        }
+        .overlay {
+            if filteredBooks.isEmpty && !searchText.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) { 
                 Menu {
@@ -127,9 +150,9 @@ struct BookListView: View {
                 if isEditing {
                     HStack(spacing: 16) {
                         Button("全选") {
-                            selectedBookIDs = Set(viewModel.books.filter { !$0.isBuiltIn }.map { $0.id })
+                            selectedBookIDs = Set(deletableFilteredBooks.map { $0.id })
                         }
-                        .disabled(viewModel.books.filter { !$0.isBuiltIn }.isEmpty)
+                        .disabled(deletableFilteredBooks.isEmpty)
 
                         Button(role: .destructive) {
                             showingDeleteAlert = true
