@@ -2,3 +2,5 @@
 *.xcuserstate
 UserInterfaceState.xcuserstate
 xcuserdata/
+.build/
+DerivedData/
