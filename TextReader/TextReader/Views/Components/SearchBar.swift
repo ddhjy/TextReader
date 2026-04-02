@@ -13,7 +13,7 @@ struct SearchBar: View {
             if !text.isEmpty {
                 Button(action: { self.text = "" }) {
                     Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.gray)
                         .accessibility(label: Text("清除搜索内容"))
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -21,7 +21,7 @@ struct SearchBar: View {
 
             Button(action: onCommit) {
                 Image(systemName: "magnifyingglass")
-                    .foregroundColor(.accentColor)
+                    .foregroundStyle(.tint)
                     .accessibility(label: Text("执行搜索"))
                     .padding(.vertical, 8)
             }

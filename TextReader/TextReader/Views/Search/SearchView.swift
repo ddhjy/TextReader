@@ -6,48 +6,32 @@ struct SearchView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack {
-            SearchBar(text: $searchText, onCommit: {
-                performSearch()
-            })
-            .accentColor(viewModel.currentAccentColor)
-            .onChange(of: searchText) { _, _ in
-                performSearch()
-            }
-            .padding()
-
-            List {
-                if searchText.isEmpty {
-                    ForEach(viewModel.pageSummaries, id:\.0) { idx, preview in
-                        resultCell(page: idx, preview: preview, shouldHighlight: false)
-                    }
-                } else if viewModel.searchResults.isEmpty {
-                    Text("没有找到「\(searchText)」的结果")
-                        .foregroundColor(.secondary)
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .center)
-                } else {
-                    ForEach(viewModel.searchResults, id:\.0) { idx, preview in
-                        resultCell(page: idx, preview: preview, shouldHighlight: true)
-                    }
-                    
+        List {
+            if searchText.isEmpty {
+                ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
+                    resultCell(page: idx, preview: preview, shouldHighlight: false)
+                }
+            } else if viewModel.searchResults.isEmpty {
+                ContentUnavailableView.search(text: searchText)
+            } else {
+                ForEach(viewModel.searchResults, id: \.0) { idx, preview in
+                    resultCell(page: idx, preview: preview, shouldHighlight: true)
                 }
             }
+        }
+        .searchable(text: $searchText, prompt: "搜索内容")
+        .onChange(of: searchText) { _, _ in
+            viewModel.searchContent(searchText)
         }
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button("取消") {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("完成") {
                     dismiss()
                 }
-                .foregroundColor(viewModel.currentAccentColor)
             }
         }
-    }
-    
-    private func performSearch() {
-        viewModel.searchContent(searchText)
     }
     
     @ViewBuilder
@@ -59,7 +43,7 @@ struct SearchView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("第 \(idx + 1) 页")
                     .font(.headline)
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
                 
                 if shouldHighlight && !searchText.isEmpty {
                     highlightedText(preview: preview, searchQuery: searchText)
@@ -69,12 +53,12 @@ struct SearchView: View {
                     Text(preview)
                         .font(.subheadline)
                         .lineLimit(2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .buttonStyle(PlainButtonStyle())
+        .buttonStyle(.plain)
     }
     
     @ViewBuilder
@@ -142,4 +126,4 @@ extension String {
         
         return ranges
     }
-} 
+}

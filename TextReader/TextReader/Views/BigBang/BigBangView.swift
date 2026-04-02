@@ -205,9 +205,9 @@ struct BigBangView: View {
                         .frame(height: tokenHeight)
                         .background(vm.selectedTokenIDs.contains(token.id) ?
                                     vm.currentAccentColor.opacity(0.8) :
-                                    Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(4)
-                        .foregroundColor(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
+                                    Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .foregroundStyle(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
                         .gesture(DragGesture(minimumDistance: 0)
                                  .onEnded{ _ in 
                                      vm.processTokenTap(tappedTokenID: token.id)
@@ -217,11 +217,10 @@ struct BigBangView: View {
                 .padding()
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("取消") { dismiss() }
-                        .foregroundColor(vm.currentAccentColor)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     HStack {
                         Button("清空") {
                             if !vm.selectedTokenIDs.isEmpty {
@@ -229,7 +228,7 @@ struct BigBangView: View {
                                 HapticFeedback.shared.impactOccurred()
                             }
                         }
-                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
+                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Button("复制") { 
@@ -237,7 +236,7 @@ struct BigBangView: View {
                             vm.copySelected()
                             dismiss() 
                         }
-                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
+                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                         
                         Menu("模板") {
@@ -271,7 +270,7 @@ struct BigBangView: View {
                                 vm.showingTemplatePicker = true
                             }
                         }
-                        .foregroundColor(vm.selectedTokenIDs.isEmpty ? .gray : vm.currentAccentColor)
+                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
                         .disabled(vm.selectedTokenIDs.isEmpty)
                     }
                 }
@@ -283,8 +282,9 @@ struct BigBangView: View {
                 Alert(title: Text(alertMsg.message))
             }
         }
+        .tint(vm.currentAccentColor)
         .onAppear {
             HapticFeedback.shared.impactOccurred()
         }
     }
-} 
+}

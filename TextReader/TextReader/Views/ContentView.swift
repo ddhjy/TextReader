@@ -38,12 +38,11 @@ struct ContentView: View {
                 ToolbarItem(placement: .principal) {
                     Text(viewModel.currentBookTitle)
                         .font(.subheadline)
-                        .foregroundColor(.primary)
+                        .foregroundStyle(.primary)
                 }
             }
             .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
         }
-        .navigationViewStyle(StackNavigationViewStyle())
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
                 BookListView(viewModel: viewModel)
@@ -63,7 +62,7 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingSettings) {
             SettingsView(viewModel: viewModel)
         }
-        .accentColor(viewModel.currentAccentColor)
+        .tint(viewModel.currentAccentColor)
     }
 } 
 

@@ -101,7 +101,7 @@ struct ControlPanel: View {
                             Text("\(Int(progress * 100))%")
                                 .font(.system(size: 8))
                                 .fontWeight(.medium)
-                                .foregroundColor(viewModel.currentAccentColor)
+                                .foregroundStyle(viewModel.currentAccentColor)
                         }
                         .frame(width: 44, height: 44)
                         .glassEffect(.regular.interactive(), in: .circle)

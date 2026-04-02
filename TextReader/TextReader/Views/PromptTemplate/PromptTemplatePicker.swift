@@ -43,6 +43,7 @@ struct PromptTemplatePicker: View {
                         VStack(alignment: .leading) {
                             Text(tpl.name).font(.headline)
                             Text(tpl.content).font(.caption).lineLimit(2)
+                                .foregroundStyle(.secondary)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .contentShape(Rectangle())
@@ -51,19 +52,18 @@ struct PromptTemplatePicker: View {
                 }
             }
             .navigationTitle("提示词模板")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("完成") {
                         dismiss()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         editing = PromptTemplate(id: UUID(uuidString: "00000000-0000-0000-0000-000000000000")!, name: "", content: "")
                     } label: {
                         Image(systemName: "plus")
-                            .foregroundColor(viewModel.currentAccentColor)
                     }
                 }
             }
@@ -76,5 +76,6 @@ struct PromptTemplatePicker: View {
                 )
             }
         }
+        .tint(viewModel.currentAccentColor)
     }
-} 
+}

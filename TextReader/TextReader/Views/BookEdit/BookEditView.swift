@@ -20,37 +20,36 @@ struct BookEditView: View {
     
     var body: some View {
         NavigationStack {
-            VStack {
-                TextField("书名", text: $editedTitle)
-                    .textFieldStyle(.roundedBorder)
-                    .padding()
+            Form {
+                Section {
+                    TextField("书名", text: $editedTitle)
+                }
                 
-                TextEditor(text: $editedContent)
-                    .padding(.horizontal)
-                    .overlay(
-                        Group {
-                            if isLoading {
-                                ProgressView("正在加载…")
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                                    .background(Color.black.opacity(0.3))
-                            }
+                Section {
+                    if isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("正在加载…")
+                            Spacer()
                         }
-                    )
+                    } else {
+                        TextEditor(text: $editedContent)
+                            .frame(minHeight: 300)
+                    }
+                }
             }
             .navigationTitle("编辑书籍")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         saveChanges()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                     .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -68,6 +67,7 @@ struct BookEditView: View {
                 Text(saveError ?? "发生了未知错误，请稍后重试")
             }
         }
+        .tint(viewModel.currentAccentColor)
         .onAppear {
             loadBookContent()
         }
@@ -80,7 +80,7 @@ struct BookEditView: View {
                 case .success(let content):
                     self.editedContent = content
                     self.isLoading = false
-                case .failure(let error):
+                case .failure:
                     self.editedContent = "内容加载失败，请返回重试"
                     self.isLoading = false
                 }
@@ -101,9 +101,7 @@ struct BookEditView: View {
         
         if contentChanged {
             viewModel.updateBookContent(book: book, newContent: editedContent) { success in
-                if success && titleChanged {
-                    self.showingSaveAlert = true
-                } else if success {
+                if success {
                     self.showingSaveAlert = true
                 } else {
                     self.saveError = "内容未能保存，请稍后重试"
@@ -115,4 +113,4 @@ struct BookEditView: View {
             dismiss()
         }
     }
-} 
+}

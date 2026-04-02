@@ -29,18 +29,18 @@ struct PromptTemplateEditor: View {
                 
                 Text("可用变量：{selection} 选中文本 · {page} 当前页 · {book} 书名")
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
             }
             .navigationTitle(template.id == emptyUUID ? "新建模板" : "编辑模板")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         dismiss()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         if template.id == emptyUUID {
                             onAdd(PromptTemplate(name: template.name, content: template.content))
@@ -49,7 +49,6 @@ struct PromptTemplateEditor: View {
                         }
                         dismiss()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                     .disabled(
                         template.name.trimmingCharacters(in: .whitespaces).isEmpty ||
                         template.content.trimmingCharacters(in: .whitespaces).isEmpty
@@ -57,5 +56,6 @@ struct PromptTemplateEditor: View {
                 }
             }
         }
+        .tint(viewModel.currentAccentColor)
     }
-} 
+}

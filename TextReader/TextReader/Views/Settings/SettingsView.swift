@@ -26,7 +26,7 @@ struct SettingsView: View {
                             Label("语速", systemImage: "speedometer")
                             Spacer()
                             Text(String(format: "%.1fx", viewModel.readingSpeed))
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     
@@ -50,7 +50,7 @@ struct SettingsView: View {
                             if let selectedId = viewModel.selectedVoiceIdentifier,
                                let voice = viewModel.availableVoices.first(where: { $0.identifier == selectedId }) {
                                 Text(voice.name)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -80,7 +80,7 @@ struct SettingsView: View {
                                 .frame(width: 20, height: 20)
                             if let theme = AccentColorTheme.presets.first(where: { $0.id == viewModel.accentColorThemeId }) {
                                 Text(theme.name)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -102,7 +102,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .accentColor(viewModel.currentAccentColor)
+        .tint(viewModel.currentAccentColor)
         .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
     }
 }

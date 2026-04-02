@@ -48,9 +48,9 @@ struct ReadingControl: View {
                                 .padding(.horizontal, 12)
                                 .background(
                                     RoundedRectangle(cornerRadius: 6)
-                                        .fill(viewModel.readingSpeed == speed ? Color.accentColor : Color.clear)
+                                        .fill(viewModel.readingSpeed == speed ? viewModel.currentAccentColor : Color.clear)
                                 )
-                                .foregroundColor(viewModel.readingSpeed == speed ? .white : .primary)
+                                .foregroundStyle(viewModel.readingSpeed == speed ? .white : .primary)
                         }
                     }
                 }

@@ -6,7 +6,7 @@ struct WiFiTransferView: View {
     @State private var isCopied = false
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             VStack(spacing: 20) {
                 Spacer()
 
@@ -15,7 +15,7 @@ struct WiFiTransferView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .foregroundColor(viewModel.currentAccentColor)
+                        .foregroundStyle(viewModel.currentAccentColor)
                     Text("传输已就绪")
                         .font(.title2)
                         .padding(.bottom, 10)
@@ -27,16 +27,16 @@ struct WiFiTransferView: View {
                             ProgressView(value: p)
                             Text("\(Int(p * 100))%")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                         }
                         .padding()
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .padding(.horizontal)
                     }
                     if let err = viewModel.wifiUploadError {
                         Text(err)
-                            .foregroundColor(.red)
+                            .foregroundStyle(.red)
                             .font(.footnote)
                             .padding(.horizontal)
                     }
@@ -44,7 +44,7 @@ struct WiFiTransferView: View {
                     if let address = viewModel.serverAddress {
                         Text("确保电脑与手机在同一 WiFi 下，在浏览器打开：")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
 
@@ -59,27 +59,26 @@ struct WiFiTransferView: View {
 
                             Button {
                                 UIPasteboard.general.string = address
-                                print("Address copied: \(address)")
                                 isCopied = true
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                                     isCopied = false
                                 }
                             } label: {
                                 Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                                    .foregroundColor(isCopied ? .green : .accentColor)
+                                    .foregroundStyle(isCopied ? .green : viewModel.currentAccentColor)
                                     .frame(width: 22, height: 22)
                             }
                             .buttonStyle(.plain)
                             .padding(.trailing)
                         }
                         .padding(.vertical, 8)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
+                        .background(Color(.secondarySystemBackground))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                         .padding(.horizontal)
 
                     } else {
                         Text("正在准备…")
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                             .padding(.vertical)
                     }
 
@@ -95,13 +94,13 @@ struct WiFiTransferView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 80, height: 80)
-                        .foregroundColor(.gray)
+                        .foregroundStyle(.gray)
                     Text("WiFi 传书")
                         .font(.title2)
                         .padding(.bottom, 10)
                     Text("在电脑浏览器中打开地址，即可传入 TXT 文件")
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
 
@@ -120,11 +119,10 @@ struct WiFiTransferView: View {
             .navigationTitle("WiFi 传输")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .confirmationAction) {
                     Button("完成") {
                         dismiss()
                     }
-                    .foregroundColor(viewModel.currentAccentColor)
                 }
             }
             .onDisappear {
@@ -133,5 +131,6 @@ struct WiFiTransferView: View {
                 }
             }
         }
+        .tint(viewModel.currentAccentColor)
     }
-} 
+}

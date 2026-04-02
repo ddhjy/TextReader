@@ -15,7 +15,7 @@ struct BookListView: View {
                 HStack {
                     if isEditing {
                         Image(systemName: selectedBookIDs.contains(book.id) ? "checkmark.circle.fill" : "circle")
-                            .foregroundColor(selectedBookIDs.contains(book.id) ? viewModel.currentAccentColor : .secondary)
+                            .foregroundStyle(selectedBookIDs.contains(book.id) ? viewModel.currentAccentColor : Color.secondary)
                             .onTapGesture {
                                 if selectedBookIDs.contains(book.id) {
                                     selectedBookIDs.remove(book.id)
@@ -43,7 +43,7 @@ struct BookListView: View {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(book.title)
-                                    .foregroundColor(.primary)
+                                    .foregroundStyle(.primary)
                                     .font(.headline)
                                     .lineLimit(1)
                                 
@@ -51,14 +51,14 @@ struct BookListView: View {
                                     if let progressText = viewModel.getBookProgressDisplay(book: book) {
                                         Text(progressText)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                             .lineLimit(1)
                                     }
                                     
                                     if let lastAccessedText = viewModel.getLastAccessedTimeDisplay(book: book) {
                                         Text(lastAccessedText)
                                             .font(.caption)
-                                            .foregroundColor(.secondary)
+                                            .foregroundStyle(.secondary)
                                             .lineLimit(1)
                                     }
                                 }
@@ -66,7 +66,7 @@ struct BookListView: View {
                             Spacer()
                             if viewModel.currentBookId == book.id && !isEditing {
                                 Image(systemName: "checkmark")
-                                    .foregroundColor(viewModel.currentAccentColor)
+                                    .foregroundStyle(viewModel.currentAccentColor)
                             }
                         }
                     }
@@ -98,7 +98,7 @@ struct BookListView: View {
         .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) { 
+            ToolbarItem(placement: .topBarLeading) { 
                 Menu {
                     Button {
                         viewModel.showingDocumentPicker = true
@@ -119,11 +119,11 @@ struct BookListView: View {
                     }
                 } label: {
                     Image(systemName: "plus.circle")
-                        .foregroundColor(viewModel.currentAccentColor)
+                        .foregroundStyle(viewModel.currentAccentColor)
                 }
             }
             
-            ToolbarItem(placement: .navigationBarTrailing) {
+            ToolbarItem(placement: .topBarTrailing) {
                 if isEditing {
                     HStack(spacing: 16) {
                         Button("全选") {
@@ -142,7 +142,7 @@ struct BookListView: View {
                             isEditing = false
                             selectedBookIDs.removeAll()
                         }
-                        .foregroundColor(viewModel.currentAccentColor)
+                        .foregroundStyle(viewModel.currentAccentColor)
                     }
                 } else {
                     Button("编辑") {
