@@ -533,7 +533,7 @@ class ContentViewModel: ObservableObject {
                     self.updateNowPlayingInfo()
                 case .failure(let error):
                     print("加载书籍内容失败: \(error)")
-                    self.pages = ["加载书籍内容失败: \(error.localizedDescription)"]
+                    self.pages = ["无法加载此书内容"]
                     self.currentPageIndex = 0
                     self.isContentLoaded = true
                 }

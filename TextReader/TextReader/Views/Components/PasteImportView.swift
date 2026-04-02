@@ -10,7 +10,7 @@ struct PasteImportView: View {
     var body: some View {
         NavigationStack {
             VStack {
-                TextField("可选标题（留空则取前 10 字）", text: $title)
+                TextField("标题（可选）", text: $title)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal)
 
@@ -26,14 +26,14 @@ struct PasteImportView: View {
 
                 Spacer()
             }
-            .navigationTitle("粘贴导入")
+            .navigationTitle("粘贴文本")
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("取消") { dismiss() }
                         .foregroundColor(viewModel.currentAccentColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("保存") {
+                    Button("导入") {
                         viewModel.importPastedText(text, title: title)
                         dismiss()
                     }

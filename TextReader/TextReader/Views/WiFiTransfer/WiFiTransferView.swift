@@ -16,13 +16,13 @@ struct WiFiTransferView: View {
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(viewModel.currentAccentColor)
-                    Text("WiFi 传输已开启")
+                    Text("传输已就绪")
                         .font(.title2)
                         .padding(.bottom, 10)
 
                     if let p = viewModel.wifiUploadProgress {
                         VStack(spacing: 8) {
-                            Text("正在接收：\(viewModel.wifiUploadFilename ?? "未知")")
+                            Text("正在接收：\(viewModel.wifiUploadFilename ?? "文件")")
                                 .font(.subheadline)
                             ProgressView(value: p)
                             Text("\(Int(p * 100))%")
@@ -42,7 +42,7 @@ struct WiFiTransferView: View {
                     }
 
                     if let address = viewModel.serverAddress {
-                        Text("请在同一 WiFi 网络下，在浏览器访问以下地址上传文件：")
+                        Text("确保电脑与手机在同一 WiFi 下，在浏览器打开：")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -78,12 +78,12 @@ struct WiFiTransferView: View {
                         .padding(.horizontal)
 
                     } else {
-                        Text("正在获取 IP 地址…")
+                        Text("正在准备…")
                             .foregroundColor(.secondary)
                             .padding(.vertical)
                     }
 
-                    Button("停止 WiFi 传输") {
+                    Button("停止传输") {
                         viewModel.toggleWiFiTransfer()
                     }
                     .buttonStyle(.borderedProminent)
@@ -96,16 +96,16 @@ struct WiFiTransferView: View {
                         .scaledToFit()
                         .frame(width: 80, height: 80)
                         .foregroundColor(.gray)
-                    Text("WiFi 传输未开启")
+                    Text("WiFi 传书")
                         .font(.title2)
                         .padding(.bottom, 10)
-                    Text("点击下方按钮以启动服务，通过 WiFi 传输 TXT 文件到应用。")
+                    Text("在电脑浏览器中打开地址，即可传入 TXT 文件")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal)
 
-                    Button("启动 WiFi 传输") {
+                    Button("开始传输") {
                         viewModel.toggleWiFiTransfer()
                     }
                     .buttonStyle(.borderedProminent)

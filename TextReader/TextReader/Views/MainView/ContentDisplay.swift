@@ -37,7 +37,7 @@ struct ContentDisplay: View {
         guard !viewModel.pages.isEmpty, 
               viewModel.currentPageIndex >= 0,
               viewModel.currentPageIndex < viewModel.pages.count else {
-            return "无内容"
+            return "轻触书架，开始阅读"
         }
         return viewModel.pages[viewModel.currentPageIndex]
     }

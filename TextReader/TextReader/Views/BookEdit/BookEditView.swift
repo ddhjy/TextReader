@@ -54,18 +54,18 @@ struct BookEditView: View {
                     .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
-            .alert("保存成功", isPresented: $showingSaveAlert) {
-                Button("好") { dismiss() }
+            .alert("已保存", isPresented: $showingSaveAlert) {
+                Button("好的") { dismiss() }
             } message: {
-                Text("书籍已成功更新")
+                Text("修改已生效")
             }
             .alert("保存失败", isPresented: .init(
                 get: { saveError != nil },
                 set: { if !$0 { saveError = nil } }
             )) {
-                Button("好") { }
+                Button("好的") { }
             } message: {
-                Text(saveError ?? "未知错误")
+                Text(saveError ?? "发生了未知错误，请稍后重试")
             }
         }
         .onAppear {
@@ -81,7 +81,7 @@ struct BookEditView: View {
                     self.editedContent = content
                     self.isLoading = false
                 case .failure(let error):
-                    self.editedContent = "加载失败：\(error.localizedDescription)"
+                    self.editedContent = "内容加载失败，请返回重试"
                     self.isLoading = false
                 }
             }
@@ -106,7 +106,7 @@ struct BookEditView: View {
                 } else if success {
                     self.showingSaveAlert = true
                 } else {
-                    self.saveError = "保存失败，请重试"
+                    self.saveError = "内容未能保存，请稍后重试"
                 }
             }
         } else if titleChanged {

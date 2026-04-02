@@ -22,12 +22,12 @@ struct PromptTemplateEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("模板名称", text: $template.name)
+                TextField("如：翻译、总结、解释", text: $template.name)
                 
                 TextEditor(text: $template.content)
                     .frame(height: 180)
                 
-                Text("可用占位符: {selection}  {page}  {book}")
+                Text("可用变量：{selection} 选中文本 · {page} 当前页 · {book} 书名")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }

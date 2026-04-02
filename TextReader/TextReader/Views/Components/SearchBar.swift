@@ -6,7 +6,7 @@ struct SearchBar: View {
 
     var body: some View {
         HStack {
-            TextField("搜索...", text: $text, onCommit: onCommit)
+            TextField("搜索内容", text: $text, onCommit: onCommit)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding(.trailing, 8)
 

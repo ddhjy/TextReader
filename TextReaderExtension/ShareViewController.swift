@@ -7,7 +7,7 @@ class ShareViewController: SLComposeServiceViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = "导入到TextReader"
+        self.title = "导入到 TextReader"
         self.placeholder = "添加备注（可选）"
     }
     
@@ -16,21 +16,21 @@ class ShareViewController: SLComposeServiceViewController {
     }
     
     override func didSelectPost() {
-        let alert = UIAlertController(title: "处理中", message: "正在提取文本内容...", preferredStyle: .alert)
+        let alert = UIAlertController(title: "正在导入", message: "正在处理内容…", preferredStyle: .alert)
         present(alert, animated: true)
         
         processSharedItems { success in
             DispatchQueue.main.async {
                 alert.dismiss(animated: true) {
                     if success {
-                        let successAlert = UIAlertController(title: "成功", message: "文本已成功导入到TextReader", preferredStyle: .alert)
-                        successAlert.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
+                        let successAlert = UIAlertController(title: "导入成功", message: "返回 TextReader 即可阅读", preferredStyle: .alert)
+                        successAlert.addAction(UIAlertAction(title: "好的", style: .default, handler: { _ in
                             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                         }))
                         self.present(successAlert, animated: true)
                     } else {
-                        let failureAlert = UIAlertController(title: "失败", message: "无法提取有效的文本内容", preferredStyle: .alert)
-                        failureAlert.addAction(UIAlertAction(title: "确定", style: .default, handler: { _ in
+                        let failureAlert = UIAlertController(title: "导入失败", message: "未能识别文本内容，请尝试其他方式分享", preferredStyle: .alert)
+                        failureAlert.addAction(UIAlertAction(title: "好的", style: .default, handler: { _ in
                             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                         }))
                         self.present(failureAlert, animated: true)

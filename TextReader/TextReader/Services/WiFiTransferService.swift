@@ -418,13 +418,13 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 <h1>WiFi 传书</h1>
                 <div class="upload-form">
                     <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-                        <label class="file-label">将 TXT 文件拖到此处，或点击下方按钮选择</label>
+                        <label class="file-label">拖入 TXT 文件，或点击选择</label>
                         <input type="file" name="book" accept=".txt" class="file-input" id="file-input" onchange="updateFileName()">
                         <button type="button" class="upload-button" onclick="document.getElementById('file-input').click()">
                             选择文件
                         </button>
                         <div id="selected-file"></div>
-                        <div class="error" id="error-message">请选择有效的文本文件</div>
+                        <div class="error" id="error-message">仅支持 .txt 格式的文本文件</div>
                         <button type="submit" class="upload-button" style="margin-top: 10px;">上传</button>
                         <div id="progress">
                             <div class="bar-wrap"><div id="bar" class="bar"></div></div>
@@ -519,7 +519,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                             }
                         };
                         xhr.onerror = function() {
-                            errorMsg.textContent = '网络错误，请重试';
+                            errorMsg.textContent = '网络连接中断，请重试';
                             errorMsg.style.display = 'block';
                         };
                         xhr.send(fd);
@@ -586,12 +586,12 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             </head>
             <body>
                 <div class="success-icon">✓</div>
-                <h1>上传成功！</h1>
+                <h1>上传成功</h1>
                 <p class="file-name">文件名：\(filename)</p>
                 <div class="progress">
                     <div class="progress-bar"></div>
                 </div>
-                <p>正在返回首页...</p>
+                <p>即将返回…</p>
                 <script>setTimeout(function() { window.location.href = '/'; }, 2000);</script>
             </body>
         </html>

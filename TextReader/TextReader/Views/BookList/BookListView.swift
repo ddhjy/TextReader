@@ -166,7 +166,7 @@ struct BookListView: View {
                 BookEditView(viewModel: viewModel, book: book)
             }
         }
-        .alert(isEditing ? "确认删除所选书籍" : "确认删除", isPresented: $showingDeleteAlert) {
+        .alert(isEditing ? "删除所选书籍？" : "删除这本书？", isPresented: $showingDeleteAlert) {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) {
                 if isEditing {
@@ -180,9 +180,9 @@ struct BookListView: View {
             }
         } message: {
             if isEditing {
-                Text("将删除所选书籍，且无法恢复。")
+                Text("所选书籍将被永久删除。")
             } else if let book = bookToDelete {
-                Text("确定要删除“\(book.title)”吗？该操作无法撤销。")
+                Text("「\(book.title)」将被永久删除。")
             }
         }
     }

@@ -22,7 +22,7 @@ struct SearchView: View {
                         resultCell(page: idx, preview: preview, shouldHighlight: false)
                     }
                 } else if viewModel.searchResults.isEmpty {
-                    Text("未找到 \"\(searchText)\" 相关内容")
+                    Text("没有找到「\(searchText)」的结果")
                         .foregroundColor(.secondary)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -34,7 +34,7 @@ struct SearchView: View {
                 }
             }
         }
-        .navigationTitle("查询")
+        .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
