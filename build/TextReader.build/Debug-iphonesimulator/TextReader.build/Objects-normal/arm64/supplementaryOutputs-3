@@ -1,0 +1,30 @@
+{
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/BookProgress.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/BookProgress.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/BookProgress.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/BookProgress.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/BookProgress.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/BookProgress.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/PromptTemplate.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/PromptTemplate.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/PromptTemplate.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/PromptTemplate.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/PromptTemplate.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/PromptTemplate.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/SearchService.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SearchService.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SearchService.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SearchService.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SearchService.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SearchService.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/TextPaginator.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TextPaginator.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TextPaginator.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TextPaginator.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TextPaginator.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TextPaginator.swiftdeps"
+  }
+}

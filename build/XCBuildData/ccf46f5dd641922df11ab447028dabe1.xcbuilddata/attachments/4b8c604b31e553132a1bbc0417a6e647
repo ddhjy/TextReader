@@ -1,0 +1,21 @@
+{
+  "" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary.dia",
+    "emit-module-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary-emit-module.dia",
+    "pch" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests-primary.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReaderTests/SearchCompositionStateTests.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/SearchCompositionStateTests.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/SearchCompositionStateTests.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/SearchCompositionStateTests.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReaderTests/TextReaderTests.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderTests.build/Objects-normal/arm64/TextReaderTests.o"
+  }
+}

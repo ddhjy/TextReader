@@ -111,9 +111,19 @@ struct BookListView: View {
         }
         .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索书名")
-        .onChange(of: searchText) { _ in
+        .onChange(of: searchText) { _, _ in
             selectedBookIDs = selectedBookIDs.intersection(Set(deletableFilteredBooks.map { $0.id }))
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SearchBar(
+                text: $searchText,
+                placeholder: "搜索书名",
+                accessibilityIdentifier: "book-list-search-field"
+            )
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .background(.bar)
         }
         .overlay {
             if filteredBooks.isEmpty && !searchText.isEmpty {

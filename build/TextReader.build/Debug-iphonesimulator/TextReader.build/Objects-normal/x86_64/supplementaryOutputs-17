@@ -1,0 +1,23 @@
+{
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ContentDisplay.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ControlPanel.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/PageControl.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.swiftdeps"
+  }
+}

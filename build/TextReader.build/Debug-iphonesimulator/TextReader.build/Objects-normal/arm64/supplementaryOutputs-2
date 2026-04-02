@@ -1,0 +1,30 @@
+{
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/SpeechManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SpeechManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SpeechManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SpeechManager.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SpeechManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/SpeechManager.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/TemplateManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TemplateManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TemplateManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TemplateManager.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TemplateManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/TemplateManager.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/AccentColor.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/AccentColor.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/AccentColor.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/AccentColor.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/AccentColor.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/AccentColor.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/Book.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/Book.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/Book.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/Book.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/Book.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/arm64/Book.swiftdeps"
+  }
+}

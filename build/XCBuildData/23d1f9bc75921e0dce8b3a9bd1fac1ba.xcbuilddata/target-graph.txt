@@ -1,0 +1,6 @@
+Target dependency graph (3 targets)
+Target 'TextReaderTests' in project 'TextReader'
+➜ Explicit dependency on target 'TextReader' in project 'TextReader'
+Target 'TextReader' in project 'TextReader'
+➜ Explicit dependency on target 'TextReaderExtension' in project 'TextReader'
+Target 'TextReaderExtension' in project 'TextReader' (no dependencies)

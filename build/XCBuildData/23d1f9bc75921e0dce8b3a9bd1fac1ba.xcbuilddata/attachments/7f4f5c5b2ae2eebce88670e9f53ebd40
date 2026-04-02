@@ -1,0 +1,369 @@
+{
+  "" : {
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReader-primary.dia",
+    "emit-module-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReader-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReader-primary-emit-module.dia",
+    "pch" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReader-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReader-primary.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Application/TextReaderApp.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextReaderApp~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/AudioSessionManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AudioSessionManager~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/LibraryManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/LibraryManager~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/SettingsManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsManager~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/SpeechManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SpeechManager~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/TemplateManager.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TemplateManager~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/AccentColor.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/AccentColor~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/Book.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Book~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/BookProgress.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookProgress~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/PromptTemplate.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplate~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/SearchService.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchService~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/TextPaginator.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/TextPaginator~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/Tokenizer.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/Tokenizer~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/WiFiTransferService.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferService~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Supporting Files/String+Utils.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/String+Utils~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/ViewModels/ContentViewModel.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentViewModel~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BigBang/BigBangView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BigBangView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BookEdit/BookEditView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookEditView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BookList/BookListView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/BookListView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/DocumentPicker.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/DocumentPicker~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/PasteImportView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/RepeatButton.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchBar.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchCompositionState.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/ContentView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ContentDisplay.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ContentDisplay~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ControlPanel.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ControlPanel~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/PageControl.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PageControl~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ReadingControl.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/ReadingControl~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/PromptTemplate/PromptTemplateEditor.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplateEditor~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/PromptTemplate/PromptTemplatePicker.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PromptTemplatePicker~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Search/SearchView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Settings/SettingsView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SettingsView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Styles/PressableButtonStyle.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PressableButtonStyle~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/WiFiTransfer/WiFiTransferView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/WiFiTransferView~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

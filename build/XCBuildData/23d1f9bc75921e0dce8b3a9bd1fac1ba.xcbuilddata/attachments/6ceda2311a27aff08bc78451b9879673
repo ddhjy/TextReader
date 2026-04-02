@@ -1,0 +1,29 @@
+{
+  "" : {
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests-primary.dia",
+    "emit-module-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests-primary-emit-module.dia",
+    "pch" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests-primary.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReaderTests/SearchCompositionStateTests.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/SearchCompositionStateTests~partial.swiftmodule"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReaderTests/TextReaderTests.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.dia",
+    "index-unit-output-path" : "/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests.swiftdeps",
+    "swiftmodule" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReaderTests.build/Objects-normal/x86_64/TextReaderTests~partial.swiftmodule"
+  }
+}

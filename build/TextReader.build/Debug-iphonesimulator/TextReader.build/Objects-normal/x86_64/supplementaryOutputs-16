@@ -1,0 +1,30 @@
+{
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/PasteImportView.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/PasteImportView.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/RepeatButton.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/RepeatButton.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchBar.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchBar.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchCompositionState.swift" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.dia",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.o",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Debug-iphonesimulator/TextReader.build/Objects-normal/x86_64/SearchCompositionState.swiftdeps"
+  }
+}

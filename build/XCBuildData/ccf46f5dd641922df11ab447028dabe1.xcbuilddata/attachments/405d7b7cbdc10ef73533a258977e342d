@@ -1,0 +1,191 @@
+{
+  "" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary.dia",
+    "emit-module-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary-emit-module.dia",
+    "pch" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReader-primary.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Application/TextReaderApp.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReaderApp.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReaderApp.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextReaderApp.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/AudioSessionManager.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AudioSessionManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AudioSessionManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AudioSessionManager.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/LibraryManager.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/LibraryManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/LibraryManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/LibraryManager.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/SettingsManager.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsManager.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/SpeechManager.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SpeechManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SpeechManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SpeechManager.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Managers/TemplateManager.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TemplateManager.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TemplateManager.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TemplateManager.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/AccentColor.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AccentColor.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AccentColor.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/AccentColor.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/Book.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Book.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Book.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Book.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/BookProgress.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookProgress.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookProgress.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookProgress.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Models/PromptTemplate.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplate.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplate.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplate.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/SearchService.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchService.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchService.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchService.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/TextPaginator.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextPaginator.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextPaginator.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/TextPaginator.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/Tokenizer.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Tokenizer.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Tokenizer.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/Tokenizer.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Services/WiFiTransferService.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferService.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferService.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferService.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Supporting Files/String+Utils.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/String+Utils.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/String+Utils.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/String+Utils.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/ViewModels/ContentViewModel.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentViewModel.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentViewModel.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentViewModel.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BigBang/BigBangView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BigBangView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BigBangView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BigBangView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BookEdit/BookEditView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookEditView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookEditView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookEditView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BookList/BookListView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookListView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookListView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/BookListView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/DocumentPicker.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/DocumentPicker.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/DocumentPicker.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/DocumentPicker.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/PasteImportView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PasteImportView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PasteImportView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PasteImportView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/RepeatButton.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/RepeatButton.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/RepeatButton.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/RepeatButton.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchBar.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchBar.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchBar.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchBar.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/SearchCompositionState.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchCompositionState.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchCompositionState.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchCompositionState.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/ContentView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ContentDisplay.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentDisplay.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentDisplay.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ContentDisplay.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ControlPanel.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ControlPanel.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ControlPanel.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ControlPanel.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/PageControl.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PageControl.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PageControl.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PageControl.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ReadingControl.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ReadingControl.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ReadingControl.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/ReadingControl.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/PromptTemplate/PromptTemplateEditor.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplateEditor.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplateEditor.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplateEditor.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/PromptTemplate/PromptTemplatePicker.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplatePicker.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplatePicker.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PromptTemplatePicker.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Search/SearchView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SearchView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Settings/SettingsView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/SettingsView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Styles/PressableButtonStyle.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PressableButtonStyle.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PressableButtonStyle.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/PressableButtonStyle.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/WiFiTransfer/WiFiTransferView.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferView.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferView.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/WiFiTransferView.o"
+  },
+  "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReader.build/Objects-normal/arm64/GeneratedAssetSymbols.o"
+  }
+}

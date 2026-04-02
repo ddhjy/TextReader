@@ -1,0 +1,24 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ControlPanel.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "%lld / %lld",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "%lld%%",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 101
+        }
+      }
+    ]
+  },
+  "version": 1
+}

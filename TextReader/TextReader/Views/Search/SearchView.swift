@@ -19,9 +19,22 @@ struct SearchView: View {
                 }
             }
         }
-        .searchable(text: $searchText, prompt: "搜索内容")
         .onChange(of: searchText) { _, _ in
             viewModel.searchContent(searchText)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            SearchBar(
+                text: $searchText,
+                placeholder: "搜索内容",
+                onSubmit: {
+                    viewModel.searchContent(searchText)
+                },
+                accessibilityIdentifier: "content-search-field"
+            )
+            .padding(.horizontal, 8)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .background(.bar)
         }
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)

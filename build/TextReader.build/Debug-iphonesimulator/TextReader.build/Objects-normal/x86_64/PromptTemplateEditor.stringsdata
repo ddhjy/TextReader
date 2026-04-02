@@ -1,0 +1,56 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/PromptTemplate/PromptTemplateEditor.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "新建模板",
+        "location": {
+          "startingColumn": 57,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "编辑模板",
+        "location": {
+          "startingColumn": 74,
+          "startingLine": 34
+        }
+      },
+      {
+        "comment": "",
+        "key": "可用变量：{selection} 选中文本 · {page} 当前页 · {book} 书名",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 30
+        }
+      },
+      {
+        "comment": "",
+        "key": "如：翻译、总结、解释",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 25
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "保存",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 44
+        }
+      }
+    ]
+  },
+  "version": 1
+}

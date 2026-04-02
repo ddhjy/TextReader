@@ -1,0 +1,16 @@
+{
+  "" : {
+    "const-values" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary.swiftconstvalues",
+    "dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary.d",
+    "diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary.dia",
+    "emit-module-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary-emit-module.dia",
+    "pch" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/TextReaderExtension-primary.swiftdeps"
+  },
+  "/Users/zengkai/TTIOS/TextReader/TextReaderExtension/ShareViewController.swift" : {
+    "index-unit-output-path" : "/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/ShareViewController.o",
+    "llvm-bc" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/ShareViewController.bc",
+    "object" : "/Users/zengkai/TTIOS/TextReader/build/TextReader.build/Release-iphoneos/TextReaderExtension.build/Objects-normal/arm64/ShareViewController.o"
+  }
+}

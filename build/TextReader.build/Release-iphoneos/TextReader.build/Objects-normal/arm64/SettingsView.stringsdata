@@ -1,0 +1,72 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Settings/SettingsView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "设置",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 95
+        }
+      },
+      {
+        "comment": "",
+        "key": "阅读设置",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 10
+        }
+      },
+      {
+        "comment": "",
+        "key": "外观",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 59
+        }
+      },
+      {
+        "comment": "",
+        "key": "语速",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 26
+        }
+      },
+      {
+        "comment": "",
+        "key": "语音",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 48
+        }
+      },
+      {
+        "comment": "",
+        "key": "强调色",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "夜间模式",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 90
+        }
+      },
+      {
+        "comment": "",
+        "key": "完成",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 99
+        }
+      }
+    ]
+  },
+  "version": 1
+}
