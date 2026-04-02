@@ -65,9 +65,9 @@ https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 
 ## Requirements
 
-* **iOS:** 14.0 or later
-* **Xcode:** 12.0 or later (for development)
-* **macOS:** 11.0 or later (for development with Xcode)
+* **iOS:** 26.0 or later
+* **Xcode:** 26.0 or later (for development)
+* **macOS:** 15.0 or later (for development with Xcode)
 
 ## Installation
 
@@ -78,6 +78,25 @@ https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 2.  **Open Project:** Open `TextReader.xcodeproj` in Xcode.
 3.  **Select Target:** Choose an iOS device or simulator.
 4.  **Run:** Build and run the application.
+
+You can also build, install, and launch the app directly from the command line:
+
+```bash
+make install
+```
+
+If multiple devices are connected, specify a device name explicitly:
+
+```bash
+make install DEVICE_NAME="KAI"
+```
+
+Other useful commands:
+
+```bash
+make devices
+make install-simulator
+```
 
 ## Usage Overview
 
