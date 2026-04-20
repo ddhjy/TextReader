@@ -2,13 +2,22 @@ import Foundation
 
 final class TemplateManager {
     private let fileName = "templates.json"
-    private let fm = FileManager.default
+    private let fm: FileManager
+    private let documentsDirectoryProvider: () -> URL
+
+    init(fileManager: FileManager = .default,
+         documentsDirectoryProvider: (() -> URL)? = nil) {
+        self.fm = fileManager
+        self.documentsDirectoryProvider = documentsDirectoryProvider ?? {
+            guard let doc = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                fatalError("无法访问文档目录")
+            }
+            return doc
+        }
+    }
     
     private func templateURL() -> URL {
-        guard let doc = fm.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            fatalError("无法访问文档目录")
-        }
-        return doc.appendingPathComponent(fileName)
+        documentsDirectoryProvider().appendingPathComponent(fileName)
     }
     
     func load() -> [PromptTemplate] {

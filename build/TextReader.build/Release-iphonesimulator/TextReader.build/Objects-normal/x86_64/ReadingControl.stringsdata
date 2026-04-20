@@ -1,0 +1,24 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/MainView/ReadingControl.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "语音",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 24
+        }
+      },
+      {
+        "comment": "",
+        "key": "速度",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 38
+        }
+      }
+    ]
+  },
+  "version": 1
+}

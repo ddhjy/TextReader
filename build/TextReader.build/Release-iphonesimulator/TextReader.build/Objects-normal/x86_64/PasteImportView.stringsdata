@@ -1,0 +1,40 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/Components/PasteImportView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "粘贴文本",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 28
+        }
+      },
+      {
+        "comment": "",
+        "key": "标题（可选）",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 14
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 32
+        }
+      },
+      {
+        "comment": "",
+        "key": "导入",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 35
+        }
+      }
+    ]
+  },
+  "version": 1
+}

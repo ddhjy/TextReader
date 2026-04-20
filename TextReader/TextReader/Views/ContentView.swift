@@ -62,6 +62,19 @@ struct ContentView: View {
         .sheet(isPresented: $viewModel.showingSettings) {
             SettingsView(viewModel: viewModel)
         }
+        .overlay(alignment: .top) {
+            if let bannerMessage = viewModel.sharedImportBannerMessage {
+                Text(bannerMessage)
+                    .font(.subheadline.weight(.medium))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.sharedImportBannerMessage)
         .tint(viewModel.currentAccentColor)
     }
 } 

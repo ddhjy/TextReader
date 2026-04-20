@@ -1,0 +1,72 @@
+{
+  "source": "/Users/zengkai/TTIOS/TextReader/TextReader/TextReader/Views/BigBang/BigBangView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 221
+        }
+      },
+      {
+        "comment": "",
+        "key": "清空",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 225
+        }
+      },
+      {
+        "comment": "",
+        "key": "复制",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 234
+        }
+      },
+      {
+        "comment": "",
+        "key": "模板",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 242
+        }
+      },
+      {
+        "comment": "",
+        "key": "管理模板…",
+        "location": {
+          "startingColumn": 36,
+          "startingLine": 269
+        }
+      },
+      {
+        "comment": "",
+        "key": "打开 Perplexity",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 250
+        }
+      },
+      {
+        "comment": "",
+        "key": "打开 Raycast",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 257
+        }
+      },
+      {
+        "comment": "",
+        "key": "仅复制",
+        "location": {
+          "startingColumn": 47,
+          "startingLine": 264
+        }
+      }
+    ]
+  },
+  "version": 1
+}

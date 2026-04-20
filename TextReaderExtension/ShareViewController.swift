@@ -1,190 +1,231 @@
-import UIKit
 import Social
-import MobileCoreServices
+import UIKit
 import UniformTypeIdentifiers
 
 class ShareViewController: SLComposeServiceViewController {
-    
+    private let sharedImportStore = SharedImportStore()
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        self.title = "导入到 TextReader"
-        self.placeholder = "添加备注（可选）"
+        title = "导入到 TextReader"
+        placeholder = "标题（可选）"
     }
-    
+
     override func isContentValid() -> Bool {
-        return true
+        true
     }
-    
+
     override func didSelectPost() {
-        let alert = UIAlertController(title: "正在导入", message: "正在处理内容…", preferredStyle: .alert)
-        present(alert, animated: true)
-        
+        let progressAlert = UIAlertController(title: "正在导入", message: "正在处理分享内容…", preferredStyle: .alert)
+        present(progressAlert, animated: true)
+
         processSharedItems { success in
             DispatchQueue.main.async {
-                alert.dismiss(animated: true) {
+                progressAlert.dismiss(animated: true) {
                     if success {
-                        let successAlert = UIAlertController(title: "导入成功", message: "返回 TextReader 即可阅读", preferredStyle: .alert)
-                        successAlert.addAction(UIAlertAction(title: "好的", style: .default, handler: { _ in
+                        let successAlert = UIAlertController(
+                            title: "已导入",
+                            message: "返回 TextReader 即可阅读",
+                            preferredStyle: .alert
+                        )
+                        successAlert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
                             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-                        }))
+                        })
                         self.present(successAlert, animated: true)
                     } else {
-                        let failureAlert = UIAlertController(title: "导入失败", message: "未能识别文本内容，请尝试其他方式分享", preferredStyle: .alert)
-                        failureAlert.addAction(UIAlertAction(title: "好的", style: .default, handler: { _ in
+                        let failureAlert = UIAlertController(
+                            title: "导入失败",
+                            message: "仅支持分享纯文本或 `.txt` / `.md` 文件",
+                            preferredStyle: .alert
+                        )
+                        failureAlert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
                             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-                        }))
+                        })
                         self.present(failureAlert, animated: true)
                     }
                 }
             }
         }
     }
-    
+
     override func configurationItems() -> [Any]! {
-        return []
+        []
     }
-    
+
     private func processSharedItems(completion: @escaping (Bool) -> Void) {
-        guard let extensionContext = self.extensionContext else {
+        guard let extensionContext,
+              let inputItems = extensionContext.inputItems as? [NSExtensionItem] else {
             completion(false)
             return
         }
-        
-        guard let inputItems = extensionContext.inputItems as? [NSExtensionItem] else {
-            completion(false)
-            return
-        }
-        
-        var extractedText = ""
-        
-        if !contentText.isEmpty {
-            extractedText += contentText
-            extractedText += "\n\n"
-        }
-        
+
         let dispatchGroup = DispatchGroup()
-        
-        var extractionSuccess = false
-        
+        let lock = NSLock()
+        var extractedSegments: [String] = []
+        var fileTitles: [String] = []
+        var sourceType: SharedImportSourceType = .text
+        var extractionSucceeded = false
+
         for inputItem in inputItems {
             guard let attachments = inputItem.attachments else { continue }
-            
+
             for attachment in attachments {
-                if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+                if attachment.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
                     dispatchGroup.enter()
-                    
-                    attachment.loadItem(forTypeIdentifier: UTType.plainText.identifier, options: nil) { (data, error) in
+                    attachment.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { item, error in
                         defer { dispatchGroup.leave() }
-                        
-                        if let error = error {
-                            print("加载文本出错: \(error.localizedDescription)")
+
+                        if let error {
+                            print("[ShareViewController] 加载文件 URL 失败: \(error.localizedDescription)")
                             return
                         }
-                        
-                        if let text = data as? String {
-                            extractedText += text
-                            extractionSuccess = true
-                        } else if let data = data as? Data, let text = String(data: data, encoding: .utf8) {
-                            extractedText += text
-                            extractionSuccess = true
+
+                        guard let fileURL = self.extractFileURL(from: item),
+                              self.isSupportedTextFile(fileURL) else {
+                            return
                         }
+
+                        guard let fileText = self.readTextFile(at: fileURL) else {
+                            print("[ShareViewController] 读取文本文件失败: \(String(describing: self.extractFileURL(from: item)?.lastPathComponent))")
+                            return
+                        }
+
+                        lock.lock()
+                        extractedSegments.append(fileText)
+                        fileTitles.append(fileURL.deletingPathExtension().lastPathComponent)
+                        sourceType = .file
+                        extractionSucceeded = true
+                        lock.unlock()
                     }
+                    continue
                 }
-                else if attachment.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
-                    dispatchGroup.enter()
-                    
-                    attachment.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { (data, error) in
-                        defer { dispatchGroup.leave() }
-                        
-                        if let error = error {
-                            print("加载URL出错: \(error.localizedDescription)")
-                            return
-                        }
-                        
-                        if let url = data as? URL {
-                            let urlString = url.absoluteString
-                            extractedText += "来源网址: \(urlString)\n\n"
-                            extractionSuccess = true
-                        }
-                    }
+
+                guard let textTypeIdentifier = preferredTextTypeIdentifier(for: attachment) else {
+                    continue
                 }
-                else if attachment.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier) {
-                    dispatchGroup.enter()
-                    
-                    attachment.loadItem(forTypeIdentifier: UTType.fileURL.identifier, options: nil) { (data, error) in
-                        defer { dispatchGroup.leave() }
-                        
-                        if let error = error {
-                            print("加载文件URL出错: \(error.localizedDescription)")
-                            return
-                        }
-                        
-                        if let fileURL = data as? URL {
-                            if fileURL.pathExtension.lowercased() == "txt" {
-                                do {
-                                    let fileContent = try String(contentsOf: fileURL, encoding: .utf8)
-                                    extractedText += fileContent
-                                    extractionSuccess = true
-                                } catch {
-                                    print("读取文件内容出错: \(error.localizedDescription)")
-                                    
-                                    do {
-                                        let gb18030Encoding = String.Encoding(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
-                                        let fileContent = try String(contentsOf: fileURL, encoding: gb18030Encoding)
-                                        extractedText += fileContent
-                                        extractionSuccess = true
-                                    } catch {
-                                        print("尝试GB18030编码读取文件内容出错: \(error.localizedDescription)")
-                                    }
-                                }
-                            }
-                        }
+
+                dispatchGroup.enter()
+                attachment.loadItem(forTypeIdentifier: textTypeIdentifier, options: nil) { item, error in
+                    defer { dispatchGroup.leave() }
+
+                    if let error {
+                        print("[ShareViewController] 加载文本失败: \(error.localizedDescription)")
+                        return
                     }
+
+                    guard let text = self.extractText(from: item),
+                          !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                        return
+                    }
+
+                    lock.lock()
+                    extractedSegments.append(text)
+                    extractionSucceeded = true
+                    lock.unlock()
                 }
             }
         }
-        
-        dispatchGroup.notify(queue: .main) {
-            if !extractedText.isEmpty && extractionSuccess {
-                self.openMainAppWithText(extractedText)
+
+        dispatchGroup.notify(queue: .global(qos: .userInitiated)) {
+            let combinedText = extractedSegments
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: "\n\n")
+
+            guard extractionSucceeded, !combinedText.isEmpty else {
+                completion(false)
+                return
+            }
+
+            let preferredTitle = self.preferredImportTitle(fileTitles: fileTitles)
+
+            do {
+                try self.sharedImportStore.enqueueTextImport(
+                    text: combinedText,
+                    title: preferredTitle,
+                    sourceType: sourceType
+                )
                 completion(true)
-            } else {
+            } catch {
+                print("[ShareViewController] 写入共享导入失败: \(error)")
                 completion(false)
             }
         }
     }
-    
-    private func openMainAppWithText(_ text: String) {
-        guard let encodedText = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            print("无法对文本进行URL编码")
-            return
+
+    private func preferredImportTitle(fileTitles: [String]) -> String? {
+        let trimmedUserTitle = contentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedUserTitle.isEmpty {
+            return trimmedUserTitle
         }
-        
-        let urlString = "textreader://import?text=\(encodedText)"
-        
-        if let url = URL(string: urlString) {
-            self.extensionContext?.open(url, completionHandler: { success in
-                if success {
-                    print("成功打开URL: \(urlString)")
-                } else {
-                    print("无法打开URL: \(urlString)")
-                    self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-                }
-            })
-        }
+
+        guard fileTitles.count == 1 else { return nil }
+        return fileTitles[0]
     }
-    
-    enum TextEncodingType {
-        case utf8
-        case gb18030
-        
-        var encoding: String.Encoding {
-            switch self {
-            case .utf8:
-                return .utf8
-            case .gb18030:
-                return .init(rawValue: CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)))
+
+    private func preferredTextTypeIdentifier(for attachment: NSItemProvider) -> String? {
+        if attachment.hasItemConformingToTypeIdentifier(UTType.plainText.identifier) {
+            return UTType.plainText.identifier
+        }
+
+        if attachment.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+            return UTType.text.identifier
+        }
+
+        return nil
+    }
+
+    private func extractText(from item: NSSecureCoding?) -> String? {
+        if let text = item as? String {
+            return text
+        }
+
+        if let data = item as? Data {
+            return String(data: data, encoding: .utf8)
+        }
+
+        if let url = item as? URL,
+           isSupportedTextFile(url) {
+            return readTextFile(at: url)
+        }
+
+        return nil
+    }
+
+    private func extractFileURL(from item: NSSecureCoding?) -> URL? {
+        if let url = item as? URL {
+            return url
+        }
+
+        if let nsURL = item as? NSURL {
+            return nsURL as URL
+        }
+
+        return nil
+    }
+
+    private func isSupportedTextFile(_ url: URL) -> Bool {
+        let pathExtension = url.pathExtension.lowercased()
+        return pathExtension == "txt" || pathExtension == "md"
+    }
+
+    private func readTextFile(at url: URL) -> String? {
+        do {
+            return try String(contentsOf: url, encoding: .utf8)
+        } catch {
+            do {
+                return try String(contentsOf: url, encoding: .gb_18030_2000)
+            } catch {
+                return nil
             }
         }
     }
+}
+
+private extension String.Encoding {
+    static let gb_18030_2000 = String.Encoding(
+        rawValue: CFStringConvertEncodingToNSStringEncoding(
+            CFStringEncoding(CFStringEncodings.GB_18030_2000.rawValue)
+        )
+    )
 }

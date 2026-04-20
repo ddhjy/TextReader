@@ -74,6 +74,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		0C7B10012F00100000257087 /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		0C0260C42DCA490C00257087 /* TextReaderExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -138,6 +143,7 @@
 			isa = PBXGroup;
 			children = (
 				0C9E2AD02CA01AEF00302914 /* TextReader */,
+				0C7B10012F00100000257087 /* Shared */,
 				0C9E2AE12CA01AF100302914 /* TextReaderTests */,
 				0C9E2AEB2CA01AF100302914 /* TextReaderUITests */,
 				0C0260C42DCA490C00257087 /* TextReaderExtension */,
@@ -173,6 +179,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				0C0260C42DCA490C00257087 /* TextReaderExtension */,
+				0C7B10012F00100000257087 /* Shared */,
 			);
 			name = TextReaderExtension;
 			packageProductDependencies = (
@@ -197,6 +204,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				0C9E2AD02CA01AEF00302914 /* TextReader */,
+				0C7B10012F00100000257087 /* Shared */,
 			);
 			name = TextReader;
 			packageProductDependencies = (
@@ -386,6 +394,7 @@
 		0C0260CF2DCA490C00257087 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TextReaderExtension/TextReaderExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6KH2T566FP;
@@ -412,6 +421,7 @@
 		0C0260D02DCA490C00257087 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = TextReaderExtension/TextReaderExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 6KH2T566FP;

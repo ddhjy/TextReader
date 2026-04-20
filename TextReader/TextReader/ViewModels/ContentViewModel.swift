@@ -53,6 +53,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingBookEdit = false
     @Published var showingSettings = false
     @Published var bookToEdit: Book?
+    @Published var sharedImportBannerMessage: String?
     
     @Published var wifiUploadProgress: Double?
     @Published var wifiUploadFilename: String?
@@ -63,6 +64,8 @@ class ContentViewModel: ObservableObject {
     private var activeUtterancePageIndex: Int?
     private var pendingResumeAfterManualTurn: Bool = false
     private var manualTurnResumeWorkItem: DispatchWorkItem?
+    private var sharedImportBannerDismissWorkItem: DispatchWorkItem?
+    private var isConsumingSharedImports = false
 
     let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
@@ -71,8 +74,9 @@ class ContentViewModel: ObservableObject {
     private let wiFiTransferService: WiFiTransferService
     private let audioSessionManager: AudioSessionManager
     private let settingsManager: SettingsManager
+    private let sharedImportStore: SharedImportStore
     private let tokenizer = Tokenizer()
-    private let templateManager = TemplateManager()
+    private let templateManager: TemplateManager
 
     private var cancellables = Set<AnyCancellable>()
     
@@ -87,7 +91,9 @@ class ContentViewModel: ObservableObject {
          searchService: SearchService = SearchService(),
          wiFiTransferService: WiFiTransferService = WiFiTransferService(),
          audioSessionManager: AudioSessionManager = AudioSessionManager(),
-         settingsManager: SettingsManager = SettingsManager()) {
+         settingsManager: SettingsManager = SettingsManager(),
+         sharedImportStore: SharedImportStore = SharedImportStore(),
+         templateManager: TemplateManager = TemplateManager()) {
 
         self.libraryManager = libraryManager
         self.textPaginator = textPaginator
@@ -96,6 +102,8 @@ class ContentViewModel: ObservableObject {
         self.wiFiTransferService = wiFiTransferService
         self.audioSessionManager = audioSessionManager
         self.settingsManager = settingsManager
+        self.sharedImportStore = sharedImportStore
+        self.templateManager = templateManager
         self.darkModeEnabled = settingsManager.getDarkMode()
 
         loadInitialData()
@@ -149,21 +157,19 @@ class ContentViewModel: ObservableObject {
         self.accentColorThemeId = settingsManager.getAccentColorThemeId()
         self.darkModeEnabled = settingsManager.getDarkMode()
         
-        DispatchQueue.main.async {
-            self.books = self.libraryManager.loadBooks()
-            self.sortBooks()
-            self.templates = self.templateManager.load()
-            
-            let lastBookId = self.settingsManager.getLastOpenedBookId()
-            if let bookId = lastBookId, let bookToLoad = self.books.first(where: { $0.id == bookId }) {
-                self.currentBookId = bookToLoad.id
-                self.currentBookTitle = bookToLoad.title
-                self.loadFullBookContent(bookToLoad)
-            } else if let firstBook = self.books.first {
-                self.loadBook(firstBook)
-            } else {
-                self.isContentLoaded = true
-            }
+        self.books = self.libraryManager.loadBooks()
+        self.sortBooks()
+        self.templates = self.templateManager.load()
+        
+        let lastBookId = self.settingsManager.getLastOpenedBookId()
+        if let bookId = lastBookId, let bookToLoad = self.books.first(where: { $0.id == bookId }) {
+            self.currentBookId = bookToLoad.id
+            self.currentBookTitle = bookToLoad.title
+            self.loadFullBookContent(bookToLoad)
+        } else if let firstBook = self.books.first {
+            self.loadBook(firstBook)
+        } else {
+            self.isContentLoaded = true
         }
     }
     
@@ -642,6 +648,57 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    func consumePendingSharedImports(completion: (([Book]) -> Void)? = nil) {
+        guard !isConsumingSharedImports else {
+            completion?([])
+            return
+        }
+
+        isConsumingSharedImports = true
+
+        DispatchQueue.global(qos: .userInitiated).async {
+            var importedBooks: [Book] = []
+
+            do {
+                _ = try self.sharedImportStore.consumePendingImports { item, text in
+                    do {
+                        let importedBook = try self.libraryManager.importSharedText(
+                            text,
+                            preferredTitle: item.title,
+                            createdAt: item.createdAt
+                        )
+                        importedBooks.append(importedBook)
+                        return true
+                    } catch {
+                        print("[ContentViewModel] 共享导入写入书库失败: \(error)")
+                        return false
+                    }
+                }
+            } catch {
+                print("[ContentViewModel] 消费共享导入失败: \(error)")
+            }
+
+            DispatchQueue.main.async {
+                self.isConsumingSharedImports = false
+
+                guard !importedBooks.isEmpty else {
+                    completion?([])
+                    return
+                }
+
+                self.books = self.libraryManager.loadBooks()
+                self.sortBooks()
+
+                if let latestBook = importedBooks.last {
+                    self.loadBook(latestBook)
+                    self.showSharedImportBanner("已导入《\(latestBook.title)》")
+                }
+
+                completion?(importedBooks)
+            }
+        }
+    }
+
     func getBookProgressDisplay(book: Book) -> String? {
         if let cached = bookDisplayCache[book.id] {
             return cached.progress
@@ -661,6 +718,19 @@ class ContentViewModel: ObservableObject {
             return nil
         }
         return formatLastAccessedTime(lastAccessed)
+    }
+
+    private func showSharedImportBanner(_ message: String) {
+        sharedImportBannerDismissWorkItem?.cancel()
+        sharedImportBannerMessage = message
+
+        let dismissWorkItem = DispatchWorkItem { [weak self] in
+            self?.sharedImportBannerMessage = nil
+            self?.sharedImportBannerDismissWorkItem = nil
+        }
+
+        sharedImportBannerDismissWorkItem = dismissWorkItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: dismissWorkItem)
     }
 
     func updateBookTitle(book: Book, newTitle: String) {

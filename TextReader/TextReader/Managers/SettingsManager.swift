@@ -1,7 +1,11 @@
 import Foundation
 
 class SettingsManager {
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+    }
 
     private enum Keys {
         static let readingSpeed = "readingSpeed"

@@ -3,7 +3,8 @@ import Foundation
 class LibraryManager {
     
     private let bookMetadataFile = "library.json"
-    private let fileManager = FileManager.default
+    private let fileManager: FileManager
+    private let documentsDirectoryProvider: () throws -> URL
     
     enum LibraryError: Error {
         case fileNotFound
@@ -14,6 +15,22 @@ class LibraryManager {
         case deleteError
         case securityAccessError
         case unsupportedEncoding
+    }
+
+    private enum ImportConflictPolicy {
+        case overwriteExisting
+        case createUniqueCopy
+    }
+
+    init(fileManager: FileManager = .default,
+         documentsDirectoryProvider: (() throws -> URL)? = nil) {
+        self.fileManager = fileManager
+        self.documentsDirectoryProvider = documentsDirectoryProvider ?? {
+            guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                throw LibraryError.directoryAccessFailed
+            }
+            return documentsDirectory
+        }
     }
     
     func loadBooks() -> [Book] {
@@ -85,43 +102,65 @@ class LibraryManager {
         }
     }
     
-    func importBook(fileName: String, content: String, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
-        print("[LibraryManager] 尝试将导入的内容保存到文件: \(fileName)")
+    func importBook(fileName: String,
+                    content: String,
+                    suggestedTitle: String? = nil,
+                    overwriteExisting: Bool = true,
+                    completion: @escaping (Result<Book, Error>) -> Void) {
         do {
-            let documentsURL = try getDocumentsDirectory()
-            let fileURL = documentsURL.appendingPathComponent(fileName)
-            print("[LibraryManager] 目标路径: \(fileURL.path)")
-
-            if fileManager.fileExists(atPath: fileURL.path) {
-                print("[LibraryManager] 目标文件已存在。删除旧版本。")
-                do {
-                    try fileManager.removeItem(at: fileURL)
-                    print("[LibraryManager] 成功删除目标位置的现有文件。")
-                } catch {
-                    print("[LibraryManager][错误] 删除现有文件失败 \(fileURL.path): \(error.localizedDescription)")
-                }
-            }
-
-            try content.write(to: fileURL, atomically: true, encoding: .utf8)
-            print("[LibraryManager] 成功将内容写入目标。")
-
-            let title: String
-            if let suggestedTitle = suggestedTitle {
-                title = suggestedTitle
-                print("[LibraryManager] 使用建议标题: '\(title)'")
-            } else {
-                title = fileURL.deletingPathExtension().lastPathComponent
-                print("[LibraryManager] 使用从文件名派生的标题: '\(title)'")
-            }
-            
-            let newBook = Book(title: title, fileName: fileName, isBuiltIn: false)
-            print("[LibraryManager] 创建书籍对象: 标题='\(title)', 文件名='\(fileName)'")
-
-            completion(.success(newBook))
+            let conflictPolicy: ImportConflictPolicy = overwriteExisting ? .overwriteExisting : .createUniqueCopy
+            let book = try importBookSynchronously(
+                fileName: fileName,
+                content: content,
+                suggestedTitle: suggestedTitle,
+                conflictPolicy: conflictPolicy
+            )
+            completion(.success(book))
         } catch {
             print("[LibraryManager][错误] 保存导入的书籍内容失败 \(fileName): \(error.localizedDescription)")
-            completion(.failure(LibraryError.saveError))
+            completion(.failure(error))
         }
+    }
+
+    func importSharedText(_ content: String,
+                          preferredTitle: String?,
+                          sourceFileName: String? = nil,
+                          createdAt: Date = Date()) throws -> Book {
+        let resolvedTitle = resolveSharedImportTitle(
+            preferredTitle: preferredTitle,
+            sourceFileName: sourceFileName,
+            content: content,
+            createdAt: createdAt
+        )
+
+        return try importBookSynchronously(
+            fileName: "\(resolvedTitle).txt",
+            content: content,
+            suggestedTitle: resolvedTitle,
+            conflictPolicy: .createUniqueCopy
+        )
+    }
+
+    func resolveSharedImportTitle(preferredTitle: String?,
+                                  sourceFileName: String?,
+                                  content: String,
+                                  createdAt: Date = Date()) -> String {
+        if let preferredTitle = trimmedNonEmpty(preferredTitle) {
+            return sanitizedImportedTitle(preferredTitle)
+        }
+
+        if let sourceFileName = trimmedNonEmpty(sourceFileName) {
+            let baseName = URL(fileURLWithPath: sourceFileName).deletingPathExtension().lastPathComponent
+            if let normalizedBaseName = Optional(baseName).nilIfEmpty() {
+                return sanitizedImportedTitle(normalizedBaseName)
+            }
+        }
+
+        if let firstLine = firstMeaningfulLine(in: content) {
+            return sanitizedImportedTitle(String(firstLine.prefix(20)))
+        }
+
+        return fallbackSharedImportTitle(createdAt: createdAt)
     }
     
     func importBookFromURL(_ url: URL, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
@@ -138,65 +177,65 @@ class LibraryManager {
         if !isInInboxDirectory {
             securityAccessGranted = url.startAccessingSecurityScopedResource()
             print("[LibraryManager] 尝试为 \(url.lastPathComponent) 启动安全访问... 成功: \(securityAccessGranted)")
-            
-            if securityAccessGranted {
-                url.stopAccessingSecurityScopedResource()
-                print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
-            } else {
+
+            if !securityAccessGranted {
                 print("[LibraryManager] 无法作为安全作用域资源访问，将尝试直接访问")
             }
         }
-
-        do {
-            print("[LibraryManager] 尝试从以下位置读取内容: \(url.path)")
-
-            var fileContent: String?
-            var usedEncoding: String.Encoding?
-            let encodingsToTry: [String.Encoding] = [.utf8, .gb_18030_2000]
-
-            for encoding in encodingsToTry {
-                print("[LibraryManager] 尝试编码: \(encoding)")
-                if let content = try? String(contentsOf: url, encoding: encoding) {
-                    fileContent = content
-                    usedEncoding = encoding
-                    print("[LibraryManager] 使用编码成功读取内容: \(encoding)")
-                    break
-                } else {
-                    print("[LibraryManager] 使用编码读取失败: \(encoding)")
-                }
+        defer {
+            if securityAccessGranted {
+                url.stopAccessingSecurityScopedResource()
+                print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
             }
-
-            if fileContent == nil {
-                print("[LibraryManager] 所有直接读取尝试都失败。尝试先复制文件...")
-                if let (content, encoding) = tryReadingByCopyingFirst(url: url, encodingsToTry: encodingsToTry) {
-                    fileContent = content
-                    usedEncoding = encoding
-                    print("[LibraryManager] 复制后成功读取内容。编码: \(encoding)")
-                }
-            }
-
-            guard let content = fileContent, let _ = usedEncoding else {
-                print("[LibraryManager][错误] 无法使用支持的编码从 \(url.path) 读取内容。")
-                completion(.failure(LibraryError.unsupportedEncoding))
-                return
-            }
-
-            let fileName = generateSafeFileName(from: url, suggestedTitle: suggestedTitle)
-            importBook(fileName: fileName, content: content, suggestedTitle: suggestedTitle, completion: completion)
-            
         }
+
+        print("[LibraryManager] 尝试从以下位置读取内容: \(url.path)")
+
+        var fileContent: String?
+        var usedEncoding: String.Encoding?
+        let encodingsToTry: [String.Encoding] = [.utf8, .gb_18030_2000]
+
+        for encoding in encodingsToTry {
+            print("[LibraryManager] 尝试编码: \(encoding)")
+            if let content = try? String(contentsOf: url, encoding: encoding) {
+                fileContent = content
+                usedEncoding = encoding
+                print("[LibraryManager] 使用编码成功读取内容: \(encoding)")
+                break
+            } else {
+                print("[LibraryManager] 使用编码读取失败: \(encoding)")
+            }
+        }
+
+        if fileContent == nil {
+            print("[LibraryManager] 所有直接读取尝试都失败。尝试先复制文件...")
+            if let (content, encoding) = tryReadingByCopyingFirst(url: url, encodingsToTry: encodingsToTry) {
+                fileContent = content
+                usedEncoding = encoding
+                print("[LibraryManager] 复制后成功读取内容。编码: \(encoding)")
+            }
+        }
+
+        guard let content = fileContent, let _ = usedEncoding else {
+            print("[LibraryManager][错误] 无法使用支持的编码从 \(url.path) 读取内容。")
+            completion(.failure(LibraryError.unsupportedEncoding))
+            return
+        }
+
+        let fileName = generateSafeFileName(from: url, suggestedTitle: suggestedTitle)
+        importBook(
+            fileName: fileName,
+            content: content,
+            suggestedTitle: suggestedTitle,
+            overwriteExisting: true,
+            completion: completion
+        )
     }
     
     private func generateSafeFileName(from url: URL, suggestedTitle: String?) -> String {
-        let baseName: String
-        if let suggestedTitle = suggestedTitle {
-            baseName = suggestedTitle
-        } else {
-            baseName = url.deletingPathExtension().lastPathComponent
-        }
-        
-        let safeName = baseName.replacingOccurrences(of: "[^a-zA-Z0-9_\\-\\.]", with: "_", options: .regularExpression)
-        return safeName.hasSuffix(".txt") ? safeName : safeName + ".txt"
+        let baseName = trimmedNonEmpty(suggestedTitle)
+            ?? url.deletingPathExtension().lastPathComponent
+        return normalizeImportFileName("\(baseName).txt")
     }
     
     private func tryReadingByCopyingFirst(url: URL, encodingsToTry: [String.Encoding]) -> (String, String.Encoding)? {
@@ -225,10 +264,7 @@ class LibraryManager {
     }
     
     func getDocumentsDirectory() throws -> URL {
-        guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
-            throw LibraryError.directoryAccessFailed
-        }
-        return documentsDirectory
+        try documentsDirectoryProvider()
     }
     
     func deleteBook(_ book: Book, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -444,6 +480,110 @@ class LibraryManager {
         var metadata = loadMetadata()
         metadata.progress.removeValue(forKey: bookId)
         saveMetadata(metadata)
+    }
+
+    private func importBookSynchronously(fileName: String,
+                                         content: String,
+                                         suggestedTitle: String?,
+                                         conflictPolicy: ImportConflictPolicy) throws -> Book {
+        let documentsURL = try getDocumentsDirectory()
+        let destinationURL = try destinationURL(
+            for: fileName,
+            conflictPolicy: conflictPolicy,
+            documentsURL: documentsURL
+        )
+
+        print("[LibraryManager] 尝试将导入的内容保存到文件: \(destinationURL.lastPathComponent)")
+        print("[LibraryManager] 目标路径: \(destinationURL.path)")
+
+        if conflictPolicy == .overwriteExisting,
+           fileManager.fileExists(atPath: destinationURL.path) {
+            try fileManager.removeItem(at: destinationURL)
+            print("[LibraryManager] 成功删除目标位置的现有文件。")
+        }
+
+        try content.write(to: destinationURL, atomically: true, encoding: .utf8)
+        print("[LibraryManager] 成功将内容写入目标。")
+
+        let resolvedTitle = trimmedNonEmpty(suggestedTitle)
+            ?? destinationURL.deletingPathExtension().lastPathComponent
+        let newBook = Book(title: resolvedTitle, fileName: destinationURL.lastPathComponent, isBuiltIn: false)
+        print("[LibraryManager] 创建书籍对象: 标题='\(resolvedTitle)', 文件名='\(destinationURL.lastPathComponent)'")
+
+        return newBook
+    }
+
+    private func destinationURL(for fileName: String,
+                                conflictPolicy: ImportConflictPolicy,
+                                documentsURL: URL) throws -> URL {
+        let normalizedFileName = normalizeImportFileName(fileName)
+        let normalizedURL = URL(fileURLWithPath: normalizedFileName)
+        let baseName = normalizedURL.deletingPathExtension().lastPathComponent
+        let pathExtension = normalizedURL.pathExtension.lowercased()
+
+        var candidateFileName = normalizedFileName
+        var candidateURL = documentsURL.appendingPathComponent(candidateFileName)
+        var suffix = 2
+
+        while conflictPolicy == .createUniqueCopy,
+              fileManager.fileExists(atPath: candidateURL.path) {
+            candidateFileName = "\(baseName)-\(suffix).\(pathExtension)"
+            candidateURL = documentsURL.appendingPathComponent(candidateFileName)
+            suffix += 1
+        }
+
+        return candidateURL
+    }
+
+    private func normalizeImportFileName(_ fileName: String) -> String {
+        let candidateURL = URL(fileURLWithPath: fileName)
+        let rawExtension = candidateURL.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines)
+        let normalizedExtension = rawExtension.isEmpty ? "txt" : rawExtension.lowercased()
+        let baseName = candidateURL.deletingPathExtension().lastPathComponent
+        let sanitizedBaseName = sanitizedImportedTitle(baseName)
+        return "\(sanitizedBaseName).\(normalizedExtension)"
+    }
+
+    func sanitizedImportedTitle(_ title: String) -> String {
+        let invalidCharacters = CharacterSet(charactersIn: "/\\?%*|\"<>:")
+            .union(.illegalCharacters)
+            .union(.controlCharacters)
+            .union(.newlines)
+
+        let sanitizedScalars = title.unicodeScalars.map { scalar in
+            invalidCharacters.contains(scalar) ? "_" : scalar
+        }
+        var sanitizedTitle = String(String.UnicodeScalarView(sanitizedScalars))
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        while sanitizedTitle.contains("__") {
+            sanitizedTitle = sanitizedTitle.replacingOccurrences(of: "__", with: "_")
+        }
+
+        return Optional(sanitizedTitle).nilIfEmpty() ?? "分享内容"
+    }
+
+    private func firstMeaningfulLine(in content: String) -> String? {
+        content
+            .components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .first(where: { !$0.isEmpty })
+    }
+
+    private func trimmedNonEmpty(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else {
+            return nil
+        }
+        return trimmed
+    }
+
+    private func fallbackSharedImportTitle(createdAt: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "zh_CN")
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return "分享_\(formatter.string(from: createdAt))"
     }
     
     
