@@ -323,7 +323,7 @@ class ContentViewModel: ObservableObject {
             self.isAutoAdvancing = true
             
             if !self.pages.isEmpty && self.currentPageIndex < self.pages.count - 1 {
-                self.currentPageIndex += 1
+                self.setCurrentPageIndex(self.currentPageIndex + 1)
                 self.readCurrentPage()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     self.isAutoAdvancing = false
@@ -795,6 +795,18 @@ class ContentViewModel: ObservableObject {
         pendingResumeAfterManualTurn = false
     }
 
+    private func performWithoutPageTransitionAnimation(_ updates: () -> Void) {
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction, updates)
+    }
+
+    private func setCurrentPageIndex(_ index: Int) {
+        performWithoutPageTransitionAnimation {
+            currentPageIndex = index
+        }
+    }
+
     private func scheduleResumeAfterManualTurn() {
         manualTurnResumeWorkItem?.cancel()
 
@@ -828,7 +840,7 @@ class ContentViewModel: ObservableObject {
             speechManager.stopReading()
         }
 
-        currentPageIndex = index
+        setCurrentPageIndex(index)
 
         if shouldResume {
             scheduleResumeAfterManualTurn()
@@ -909,7 +921,7 @@ class ContentViewModel: ObservableObject {
     func jumpToSearchResult(pageIndex: Int) {
         guard pageIndex >= 0 && pageIndex < pages.count else { return }
         stopReading()
-        currentPageIndex = pageIndex
+        setCurrentPageIndex(pageIndex)
         showingSearchView = false
     }
     

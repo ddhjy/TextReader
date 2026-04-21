@@ -13,10 +13,11 @@ struct ContentDisplay: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .contentTransition(.identity)
                 .contentShape(Rectangle())
-                .id(viewModel.currentPageIndex)
                 .transaction { transaction in
                     transaction.animation = nil
+                    transaction.disablesAnimations = true
                 }
                 .gesture(
                     LongPressGesture(minimumDuration: 0.3)
@@ -30,6 +31,10 @@ struct ContentDisplay: View {
                             handleTapGesture(at: value.location, containerWidth: geometry.size.width)
                         }
                 )
+        }
+        .transaction { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
         }
     }
     
