@@ -107,7 +107,7 @@ make install-simulator
 * **Book List:** Tap the book icon in the navigation bar to open the book list. Select a book to start reading.
 * **Importing:** Use the "+" icon in the book list to import books via Files, Paste Text, or Wi-Fi Transfer.
 * **Reading:**
-    * Swipe left/right or use the arrow buttons in the control panel to navigate pages.
+    * Tap the upper reading area for the previous page, or the lower reading area for the next page.
     * Use the progress slider for quick page jumps.
 * **Narration:**
     * Tap the Play/Pause button to start or stop narration.

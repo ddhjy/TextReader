@@ -69,7 +69,7 @@ struct ContentDisplay: View {
             .simultaneousGesture(
                 SpatialTapGesture()
                     .onEnded { value in
-                        handleTapGesture(at: value.location, containerWidth: geometry.size.width)
+                        handleTapGesture(at: value.location, containerHeight: geometry.size.height)
                     }
             )
             .onAppear {
@@ -107,9 +107,9 @@ struct ContentDisplay: View {
         )
     }
 
-    private func handleTapGesture(at location: CGPoint, containerWidth: CGFloat) {
-        let isLeftArea = location.x < containerWidth / 3
-        if isLeftArea {
+    private func handleTapGesture(at location: CGPoint, containerHeight: CGFloat) {
+        let isUpperArea = location.y < containerHeight / 2
+        if isUpperArea {
             viewModel.previousPage()
         } else {
             viewModel.nextPage()
