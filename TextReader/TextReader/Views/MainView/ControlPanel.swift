@@ -141,7 +141,7 @@ struct ControlPanel: View {
                     .rotationEffect(.degrees(-90))
                     .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                 
-                Text("\(Int(progress * 100))%")
+                Text("\(Int(progress * 100))")
                     .font(.system(size: compactProgressFontSize, weight: .medium))
                     .foregroundStyle(viewModel.currentAccentColor)
             }
