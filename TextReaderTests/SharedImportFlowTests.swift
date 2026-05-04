@@ -201,6 +201,56 @@ struct SharedImportFlowTests {
         #expect(viewModel.currentPageIndex == 0)
         #expect(speechManager.startedTexts == ["第一段刚开始读"])
     }
+
+    @Test
+    func sleepTimerStopsWhenPlaybackReachesEndBeforeExpiry() throws {
+        let tempDocuments = try makeTemporaryDirectory()
+        let tempContainer = try makeTemporaryDirectory()
+        let defaultsSuite = "TextReaderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsSuite)!
+
+        defer {
+            defaults.removePersistentDomain(forName: defaultsSuite)
+            try? FileManager.default.removeItem(at: tempDocuments)
+            try? FileManager.default.removeItem(at: tempContainer)
+        }
+
+        let speechManager = MockSpeechManager()
+        let viewModel = ContentViewModel(
+            libraryManager: LibraryManager(
+                fileManager: .default,
+                documentsDirectoryProvider: { tempDocuments }
+            ),
+            speechManager: speechManager,
+            wiFiTransferService: WiFiTransferService(),
+            audioSessionManager: MockAudioSessionManager(),
+            settingsManager: SettingsManager(defaults: defaults),
+            sharedImportStore: SharedImportStore(
+                fileManager: .default,
+                containerURLProvider: { tempContainer }
+            ),
+            templateManager: TemplateManager(
+                fileManager: .default,
+                documentsDirectoryProvider: { tempDocuments }
+            )
+        )
+
+        viewModel.pages = ["最后一段读完就没有后续了"]
+        viewModel.currentPageIndex = 0
+
+        viewModel.startSleepTimer(minutes: 1)
+        #expect(viewModel.isReading)
+        #expect(viewModel.sleepTimerActive)
+        #expect(speechManager.startedTexts == ["最后一段读完就没有后续了"])
+
+        speechManager.finishLastUtterance()
+        #expect(!viewModel.isReading)
+        #expect(!viewModel.sleepTimerActive)
+        #expect(viewModel.sleepTimerRemaining == 0)
+        #expect(viewModel.sleepTimerDuration == 0)
+        #expect(viewModel.currentPageIndex == 0)
+        #expect(speechManager.stopCallCount == 0)
+    }
 }
 
 private final class MockAudioSessionManager: AudioSessionManager {

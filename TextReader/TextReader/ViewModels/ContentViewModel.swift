@@ -348,6 +348,11 @@ class ContentViewModel: ObservableObject {
                     self.isAutoAdvancing = false
                 }
             } else {
+                if self.sleepTimerActive {
+                    self.cancelSleepTimer()
+                }
+                self.activeUtteranceId = nil
+                self.activeUtterancePageIndex = nil
                 self.isReading = false
                 self.isAutoAdvancing = false
                 self.updateNowPlayingInfo()

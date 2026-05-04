@@ -151,7 +151,7 @@ struct BookListView: View {
                         Label("WiFi 传输", systemImage: "wifi")
                     }
                 } label: {
-                    Image(systemName: "plus.circle")
+                    Image(systemName: "plus")
                         .foregroundStyle(viewModel.currentAccentColor)
                 }
             }
