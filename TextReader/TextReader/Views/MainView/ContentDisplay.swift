@@ -8,6 +8,7 @@ struct ContentDisplay: View {
     private let lineSpacing: CGFloat = 8
     private let segmentSpacing: CGFloat = 22
     private let dimmedAlpha: CGFloat = 0.30
+    private let pageTurnAnimationDuration: TimeInterval = 0.25
 
     var body: some View {
         GeometryReader { geometry in
@@ -78,7 +79,7 @@ struct ContentDisplay: View {
                 }
             }
             .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-                withAnimation(.easeInOut(duration: 0.45)) {
+                withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
                     proxy.scrollTo(newIndex, anchor: .center)
                 }
             }
