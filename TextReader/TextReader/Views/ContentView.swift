@@ -75,6 +75,14 @@ struct ContentView: View {
             }
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.sharedImportBannerMessage)
+        .alert("结束定时播放？", isPresented: $viewModel.showingSleepTimerStopAlert) {
+            Button("取消", role: .cancel) { }
+            Button("结束", role: .destructive) {
+                viewModel.endSleepTimerAndStop()
+            }
+        } message: {
+            Text("当前已开启定时播放，确认结束当前播放吗？")
+        }
         .tint(viewModel.currentAccentColor)
     }
 } 

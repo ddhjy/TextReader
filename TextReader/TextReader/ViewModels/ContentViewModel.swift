@@ -59,6 +59,21 @@ class ContentViewModel: ObservableObject {
     @Published var wifiUploadFilename: String?
     @Published var wifiUploadError: String?
     
+    // MARK: - 定时播放（Sleep Timer）
+    /// 定时播放可选时长（分钟）。
+    static let sleepTimerOptions: [Int] = [5, 15, 25]
+    /// 是否处于定时播放中。
+    @Published var sleepTimerActive: Bool = false
+    /// 当前定时播放总时长（秒）。
+    @Published var sleepTimerDuration: TimeInterval = 0
+    /// 当前定时播放剩余时长（秒）。
+    @Published var sleepTimerRemaining: TimeInterval = 0
+    /// 是否正在显示停止定时播放的确认弹窗。
+    @Published var showingSleepTimerStopAlert: Bool = false
+    
+    private var sleepTimerEndDate: Date?
+    private var sleepTimerTicker: Timer?
+    
     private var isAutoAdvancing = false
     private var activeUtteranceId: UUID?
     private var activeUtterancePageIndex: Int?
@@ -1136,8 +1151,89 @@ class ContentViewModel: ObservableObject {
         }
     }
 
+    // MARK: - 定时播放控制
+    
+    /// 开启定时播放。`minutes` 分钟后自动停止朗读。
+    /// - 若当前未在朗读则会自动开始朗读当前页。
+    /// - 若已存在计时则重置为新值。
+    func startSleepTimer(minutes: Int) {
+        let clamped = max(1, minutes)
+        let duration = TimeInterval(clamped * 60)
+        sleepTimerDuration = duration
+        sleepTimerRemaining = duration
+        sleepTimerEndDate = Date().addingTimeInterval(duration)
+        sleepTimerActive = true
+        
+        if !isReading {
+            readCurrentPage()
+        }
+        
+        sleepTimerTicker?.invalidate()
+        // 0.5s 节奏刷新即可，UI 仅按分钟显示，避免后台时漏跳秒。
+        let ticker = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { [weak self] _ in
+            self?.tickSleepTimer()
+        }
+        RunLoop.main.add(ticker, forMode: .common)
+        sleepTimerTicker = ticker
+    }
+    
+    /// 取消定时（不停止朗读，仅清除计时）。当前未使用，保留备用。
+    func cancelSleepTimer() {
+        sleepTimerTicker?.invalidate()
+        sleepTimerTicker = nil
+        sleepTimerActive = false
+        sleepTimerEndDate = nil
+        sleepTimerRemaining = 0
+        sleepTimerDuration = 0
+    }
+    
+    /// 用户点击「确认结束」或自然到点时调用：清除定时并停止朗读。
+    func endSleepTimerAndStop() {
+        let wasActive = sleepTimerActive
+        cancelSleepTimer()
+        if wasActive || isReading {
+            stopReading()
+        }
+    }
+    
+    private func tickSleepTimer() {
+        guard sleepTimerActive, let endDate = sleepTimerEndDate else { return }
+        let remaining = endDate.timeIntervalSinceNow
+        if remaining <= 0 {
+            endSleepTimerAndStop()
+        } else {
+            sleepTimerRemaining = remaining
+        }
+    }
+    
+    /// 0...1 的进度，表示已经播放过的比例。
+    var sleepTimerProgress: Double {
+        guard sleepTimerDuration > 0 else { return 0 }
+        let elapsed = sleepTimerDuration - sleepTimerRemaining
+        return min(1.0, max(0.0, elapsed / sleepTimerDuration))
+    }
+    
+    /// 剩余分钟（按分钟向上取整，剩余 1s~59s 仍显示 1 分钟）。
+    var sleepTimerRemainingMinutes: Int {
+        guard sleepTimerActive else { return 0 }
+        return max(0, Int(ceil(sleepTimerRemaining / 60.0)))
+    }
+    
+    /// 点击播放按钮的统一入口：
+    /// - 若计时中则弹窗确认是否结束；
+    /// - 否则切换播放状态。
+    func handlePlayButtonTap() {
+        if sleepTimerActive {
+            showingSleepTimerStopAlert = true
+        } else {
+            toggleReading()
+        }
+    }
+    
     deinit {
         stopReading()
+        sleepTimerTicker?.invalidate()
+        sleepTimerTicker = nil
         wiFiTransferService.stopServer()
         cancellables.forEach { $0.cancel() }
     }
