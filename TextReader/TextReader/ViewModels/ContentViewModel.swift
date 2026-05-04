@@ -68,9 +68,6 @@ class ContentViewModel: ObservableObject {
     @Published var sleepTimerDuration: TimeInterval = 0
     /// 当前定时播放剩余时长（秒）。
     @Published var sleepTimerRemaining: TimeInterval = 0
-    /// 是否正在显示停止定时播放的确认弹窗。
-    @Published var showingSleepTimerStopAlert: Bool = false
-    
     private var sleepTimerEndDate: Date?
     private var sleepTimerTicker: Timer?
     
@@ -1220,11 +1217,11 @@ class ContentViewModel: ObservableObject {
     }
     
     /// 点击播放按钮的统一入口：
-    /// - 若计时中则弹窗确认是否结束；
+    /// - 若处于定时播放中则直接结束并恢复常态；
     /// - 否则切换播放状态。
     func handlePlayButtonTap() {
         if sleepTimerActive {
-            showingSleepTimerStopAlert = true
+            endSleepTimerAndStop()
         } else {
             toggleReading()
         }

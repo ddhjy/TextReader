@@ -10,8 +10,11 @@ struct ControlPanel: View {
     @State private var sleepPickerActive: Bool = false
     /// 当前手指悬停命中的定时分钟数。
     @State private var sleepHoveredOption: Int? = nil
+    /// 长按激活定时器选择浮层的延迟任务，松手时需取消。
+    @State private var sleepActivationWorkItem: DispatchWorkItem? = nil
     
     private let playButtonSize: CGFloat = 44
+    private let longPressActivationDelay: TimeInterval = 0.35
     private let pickerHaptic = UIImpactFeedbackGenerator(style: .medium)
     private let selectionHaptic = UISelectionFeedbackGenerator()
     
@@ -188,10 +191,7 @@ struct ControlPanel: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {
-            viewModel.handlePlayButtonTap()
-        }
-        .gesture(longPressDragGesture)
+        .gesture(playButtonGesture)
     }
     
     private var playIconName: String {
@@ -212,43 +212,53 @@ struct ControlPanel: View {
     
     // MARK: - Gesture
     
-    private var longPressDragGesture: some Gesture {
-        LongPressGesture(minimumDuration: 0.35, maximumDistance: .infinity)
-            .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .local))
+    /// 单一手势：触按 → 计时 0.35s → 弹出定时选项；其后跟踪手指位置。
+    /// 0.35s 内松手视作短按，直接走 `handlePlayButtonTap`，避免长按/短按手势冲突导致的浮层卡死。
+    private var playButtonGesture: some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .local)
             .onChanged { value in
-                switch value {
-                case .first(true):
-                    activatePickerIfNeeded()
-                case .second(true, let drag):
-                    activatePickerIfNeeded()
-                    if let location = drag?.location {
-                        updateHoveredOption(forLocation: location)
+                if sleepActivationWorkItem == nil && !sleepPickerActive {
+                    let work = DispatchWorkItem {
+                        activatePickerIfNeeded()
                     }
-                default:
-                    break
+                    sleepActivationWorkItem = work
+                    DispatchQueue.main.asyncAfter(
+                        deadline: .now() + longPressActivationDelay,
+                        execute: work
+                    )
+                }
+                if sleepPickerActive {
+                    updateHoveredOption(forLocation: value.location)
                 }
             }
             .onEnded { value in
-                defer {
+                let activation = sleepActivationWorkItem
+                sleepActivationWorkItem = nil
+                activation?.cancel()
+                
+                if sleepPickerActive {
+                    let offset = offsetFromPlayCenter(value.location)
+                    let chosen = SleepTimerPicker.hitTest(
+                        offsetFromCenter: offset,
+                        options: sortedSleepOptions
+                    )
+                    if let minutes = chosen {
+                        selectionHaptic.selectionChanged()
+                        viewModel.startSleepTimer(minutes: minutes)
+                    }
                     sleepPickerActive = false
                     sleepHoveredOption = nil
-                }
-                guard case .second(true, let drag) = value else { return }
-                let chosen: Int?
-                if let location = drag?.location {
-                    let offset = CGSize(
-                        width: location.x - playButtonSize / 2,
-                        height: location.y - playButtonSize / 2
-                    )
-                    chosen = SleepTimerPicker.hitTest(offsetFromCenter: offset, options: sortedSleepOptions)
                 } else {
-                    chosen = sleepHoveredOption
-                }
-                if let minutes = chosen {
-                    selectionHaptic.selectionChanged()
-                    viewModel.startSleepTimer(minutes: minutes)
+                    viewModel.handlePlayButtonTap()
                 }
             }
+    }
+    
+    private func offsetFromPlayCenter(_ location: CGPoint) -> CGSize {
+        CGSize(
+            width: location.x - playButtonSize / 2,
+            height: location.y - playButtonSize / 2
+        )
     }
     
     private func activatePickerIfNeeded() {
@@ -256,7 +266,6 @@ struct ControlPanel: View {
         sleepPickerActive = true
         sleepHoveredOption = nil
         pickerHaptic.impactOccurred()
-        // 弹出选项时，自动收起进度调节，避免视觉打架
         if showProgressSlider {
             withAnimation(.spring(response: 0.3)) {
                 showProgressSlider = false
@@ -265,11 +274,10 @@ struct ControlPanel: View {
     }
     
     private func updateHoveredOption(forLocation location: CGPoint) {
-        let offset = CGSize(
-            width: location.x - playButtonSize / 2,
-            height: location.y - playButtonSize / 2
+        let newOption = SleepTimerPicker.hitTest(
+            offsetFromCenter: offsetFromPlayCenter(location),
+            options: sortedSleepOptions
         )
-        let newOption = SleepTimerPicker.hitTest(offsetFromCenter: offset, options: sortedSleepOptions)
         if newOption != sleepHoveredOption {
             sleepHoveredOption = newOption
             if newOption != nil {
