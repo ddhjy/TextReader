@@ -6,6 +6,10 @@ Custom Prompt for AI:
 
 https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 
+## Screenshot
+
+<img src="assets/screenshots/textreader-screenshot.png" alt="TextReader screenshot" width="320">
+
 ## Features
 
 ### Core Reading & Narration
