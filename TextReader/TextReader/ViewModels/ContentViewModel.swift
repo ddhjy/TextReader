@@ -70,6 +70,8 @@ class ContentViewModel: ObservableObject {
     @Published var sleepTimerRemaining: TimeInterval = 0
     private var sleepTimerEndDate: Date?
     private var sleepTimerTicker: Timer?
+    /// 定时已到点，但仍需等待当前朗读段落自然结束后再停止。
+    private var sleepTimerStopPendingAfterCurrentUtterance = false
     
     private var isAutoAdvancing = false
     private var activeUtteranceId: UUID?
@@ -331,6 +333,11 @@ class ContentViewModel: ObservableObject {
             // 如果用户在本轮朗读期间手动翻页（或拖动进度条）改变了 currentPageIndex，
             // 该 finish 不应再触发自动翻页，否则会出现“手动翻页翻两页”的问题。
             guard self.activeUtterancePageIndex == self.currentPageIndex else { return }
+
+            if self.sleepTimerStopPendingAfterCurrentUtterance {
+                self.completeSleepTimerStopAfterCurrentUtterance()
+                return
+            }
             
             self.isAutoAdvancing = true
             
@@ -1150,12 +1157,13 @@ class ContentViewModel: ObservableObject {
 
     // MARK: - 定时播放控制
     
-    /// 开启定时播放。`minutes` 分钟后自动停止朗读。
+    /// 开启定时播放。到点后会等当前朗读段落自然结束，再停止朗读。
     /// - 若当前未在朗读则会自动开始朗读当前页。
     /// - 若已存在计时则重置为新值。
     func startSleepTimer(minutes: Int) {
         let clamped = max(1, minutes)
         let duration = TimeInterval(clamped * 60)
+        sleepTimerStopPendingAfterCurrentUtterance = false
         sleepTimerDuration = duration
         sleepTimerRemaining = duration
         sleepTimerEndDate = Date().addingTimeInterval(duration)
@@ -1178,6 +1186,7 @@ class ContentViewModel: ObservableObject {
     func cancelSleepTimer() {
         sleepTimerTicker?.invalidate()
         sleepTimerTicker = nil
+        sleepTimerStopPendingAfterCurrentUtterance = false
         sleepTimerActive = false
         sleepTimerEndDate = nil
         sleepTimerRemaining = 0
@@ -1187,6 +1196,7 @@ class ContentViewModel: ObservableObject {
     /// 用户点击「确认结束」或自然到点时调用：清除定时并停止朗读。
     func endSleepTimerAndStop() {
         let wasActive = sleepTimerActive
+        sleepTimerStopPendingAfterCurrentUtterance = false
         cancelSleepTimer()
         if wasActive || isReading {
             stopReading()
@@ -1197,10 +1207,33 @@ class ContentViewModel: ObservableObject {
         guard sleepTimerActive, let endDate = sleepTimerEndDate else { return }
         let remaining = endDate.timeIntervalSinceNow
         if remaining <= 0 {
-            endSleepTimerAndStop()
+            handleSleepTimerExpired()
         } else {
             sleepTimerRemaining = remaining
         }
+    }
+
+    func handleSleepTimerExpired() {
+        sleepTimerRemaining = 0
+        sleepTimerEndDate = nil
+        sleepTimerTicker?.invalidate()
+        sleepTimerTicker = nil
+
+        guard isReading, activeUtteranceId != nil else {
+            endSleepTimerAndStop()
+            return
+        }
+
+        sleepTimerStopPendingAfterCurrentUtterance = true
+    }
+
+    private func completeSleepTimerStopAfterCurrentUtterance() {
+        cancelSleepTimer()
+        activeUtteranceId = nil
+        activeUtterancePageIndex = nil
+        isAutoAdvancing = false
+        isReading = false
+        updateNowPlayingInfo()
     }
     
     /// 0...1 的进度，表示已经播放过的比例。

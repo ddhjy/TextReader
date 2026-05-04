@@ -14,6 +14,9 @@ struct ControlPanel: View {
     @State private var sleepActivationWorkItem: DispatchWorkItem? = nil
     
     private let playButtonSize: CGFloat = 44
+    private let compactProgressRingSize: CGFloat = 22
+    private let compactProgressLineWidth: CGFloat = 2
+    private let compactProgressFontSize: CGFloat = 8
     private let longPressActivationDelay: TimeInterval = 0.35
     private let pickerHaptic = UIImpactFeedbackGenerator(style: .medium)
     private let selectionHaptic = UISelectionFeedbackGenerator()
@@ -126,18 +129,20 @@ struct ControlPanel: View {
         } label: {
             ZStack {
                 Circle()
-                    .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: 2)
-                    .frame(width: 22, height: 22)
+                    .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: compactProgressLineWidth)
+                    .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                 
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(viewModel.currentAccentColor, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    .stroke(
+                        viewModel.currentAccentColor,
+                        style: StrokeStyle(lineWidth: compactProgressLineWidth, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 22, height: 22)
+                    .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                 
                 Text("\(Int(progress * 100))%")
-                    .font(.system(size: 8))
-                    .fontWeight(.medium)
+                    .font(.system(size: compactProgressFontSize, weight: .medium))
                     .foregroundStyle(viewModel.currentAccentColor)
             }
             .frame(width: 44, height: 44)
@@ -156,17 +161,17 @@ struct ControlPanel: View {
         ZStack {
             if viewModel.sleepTimerActive {
                 Circle()
-                    .stroke(viewModel.currentAccentColor.opacity(0.18), lineWidth: 2)
-                    .frame(width: 36, height: 36)
+                    .stroke(viewModel.currentAccentColor.opacity(0.18), lineWidth: compactProgressLineWidth)
+                    .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                 
                 Circle()
                     .trim(from: 0, to: viewModel.sleepTimerProgress)
                     .stroke(
                         viewModel.currentAccentColor,
-                        style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                        style: StrokeStyle(lineWidth: compactProgressLineWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
-                    .frame(width: 36, height: 36)
+                    .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                     .animation(.linear(duration: 0.5), value: viewModel.sleepTimerProgress)
                 
                 sleepCountdownLabel
@@ -199,15 +204,10 @@ struct ControlPanel: View {
     }
     
     private var sleepCountdownLabel: some View {
-        VStack(spacing: 0) {
-            Text("\(viewModel.sleepTimerRemainingMinutes)")
-                .font(.system(size: 16, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(viewModel.currentAccentColor)
-            Text("分")
-                .font(.system(size: 8, weight: .medium))
-                .foregroundStyle(viewModel.currentAccentColor.opacity(0.8))
-        }
+        Text("\(viewModel.sleepTimerRemainingMinutes)")
+            .font(.system(size: compactProgressFontSize, weight: .medium))
+            .monospacedDigit()
+            .foregroundStyle(viewModel.currentAccentColor)
     }
     
     // MARK: - Gesture

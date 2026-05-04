@@ -1,5 +1,0 @@
----
-triple:          'arm64-apple-darwin'
-binary-path:     '/Users/zengkai/TTIOS/TextReader/build/Release-iphonesimulator/TextReaderExtension.appex/TextReaderExtension'
-relocations:     []
-...

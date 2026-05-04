@@ -147,6 +147,60 @@ struct SharedImportFlowTests {
         #expect(viewModel.sharedImportBannerMessage == "已导入《第二本》")
         #expect(try sharedImportStore.pendingImports().isEmpty)
     }
+
+    @Test
+    func sleepTimerExpiryWaitsForCurrentSegmentToFinish() throws {
+        let tempDocuments = try makeTemporaryDirectory()
+        let tempContainer = try makeTemporaryDirectory()
+        let defaultsSuite = "TextReaderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsSuite)!
+
+        defer {
+            defaults.removePersistentDomain(forName: defaultsSuite)
+            try? FileManager.default.removeItem(at: tempDocuments)
+            try? FileManager.default.removeItem(at: tempContainer)
+        }
+
+        let speechManager = MockSpeechManager()
+        let viewModel = ContentViewModel(
+            libraryManager: LibraryManager(
+                fileManager: .default,
+                documentsDirectoryProvider: { tempDocuments }
+            ),
+            speechManager: speechManager,
+            wiFiTransferService: WiFiTransferService(),
+            audioSessionManager: MockAudioSessionManager(),
+            settingsManager: SettingsManager(defaults: defaults),
+            sharedImportStore: SharedImportStore(
+                fileManager: .default,
+                containerURLProvider: { tempContainer }
+            ),
+            templateManager: TemplateManager(
+                fileManager: .default,
+                documentsDirectoryProvider: { tempDocuments }
+            )
+        )
+
+        viewModel.pages = ["第一段刚开始读", "第二段不应继续"]
+        viewModel.currentPageIndex = 0
+
+        viewModel.startSleepTimer(minutes: 1)
+        #expect(viewModel.isReading)
+        #expect(viewModel.sleepTimerActive)
+        #expect(speechManager.startedTexts == ["第一段刚开始读"])
+
+        viewModel.handleSleepTimerExpired()
+        #expect(viewModel.isReading)
+        #expect(viewModel.sleepTimerActive)
+        #expect(viewModel.sleepTimerRemaining == 0)
+        #expect(speechManager.stopCallCount == 0)
+
+        speechManager.finishLastUtterance()
+        #expect(!viewModel.isReading)
+        #expect(!viewModel.sleepTimerActive)
+        #expect(viewModel.currentPageIndex == 0)
+        #expect(speechManager.startedTexts == ["第一段刚开始读"])
+    }
 }
 
 private final class MockAudioSessionManager: AudioSessionManager {
@@ -163,11 +217,33 @@ private final class MockAudioSessionManager: AudioSessionManager {
 }
 
 private final class MockSpeechManager: SpeechManager, @unchecked Sendable {
+    private(set) var startedTexts: [String] = []
+    private(set) var stopCallCount = 0
+    private var lastUtteranceId: UUID?
+
     override func getAvailableVoices(languagePrefix: String = "zh") -> [AVSpeechSynthesisVoice] {
         []
     }
 
-    override func stopReading() {}
+    override func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) -> UUID? {
+        let id = UUID()
+        startedTexts.append(text)
+        lastUtteranceId = id
+        return id
+    }
+
+    override func stopReading() {
+        stopCallCount += 1
+    }
+
+    func finishLastUtterance() {
+        guard let id = lastUtteranceId else {
+            Issue.record("No utterance was started")
+            return
+        }
+
+        onSpeechFinish?(id)
+    }
 }
 
 private func makeTemporaryDirectory() throws -> URL {
