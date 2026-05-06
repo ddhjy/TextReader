@@ -21,6 +21,7 @@ class ContentViewModel: ObservableObject {
     private var bookProgressCache: [String: BookProgress] = [:]
     private var bookDisplayCache: [String: (progress: String?, lastAccessed: String?)] = [:]
     @Published var pages: [String] = []
+    @Published private(set) var contentScrollRevision: Int = 0
     @Published var currentPageIndex: Int = 0
     @Published var currentBookTitle: String = "TextReader"
     @Published var isContentLoaded: Bool = false
@@ -204,17 +205,12 @@ class ContentViewModel: ObservableObject {
                     
                     DispatchQueue.main.async {
                         guard self.currentBookId == book.id else { return }
-                        self.pages = paginatedPages
-                        self.setCurrentPageIndex(
-                            min(max(0, savedPageIndex), max(0, paginatedPages.count - 1)),
-                            silent: true
+                        self.applyLoadedPages(
+                            for: book,
+                            pages: paginatedPages,
+                            targetPageIndex: savedPageIndex,
+                            summaries: summaries
                         )
-                        self.pageSummaries = summaries
-                        self.searchResults = []
-                        self.saveCurrentPageToCache()
-                        self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: paginatedPages.count)
-                        self.isContentLoaded = true
-                        self.updateNowPlayingInfo()
                         print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页，当前页 \(self.currentPageIndex)")
                     }
                 }
@@ -519,10 +515,11 @@ class ContentViewModel: ObservableObject {
         }
     }
     
-    func loadBook(_ book: Book) {
+    func loadBook(_ book: Book,
+                  waitForFullContentBeforeCompletion: Bool = false,
+                  completion: (() -> Void)? = nil) {
         stopReading()
         isContentLoaded = false
-        setCurrentPageIndex(0, silent: true)
         currentBookId = book.id
         currentBookTitle = book.title
         settingsManager.saveLastOpenedBookId(book.id)
@@ -539,29 +536,51 @@ class ContentViewModel: ObservableObject {
         
         if let lastPageContent = savedProgress?.lastPageContent, !lastPageContent.isEmpty {
             print("[ContentViewModel] 使用缓存的单页内容快速启动")
-            self.pages = [lastPageContent]
-            self.setCurrentPageIndex(0, silent: true)
-            self.isContentLoaded = true
-            self.updateNowPlayingInfo()
+            if !waitForFullContentBeforeCompletion {
+                self.applyCachedPagePreview(
+                    for: book,
+                    content: lastPageContent,
+                    targetPageIndex: savedPageIndex,
+                    knownTotalPages: savedProgress?.totalPages ?? 0
+                )
+                completion?()
+            }
             
             libraryManager.loadBookContent(book: book) { [weak self] result in
-                DispatchQueue.main.async {
-                    guard let self = self, self.currentBookId == book.id else { return }
-                    switch result {
-                    case .success(let content):
-                        self.pages = self.textPaginator.paginate(text: content)
-                        self.setCurrentPageIndex(
-                            min(max(0, savedPageIndex), max(0, self.pages.count - 1)),
-                            silent: true
-                        )
-                        self.saveCurrentPageToCache()
-                        self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
-                        self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
-                        self.searchResults = []
-                        self.updateNowPlayingInfo()
-                        print("[ContentViewModel] 完整内容加载完成，共 \(self.pages.count) 页")
-                    case .failure(let error):
+                guard let self = self else { return }
+                switch result {
+                case .success(let content):
+                    DispatchQueue.global(qos: .userInitiated).async {
+                        let paginatedPages = self.textPaginator.paginate(text: content)
+                        let summaries = self.searchService.pageSummaries(pages: paginatedPages)
+
+                        DispatchQueue.main.async {
+                            guard self.currentBookId == book.id else { return }
+                            self.applyLoadedPages(
+                                for: book,
+                                pages: paginatedPages,
+                                targetPageIndex: savedPageIndex,
+                                summaries: summaries
+                            )
+                            print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页")
+                            if waitForFullContentBeforeCompletion {
+                                completion?()
+                            }
+                        }
+                    }
+                case .failure(let error):
+                    DispatchQueue.main.async {
+                        guard self.currentBookId == book.id else { return }
                         print("后台加载书籍内容失败: \(error)")
+                        if waitForFullContentBeforeCompletion {
+                            self.applyCachedPagePreview(
+                                for: book,
+                                content: lastPageContent,
+                                targetPageIndex: savedPageIndex,
+                                knownTotalPages: savedProgress?.totalPages ?? 0
+                            )
+                            completion?()
+                        }
                     }
                 }
             }
@@ -570,29 +589,36 @@ class ContentViewModel: ObservableObject {
 
         print("[ContentViewModel] 无缓存，从文件加载书籍内容")
         libraryManager.loadBookContent(book: book) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                switch result {
-                case .success(let content):
-                    self.pages = self.textPaginator.paginate(text: content)
-                    self.setCurrentPageIndex(
-                        min(max(0, savedPageIndex), max(0, self.pages.count - 1)),
-                        silent: true
-                    )
-                    
-                    self.saveCurrentPageToCache()
-                    self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
-                    
-                    self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
-                    self.searchResults = []
-                    
-                    self.isContentLoaded = true
-                    self.updateNowPlayingInfo()
-                case .failure(let error):
+            guard let self = self else { return }
+            switch result {
+            case .success(let content):
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let paginatedPages = self.textPaginator.paginate(text: content)
+                    let summaries = self.searchService.pageSummaries(pages: paginatedPages)
+
+                    DispatchQueue.main.async {
+                        guard self.currentBookId == book.id else { return }
+                        self.applyLoadedPages(
+                            for: book,
+                            pages: paginatedPages,
+                            targetPageIndex: savedPageIndex,
+                            summaries: summaries
+                        )
+                        completion?()
+                    }
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    guard self.currentBookId == book.id else { return }
                     print("加载书籍内容失败: \(error)")
-                    self.pages = ["无法加载此书内容"]
                     self.setCurrentPageIndex(0, silent: true)
+                    self.pages = ["无法加载此书内容"]
+                    self.pageSummaries = []
+                    self.searchResults = []
                     self.isContentLoaded = true
+                    self.requestContentScrollRefresh()
+                    self.updateNowPlayingInfo()
+                    completion?()
                 }
             }
         }
@@ -784,6 +810,65 @@ class ContentViewModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5, execute: dismissWorkItem)
     }
 
+    private func clampedPageIndex(_ index: Int, pageCount: Int) -> Int {
+        min(max(0, index), max(0, pageCount - 1))
+    }
+
+    private func requestContentScrollRefresh() {
+        contentScrollRevision &+= 1
+    }
+
+    private func makeCachedPagePreview(content: String, targetPageIndex: Int, knownTotalPages: Int) -> [String] {
+        let pageCount = max(1, knownTotalPages, targetPageIndex + 1)
+        let targetIndex = clampedPageIndex(targetPageIndex, pageCount: pageCount)
+        var previewPages = Array(repeating: "", count: pageCount)
+        previewPages[targetIndex] = content
+        return previewPages
+    }
+
+    private func applyCachedPagePreview(for book: Book,
+                                        content: String,
+                                        targetPageIndex: Int,
+                                        knownTotalPages: Int) {
+        let previewPages = makeCachedPagePreview(
+            content: content,
+            targetPageIndex: targetPageIndex,
+            knownTotalPages: knownTotalPages
+        )
+        let targetIndex = clampedPageIndex(targetPageIndex, pageCount: previewPages.count)
+
+        setCurrentPageIndex(targetIndex, silent: true)
+        pages = previewPages
+        pageSummaries = []
+        searchResults = []
+        isContentLoaded = true
+        saveCurrentPageToCache()
+        requestContentScrollRefresh()
+        updateNowPlayingInfo()
+        print("[ContentViewModel] 使用缓存单页预览: \(book.title)，页 \(targetIndex + 1)/\(previewPages.count)")
+    }
+
+    private func applyLoadedPages(for book: Book,
+                                  pages loadedPages: [String],
+                                  targetPageIndex: Int,
+                                  summaries: [(Int, String)]) {
+        let targetIndex = clampedPageIndex(targetPageIndex, pageCount: loadedPages.count)
+
+        setCurrentPageIndex(targetIndex, silent: true)
+        pages = loadedPages
+        pageSummaries = summaries
+        searchResults = []
+        saveCurrentPageToCache()
+        libraryManager.saveBookProgress(
+            bookId: book.id,
+            pageIndex: targetIndex,
+            totalPages: loadedPages.count
+        )
+        isContentLoaded = true
+        requestContentScrollRefresh()
+        updateNowPlayingInfo()
+    }
+    
     func updateBookTitle(book: Book, newTitle: String) {
         libraryManager.updateBookTitle(book: book, newTitle: newTitle) { [weak self] result in
             guard let self = self else { return }
@@ -814,10 +899,12 @@ class ContentViewModel: ObservableObject {
             switch result {
             case .success:
                 if book.id == self.currentBookId {
-                    self.pages = self.textPaginator.paginate(text: newContent)
                     self.setCurrentPageIndex(0, silent: true)
+                    self.pages = self.textPaginator.paginate(text: newContent)
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                     self.searchResults = []
+                    self.saveCurrentPageToCache()
+                    self.requestContentScrollRefresh()
                     
                     self.libraryManager.saveCachedPages(bookId: book.id, pages: self.pages)
                 } else {
@@ -993,6 +1080,9 @@ class ContentViewModel: ObservableObject {
               currentPageIndex >= 0,
               currentPageIndex < pages.count else { return }
         let currentContent = pages[currentPageIndex]
+        if let bookId = currentBookId {
+            libraryManager.saveLastPageContent(bookId: bookId, content: currentContent)
+        }
         settingsManager.saveLastPageContent(currentContent)
         settingsManager.saveLastPageIndex(currentPageIndex)
         settingsManager.saveLastBookTitle(currentBookTitle)

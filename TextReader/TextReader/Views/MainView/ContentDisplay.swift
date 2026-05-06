@@ -90,6 +90,11 @@ struct ContentDisplay: View {
                     }
                 }
             }
+            .onChange(of: viewModel.contentScrollRevision) { _, _ in
+                DispatchQueue.main.async {
+                    proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
+                }
+            }
             .onChange(of: viewModel.pages.count) { _, _ in
                 DispatchQueue.main.async {
                     proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)

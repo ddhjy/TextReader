@@ -44,7 +44,16 @@ struct SharedImportFlowTests {
             documentsDirectoryProvider: { tempDocuments }
         )
 
-        let fallbackDate = Date(timeIntervalSince1970: 1_700_000_000)
+        var fallbackDateComponents = DateComponents()
+        fallbackDateComponents.calendar = Calendar(identifier: .gregorian)
+        fallbackDateComponents.timeZone = .current
+        fallbackDateComponents.year = 2023
+        fallbackDateComponents.month = 11
+        fallbackDateComponents.day = 14
+        fallbackDateComponents.hour = 22
+        fallbackDateComponents.minute = 13
+        fallbackDateComponents.second = 20
+        let fallbackDate = try #require(fallbackDateComponents.date)
         #expect(
             libraryManager.resolveSharedImportTitle(
                 preferredTitle: " 自定义标题 ",
@@ -146,6 +155,66 @@ struct SharedImportFlowTests {
         #expect(viewModel.books.contains(where: { $0.fileName == "第二本.txt" }))
         #expect(viewModel.sharedImportBannerMessage == "已导入《第二本》")
         #expect(try sharedImportStore.pendingImports().isEmpty)
+    }
+
+    @Test
+    func loadBookCompletionRestoresSavedPageBeforeDismissalPoint() async throws {
+        let tempDocuments = try makeTemporaryDirectory()
+        let tempContainer = try makeTemporaryDirectory()
+        let defaultsSuite = "TextReaderTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsSuite)!
+
+        defer {
+            defaults.removePersistentDomain(forName: defaultsSuite)
+            try? FileManager.default.removeItem(at: tempDocuments)
+            try? FileManager.default.removeItem(at: tempContainer)
+        }
+
+        let libraryManager = LibraryManager(
+            fileManager: .default,
+            documentsDirectoryProvider: { tempDocuments }
+        )
+        let book = try libraryManager.importSharedText(
+            "原始内容由测试分页器替换",
+            preferredTitle: "第二本"
+        )
+        libraryManager.saveBookProgress(bookId: book.id, pageIndex: 2, totalPages: 4)
+        libraryManager.saveLastPageContent(bookId: book.id, content: "缓存当前进度页")
+
+        let fullPages = ["第一页", "第二页", "当前进度页", "第四页"]
+        let viewModel = ContentViewModel(
+            libraryManager: libraryManager,
+            textPaginator: MockTextPaginator(pages: fullPages),
+            speechManager: MockSpeechManager(),
+            wiFiTransferService: WiFiTransferService(),
+            audioSessionManager: MockAudioSessionManager(),
+            settingsManager: SettingsManager(defaults: defaults),
+            sharedImportStore: SharedImportStore(
+                fileManager: .default,
+                containerURLProvider: { tempContainer }
+            ),
+            templateManager: TemplateManager(
+                fileManager: .default,
+                documentsDirectoryProvider: { tempDocuments }
+            )
+        )
+
+        var didComplete = false
+        var pagesAtCompletion: [String] = []
+        viewModel.loadBook(book, waitForFullContentBeforeCompletion: true) {
+            pagesAtCompletion = viewModel.pages
+            didComplete = true
+        }
+
+        try await waitUntil(timeoutNanoseconds: 2_000_000_000) {
+            didComplete
+        }
+
+        #expect(viewModel.currentBookId == book.id)
+        #expect(viewModel.currentPageIndex == 2)
+        #expect(viewModel.pages[2] == "当前进度页")
+        #expect(pagesAtCompletion == fullPages)
+        #expect(viewModel.contentScrollRevision > 0)
     }
 
     @Test
@@ -312,7 +381,9 @@ private final class MockSpeechManager: SpeechManager, @unchecked Sendable {
     }
 
     override func stopReading() {
+        guard lastUtteranceId != nil else { return }
         stopCallCount += 1
+        lastUtteranceId = nil
     }
 
     func finishLastUtterance() {
@@ -320,8 +391,21 @@ private final class MockSpeechManager: SpeechManager, @unchecked Sendable {
             Issue.record("No utterance was started")
             return
         }
+        lastUtteranceId = nil
 
         onSpeechFinish?(id)
+    }
+}
+
+private final class MockTextPaginator: TextPaginator {
+    private let pagesToReturn: [String]
+
+    init(pages: [String]) {
+        self.pagesToReturn = pages
+    }
+
+    override func paginate(text: String, maxPageSize: Int = 100) -> [String] {
+        pagesToReturn
     }
 }
 

@@ -46,11 +46,12 @@ struct BookListView: View {
                                 selectedBookIDs.insert(book.id)
                             }
                         } else {
-                            dismiss()
                             if viewModel.currentBookId != book.id {
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                                    viewModel.loadBook(book)
+                                viewModel.loadBook(book, waitForFullContentBeforeCompletion: true) {
+                                    dismiss()
                                 }
+                            } else {
+                                dismiss()
                             }
                         }
                     }) {
