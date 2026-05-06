@@ -433,7 +433,7 @@ class ContentViewModel: ObservableObject {
             if let progress = libraryManager.getBookProgress(bookId: book.id) {
                 bookProgressCache[book.id] = progress
                 
-                let progressText = "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
+                let progressText = "\(progress.currentPageIndex + 1)/\(progress.totalPages)"
                 let lastAccessedText = formatLastAccessedTime(progress.lastAccessed)
                 bookDisplayCache[book.id] = (progressText, lastAccessedText)
             }
@@ -728,7 +728,7 @@ class ContentViewModel: ObservableObject {
             return cached.progress
         }
         if let progress = libraryManager.getBookProgress(bookId: book.id) {
-            return "已读 \(progress.currentPageIndex + 1)/\(progress.totalPages) 页"
+            return "\(progress.currentPageIndex + 1)/\(progress.totalPages)"
         }
         return nil
     }

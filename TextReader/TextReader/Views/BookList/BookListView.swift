@@ -55,32 +55,20 @@ struct BookListView: View {
                         }
                     }) {
                         HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(book.title)
-                                    .foregroundStyle(.primary)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    if let progressText = viewModel.getBookProgressDisplay(book: book) {
-                                        Text(progressText)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                    
-                                    if let lastAccessedText = viewModel.getLastAccessedTimeDisplay(book: book) {
-                                        Text(lastAccessedText)
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                    }
-                                }
-                            }
+                            Text(book.title)
+                                .foregroundStyle(.primary)
+                                .font(.headline)
+                                .lineLimit(1)
                             Spacer()
                             if viewModel.currentBookId == book.id && !isEditing {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(viewModel.currentAccentColor)
+                            } else if let progressText = viewModel.getBookProgressDisplay(book: book) {
+                                Text(progressText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .monospacedDigit()
                             }
                         }
                     }
