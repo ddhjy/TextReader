@@ -149,6 +149,35 @@ struct SharedImportFlowTests {
     }
 
     @Test
+    func bookProgressDisplayUsesClampedIntegerPercentages() {
+        #expect(
+            ContentViewModel.formatBookProgressDisplay(
+                BookProgress(currentPageIndex: 0, totalPages: 13_451, lastAccessed: nil, cachedPages: nil)
+            ) == "1%"
+        )
+        #expect(
+            ContentViewModel.formatBookProgressDisplay(
+                BookProgress(currentPageIndex: 2_184, totalPages: 2_368, lastAccessed: nil, cachedPages: nil)
+            ) == "92%"
+        )
+        #expect(
+            ContentViewModel.formatBookProgressDisplay(
+                BookProgress(currentPageIndex: 3_885, totalPages: 3_887, lastAccessed: nil, cachedPages: nil)
+            ) == "99%"
+        )
+        #expect(
+            ContentViewModel.formatBookProgressDisplay(
+                BookProgress(currentPageIndex: 3_886, totalPages: 3_887, lastAccessed: nil, cachedPages: nil)
+            ) == "100%"
+        )
+        #expect(
+            ContentViewModel.formatBookProgressDisplay(
+                BookProgress(currentPageIndex: 3_839, totalPages: 0, lastAccessed: nil, cachedPages: nil)
+            ) == nil
+        )
+    }
+
+    @Test
     func sleepTimerExpiryWaitsForCurrentSegmentToFinish() throws {
         let tempDocuments = try makeTemporaryDirectory()
         let tempContainer = try makeTemporaryDirectory()

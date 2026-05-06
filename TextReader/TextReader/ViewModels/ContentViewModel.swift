@@ -440,11 +440,25 @@ class ContentViewModel: ObservableObject {
             if let progress = libraryManager.getBookProgress(bookId: book.id) {
                 bookProgressCache[book.id] = progress
                 
-                let progressText = "\(progress.currentPageIndex + 1)/\(progress.totalPages)"
+                let progressText = Self.formatBookProgressDisplay(progress)
                 let lastAccessedText = formatLastAccessedTime(progress.lastAccessed)
                 bookDisplayCache[book.id] = (progressText, lastAccessedText)
             }
         }
+    }
+
+    static func formatBookProgressDisplay(_ progress: BookProgress) -> String? {
+        guard progress.totalPages > 0 else { return nil }
+
+        let currentPage = min(max(progress.currentPageIndex + 1, 1), progress.totalPages)
+        let rawPercentage = Double(currentPage) / Double(progress.totalPages) * 100
+        var percentage = max(1, Int(rawPercentage.rounded()))
+
+        if percentage >= 100 && currentPage < progress.totalPages {
+            percentage = 99
+        }
+
+        return "\(min(percentage, 100))%"
     }
     
     private func formatLastAccessedTime(_ lastAccessed: Date?) -> String? {
@@ -741,7 +755,7 @@ class ContentViewModel: ObservableObject {
             return cached.progress
         }
         if let progress = libraryManager.getBookProgress(bookId: book.id) {
-            return "\(progress.currentPageIndex + 1)/\(progress.totalPages)"
+            return Self.formatBookProgressDisplay(progress)
         }
         return nil
     }
