@@ -79,8 +79,15 @@ struct ContentDisplay: View {
                 }
             }
             .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-                withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
+                // 切换书籍、加载/恢复内容、删除、搜索跳转等"非阅读语境"会通过
+                // ViewModel 设置一次性标志，这里据此跳过动画，让目标内容直接呈现，
+                // 只有用户阅读/朗读自动续页时才看到翻页动画。
+                if viewModel.consumePendingSilentPageScroll() {
                     proxy.scrollTo(newIndex, anchor: .center)
+                } else {
+                    withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
+                        proxy.scrollTo(newIndex, anchor: .center)
+                    }
                 }
             }
             .onChange(of: viewModel.pages.count) { _, _ in

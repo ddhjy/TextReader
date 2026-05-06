@@ -80,6 +80,10 @@ class ContentViewModel: ObservableObject {
     private var manualTurnResumeWorkItem: DispatchWorkItem?
     private var sharedImportBannerDismissWorkItem: DispatchWorkItem?
     private var isConsumingSharedImports = false
+    /// 用于告知视图层：本次 currentPageIndex 的变化属于"非阅读语境"（如切换书籍、
+    /// 加载/恢复内容、删除、搜索跳转等），不应触发翻页动画。
+    /// 由视图层在 onChange 中调用 `consumePendingSilentPageScroll()` 消费一次。
+    private var pendingSilentPageScrollFlag = false
 
     let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
@@ -154,10 +158,10 @@ class ContentViewModel: ObservableObject {
             if cachedTotalPages > 0 {
                 self.pages = Array(repeating: "", count: cachedTotalPages)
                 self.pages[cachedPageIndex] = cachedContent
-                self.currentPageIndex = cachedPageIndex
+                self.setCurrentPageIndex(cachedPageIndex, silent: true)
             } else {
                 self.pages = [cachedContent]
-                self.currentPageIndex = 0
+                self.setCurrentPageIndex(0, silent: true)
             }
             self.currentBookId = lastBookId
             self.currentBookTitle = settingsManager.getLastBookTitle() ?? "TextReader"
@@ -201,7 +205,10 @@ class ContentViewModel: ObservableObject {
                     DispatchQueue.main.async {
                         guard self.currentBookId == book.id else { return }
                         self.pages = paginatedPages
-                        self.currentPageIndex = min(max(0, savedPageIndex), max(0, paginatedPages.count - 1))
+                        self.setCurrentPageIndex(
+                            min(max(0, savedPageIndex), max(0, paginatedPages.count - 1)),
+                            silent: true
+                        )
                         self.pageSummaries = summaries
                         self.searchResults = []
                         self.saveCurrentPageToCache()
@@ -501,7 +508,7 @@ class ContentViewModel: ObservableObject {
     func loadBook(_ book: Book) {
         stopReading()
         isContentLoaded = false
-        currentPageIndex = 0
+        setCurrentPageIndex(0, silent: true)
         currentBookId = book.id
         currentBookTitle = book.title
         settingsManager.saveLastOpenedBookId(book.id)
@@ -519,7 +526,7 @@ class ContentViewModel: ObservableObject {
         if let lastPageContent = savedProgress?.lastPageContent, !lastPageContent.isEmpty {
             print("[ContentViewModel] 使用缓存的单页内容快速启动")
             self.pages = [lastPageContent]
-            self.currentPageIndex = 0
+            self.setCurrentPageIndex(0, silent: true)
             self.isContentLoaded = true
             self.updateNowPlayingInfo()
             
@@ -529,7 +536,10 @@ class ContentViewModel: ObservableObject {
                     switch result {
                     case .success(let content):
                         self.pages = self.textPaginator.paginate(text: content)
-                        self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
+                        self.setCurrentPageIndex(
+                            min(max(0, savedPageIndex), max(0, self.pages.count - 1)),
+                            silent: true
+                        )
                         self.saveCurrentPageToCache()
                         self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
                         self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
@@ -551,7 +561,10 @@ class ContentViewModel: ObservableObject {
                 switch result {
                 case .success(let content):
                     self.pages = self.textPaginator.paginate(text: content)
-                    self.currentPageIndex = min(max(0, savedPageIndex), max(0, self.pages.count - 1))
+                    self.setCurrentPageIndex(
+                        min(max(0, savedPageIndex), max(0, self.pages.count - 1)),
+                        silent: true
+                    )
                     
                     self.saveCurrentPageToCache()
                     self.libraryManager.saveBookProgress(bookId: book.id, pageIndex: self.currentPageIndex, totalPages: self.pages.count)
@@ -564,7 +577,7 @@ class ContentViewModel: ObservableObject {
                 case .failure(let error):
                     print("加载书籍内容失败: \(error)")
                     self.pages = ["无法加载此书内容"]
-                    self.currentPageIndex = 0
+                    self.setCurrentPageIndex(0, silent: true)
                     self.isContentLoaded = true
                 }
             }
@@ -590,7 +603,7 @@ class ContentViewModel: ObservableObject {
                         self.loadBook(firstBook)
                     } else {
                         self.pages = []
-                        self.currentPageIndex = 0
+                        self.setCurrentPageIndex(0, silent: true)
                         self.currentBookId = nil
                         self.currentBookTitle = "TextReader"
                         self.isContentLoaded = true
@@ -627,7 +640,7 @@ class ContentViewModel: ObservableObject {
                     self.loadBook(firstBook)
                 } else {
                     self.pages = []
-                    self.currentPageIndex = 0
+                    self.setCurrentPageIndex(0, silent: true)
                     self.currentBookId = nil
                     self.currentBookTitle = "TextReader"
                     self.isContentLoaded = true
@@ -788,7 +801,7 @@ class ContentViewModel: ObservableObject {
             case .success:
                 if book.id == self.currentBookId {
                     self.pages = self.textPaginator.paginate(text: newContent)
-                    self.currentPageIndex = 0
+                    self.setCurrentPageIndex(0, silent: true)
                     self.pageSummaries = self.searchService.pageSummaries(pages: self.pages)
                     self.searchResults = []
                     
@@ -819,16 +832,26 @@ class ContentViewModel: ObservableObject {
         pendingResumeAfterManualTurn = false
     }
 
-    private func performWithoutPageTransitionAnimation(_ updates: () -> Void) {
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction, updates)
+    /// 视图层消费一次「静默翻页」标志。
+    /// - Returns: `true` 表示本次 `currentPageIndex` 变化不应使用翻页动画。
+    func consumePendingSilentPageScroll() -> Bool {
+        let value = pendingSilentPageScrollFlag
+        pendingSilentPageScrollFlag = false
+        return value
     }
 
-    private func setCurrentPageIndex(_ index: Int) {
-        performWithoutPageTransitionAnimation {
-            currentPageIndex = index
+    /// 设置当前页索引。
+    /// - Parameters:
+    ///   - index: 新的页码索引。
+    ///   - silent: 是否抑制视图层翻页动画。默认 `false`：适用于用户手动翻页、滑块跳页、
+    ///     以及朗读自动续页等"用户正在关注阅读区"的场景。
+    ///     传 `true` 用于切换书籍、加载/恢复缓存、删除、内容刷新、搜索跳转等
+    ///     "用户视线尚未聚焦阅读区"的场景，避免视觉打扰。
+    private func setCurrentPageIndex(_ index: Int, silent: Bool = false) {
+        if silent && index != currentPageIndex {
+            pendingSilentPageScrollFlag = true
         }
+        currentPageIndex = index
     }
 
     private func scheduleResumeAfterManualTurn() {
@@ -945,7 +968,9 @@ class ContentViewModel: ObservableObject {
     func jumpToSearchResult(pageIndex: Int) {
         guard pageIndex >= 0 && pageIndex < pages.count else { return }
         stopReading()
-        setCurrentPageIndex(pageIndex)
+        // 搜索面板会立刻关闭，跨度通常较大；用户视线刚从搜索弹层切回主界面，
+        // 这里直接静默定位，避免一段长距离的滚动动画造成视觉打扰。
+        setCurrentPageIndex(pageIndex, silent: true)
         showingSearchView = false
     }
     
