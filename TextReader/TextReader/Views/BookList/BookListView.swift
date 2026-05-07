@@ -61,10 +61,7 @@ struct BookListView: View {
                                 .font(.headline)
                                 .lineLimit(1)
                             Spacer()
-                            if viewModel.currentBookId == book.id && !isEditing {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(viewModel.currentAccentColor)
-                            } else if let progressText = viewModel.getBookProgressDisplay(book: book) {
+                            if let progressText = viewModel.getBookProgressDisplay(book: book) {
                                 Text(progressText)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
