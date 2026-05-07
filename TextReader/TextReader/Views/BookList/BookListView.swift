@@ -58,7 +58,7 @@ struct BookListView: View {
                         HStack {
                             Text(book.title)
                                 .foregroundStyle(.primary)
-                                .font(.headline)
+                                .font(.body)
                                 .lineLimit(1)
                             Spacer()
                             if let progressText = viewModel.getBookProgressDisplay(book: book) {

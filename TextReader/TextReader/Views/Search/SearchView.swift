@@ -29,13 +29,6 @@ struct SearchView: View {
         }
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
-                Button("完成") {
-                    dismiss()
-                }
-            }
-        }
     }
     
     @ViewBuilder
@@ -45,10 +38,6 @@ struct SearchView: View {
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("第 \(idx + 1) 页")
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                
                 if shouldHighlight && !searchText.isEmpty {
                     highlightedText(preview: preview, searchQuery: searchText)
                         .font(.subheadline)
