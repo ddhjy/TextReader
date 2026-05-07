@@ -46,7 +46,6 @@ struct SearchView: View {
                     Text(preview)
                         .font(.subheadline)
                         .lineLimit(2)
-                        .foregroundStyle(.secondary)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -72,12 +71,6 @@ struct SearchView: View {
         guard !searchQuery.isEmpty else { return nil }
         
         let attributedString = NSMutableAttributedString(string: text)
-        
-        attributedString.addAttribute(
-            .foregroundColor,
-            value: UIColor.secondaryLabel,
-            range: NSRange(location: 0, length: text.count)
-        )
         
         let ranges = text.ranges(of: searchQuery, options: [.caseInsensitive])
         
