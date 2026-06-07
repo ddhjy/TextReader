@@ -1,10 +1,9 @@
 # TextReader for iOS
 
-TextReader is a SwiftUI-based iOS application designed for an enhanced text reading and narration experience. It offers a comprehensive suite of features for importing, managing, reading, and listening to text-based content, with a focus on usability and customization.
+TextReader is a SwiftUI-based iOS application built for a focused text reading and narration experience. It lets you import, organize, read, and listen to plain-text content, with deep customization, background audio playback, and AI-assisted prompt workflows.
 
-Custom Prompt for AI:
-
-https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
+> **Custom Prompt for AI** demo:
+> https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 
 ## Screenshot
 
@@ -13,83 +12,85 @@ https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 ## Features
 
 ### Core Reading & Narration
-* **Paginated Reading:** Text content is automatically divided into easily navigable pages.
-* **Text-to-Speech (TTS):** Utilizes `AVSpeechSynthesizer` for audio narration of book content, with play/pause capabilities.
-* **Customizable Narration:**
-    * **Voice Selection:** Choose from various available system voices (primarily focused on Chinese voices).
-    * **Speed Control:** Adjust narration speed to your preference (options include 1.0x, 1.5x, 1.75x, 2.0x, 3.0x).
-* **Background Playback:** Continue listening to narration even when the app is in the background or the device is locked.
-* **Remote Controls:** Manage playback (play/pause, next/previous page) via headphones or the Control Center.
-* **Now Playing Integration:** Displays current book title, page, and playback controls on the lock screen and Control Center.
-* **Dark Mode:** Switch between light and dark themes for comfortable reading, with persistence.
+* **Paginated Reading** — Text is automatically split into easily navigable pages.
+* **Text-to-Speech (TTS)** — Audio narration powered by `AVSpeechSynthesizer`, with play / pause control.
+* **Customizable Narration**
+    * **Voice Selection** — Choose from available system voices (optimized for Chinese voices).
+    * **Speed Control** — Adjust narration speed (1.0x, 1.5x, 1.75x, 2.0x, 3.0x).
+* **Sleep Timer** — Long-press the Play button to reveal a radial timer picker and auto-stop narration after a set number of minutes.
+* **Background Playback** — Keep listening while the app is backgrounded or the device is locked (`audio` background mode).
+* **Remote Controls** — Play / pause and next / previous page via headphones or Control Center (`MPRemoteCommandCenter`).
+* **Now Playing Integration** — Shows the current book title, page, and controls on the lock screen and in Control Center.
+* **Dark Mode** — Switch between light and dark themes, with the choice persisted.
 
 ### Book Management & Import
-* **Multiple Import Methods:**
-    * **File Import:** Import `.txt` files directly using the system document picker (from local storage or iCloud Drive). Supports UTF-8 and GBK/GB18030 encodings.
-    * **Paste Text:** Create new books by pasting text directly into the app. Titles can be manually set or automatically generated from the first 10 characters.
-    * **Share Sheet Import:** Import text content shared from other applications (e.g., Notes, Safari) via the iOS Share Sheet (handles `public.plain-text`, `public.text`).
-    * **Wi-Fi Transfer:** Transfer `.txt` files to the app from a computer on the same Wi-Fi network via a web browser interface.
-* **Book Library:**
-    * View a list of all imported and built-in books.
-    * Sorts books by the last accessed time, showing the most recently opened book first.
-    * Displays last accessed time in a user-friendly format (e.g., "Read just now", "Read 5 minutes ago").
-* **Progress Persistence:** Automatically saves reading progress (current page) and total pages for each book.
-* **Built-in Book:** Includes a "User Guide" (使用说明.txt) as a default book.
+* **Multiple Import Methods**
+    * **File Import** — Import `.txt` files via the system document picker (local storage or iCloud Drive). Supports UTF-8 and GBK / GB18030 encodings.
+    * **Paste Text** — Create a book by pasting text. Title can be set manually or auto-generated from the first 10 characters.
+    * **Share Sheet Import** — Receive text shared from other apps (Notes, Safari, etc.) through the iOS Share Extension, handling `public.plain-text` and `public.text`. Shared items are exchanged via an App Group inbox.
+    * **Wi-Fi Transfer** — Push `.txt` files from a computer on the same network through an in-app web interface.
+* **Book Library**
+    * Lists all imported and built-in books.
+    * Sorts by last-accessed time, surfacing the most recently opened book first.
+    * Shows last-accessed time in friendly form (e.g. "Read just now", "Read 5 minutes ago").
+* **Progress Persistence** — Automatically saves current page and total pages per book.
+* **Built-in Book** — Ships with a "User Guide" (使用说明.txt) as a default book.
 
 ### Search & Navigation
-* **Full-Text Search:** Search within the currently open book.
-    * **Live Search:** Results update palavras-chave.
-    * **Keyword Highlighting:** Matched keywords are highlighted (yellow background, bold) in search results for better visibility. Search box empty means no highlighting in summaries.
-    * **Contextual Preview:** Search results show a preview snippet with context around the matched keyword.
-    * **No Results Found:** Clear "No relevant content found" message when search yields no results.
-* **Page Summaries:** When the search bar is empty, displays summaries for quick navigation (up to 100 equally spaced page snippets).
-* **Interactive Page Slider:**
-    * Tap or drag the progress bar to reveal an interactive slider for quick page jumps.
+* **Full-Text Search** — Search within the currently open book.
+    * **Live Search** — Results update as you type.
+    * **Keyword Highlighting** — Matched keywords are highlighted (yellow background, bold).
+    * **Contextual Preview** — Each result shows a snippet with surrounding context.
+    * **No Results State** — Displays a clear "No relevant content found" message.
+* **Page Summaries** — When the search bar is empty, shows up to 100 equally spaced page snippets for quick navigation.
+* **Interactive Page Slider**
+    * Tap or drag the progress bar to reveal a slider for quick page jumps.
     * The slider auto-hides after 1.5 seconds of inactivity.
-    * Long-pressing the progress bar also activates the slider for continuous dragging.
-* **Haptic Feedback:** Subtle vibrations on page changes via the slider and for other interactions.
+    * Long-press the progress bar for continuous dragging.
+* **Haptic Feedback** — Subtle vibrations on page changes and other interactions.
 
 ### Advanced Text Interaction
-* **"Big Bang" Word Segmentation:**
-    * Long-press on the reading view to trigger "Big Bang" word segmentation based on `NLTokenizer`.
-    * `BigBangView` displays tokens as selectable blocks.
-    * Supports drag-to-select continuous tokens for copying.
-* **Prompt Templates:**
-    * After selecting text in "Big Bang" view, choose from preset or custom templates.
-    * Placeholders `{selection}`, `{page}`, and `{book}` are automatically replaced.
-    * Generated prompt is copied to the clipboard and can optionally open a Perplexity AI search.
-    * Manage templates (add, delete, edit).
+* **"Big Bang" Word Segmentation**
+    * Long-press the reading view to trigger word segmentation via `NLTokenizer`.
+    * `BigBangView` renders tokens as selectable blocks.
+    * Drag to select continuous tokens for copying.
+* **Prompt Templates**
+    * After selecting text in Big Bang view, apply a preset or custom template.
+    * Placeholders `{selection}`, `{page}`, and `{book}` are substituted automatically.
+    * The generated prompt is copied to the clipboard and can optionally open a Perplexity AI search.
+    * Built-in defaults include "总结式" (summarize) and "翻译-EN" (translate to English); templates can be added, edited, and deleted.
 
-### UI/UX Enhancements
-* Optimized paragraph/letter spacing and a larger base font for readability.
-* Linear progress bar for visual page progress.
-* Prominent circular Play/Pause button.
+### UI / UX Enhancements
+* Tuned paragraph / letter spacing and a larger base font for readability.
+* Linear progress bar for visual page tracking.
+* Prominent circular Play / Pause button.
 * Segmented speed selector for quick adjustments.
-* Removed loading title flicker on startup for a smoother experience.
+* Removed the startup title flicker for a smoother launch.
 
 ## Requirements
 
-* **iOS:** 26.0 or later
-* **Xcode:** 26.0 or later (for development)
-* **macOS:** 15.0 or later (for development with Xcode)
+* **iOS** 26.0 or later
+* **Xcode** 26.0 or later (for development)
+* **macOS** 15.0 or later (for development with Xcode)
 
 ## Installation
 
-1.  **Clone or Download:** Get the project files onto your local machine.
+1. **Clone the repository:**
     ```bash
-    git clone [https://github.com/your-repository-url/TextReader.git](https://github.com/your-repository-url/TextReader.git)
+    git clone https://github.com/your-repository-url/TextReader.git
+    cd TextReader
     ```
-2.  **Open Project:** Open `TextReader.xcodeproj` in Xcode.
-3.  **Select Target:** Choose an iOS device or simulator.
-4.  **Run:** Build and run the application.
+2. **Open the project** — Open `TextReader.xcodeproj` in Xcode.
+3. **Select a target** — Choose an iOS device or simulator.
+4. **Build & run.**
 
-You can also build, install, and launch the app directly from the command line:
+You can also build, install, and launch directly from the command line:
 
 ```bash
 make install
 ```
 
-If multiple devices are connected, specify a device name explicitly:
+If multiple devices are connected, specify one explicitly:
 
 ```bash
 make install DEVICE_NAME="KAI"
@@ -98,45 +99,64 @@ make install DEVICE_NAME="KAI"
 Other useful commands:
 
 ```bash
-make devices
-make install-simulator
+make devices            # list connected devices
+make install-simulator  # build and run on a simulator
 ```
 
 ## Usage Overview
 
-* **Book List:** Tap the book icon in the navigation bar to open the book list. Select a book to start reading.
-* **Importing:** Use the "+" icon in the book list to import books via Files, Paste Text, or Wi-Fi Transfer.
-* **Reading:**
-    * Tap the upper reading area for the previous page, or the lower reading area for the next page.
-    * Use the progress slider for quick page jumps.
-* **Narration:**
-    * Tap the Play/Pause button to start or stop narration.
-    * Adjust voice and speed from the control panel.
-* **Search:** Tap the magnifying glass icon to search within the current book.
-* **Big Bang & Prompts:** Long-press text in the reader view to segment words. Select words and use the "Templates" menu.
-* **Dark Mode:** Toggle dark mode from the control panel.
+* **Book List** — Tap the book icon in the navigation bar; select a book to start reading.
+* **Importing** — Tap "+" in the book list to import via Files, Paste Text, or Wi-Fi Transfer.
+* **Reading** — Tap the upper area for the previous page or the lower area for the next; use the progress slider to jump.
+* **Narration** — Tap Play / Pause to control narration; long-press Play to set a sleep timer; adjust voice and speed in the control panel.
+* **Search** — Tap the magnifying-glass icon to search within the current book.
+* **Big Bang & Prompts** — Long-press text in the reader to segment words, select tokens, then use the Templates menu.
+* **Dark Mode** — Toggle from the control panel.
 
 ## Key Technologies
 
-* **SwiftUI:** For the entire user interface and application structure.
-* **AVFoundation:** `AVSpeechSynthesizer` for text-to-speech, `AVAudioSession` for audio management.
-* **MediaPlayer:** `MPRemoteCommandCenter` and `MPNowPlayingInfoCenter` for background audio control and lock screen integration.
-* **NaturalLanguage Framework:** `NLTokenizer` for "Big Bang" word segmentation.
-* **Network Framework:** For the Wi-Fi file transfer service.
-* **Combine Framework:** For managing asynchronous events and state changes.
-* **Core iOS Frameworks:** For file management, persistence (`UserDefaults`, JSON for library metadata), and UI components.
+* **SwiftUI** — Entire UI and app structure.
+* **AVFoundation** — `AVSpeechSynthesizer` for TTS, `AVAudioSession` for audio session management.
+* **MediaPlayer** — `MPRemoteCommandCenter` and `MPNowPlayingInfoCenter` for background control and lock-screen integration.
+* **NaturalLanguage** — `NLTokenizer` for Big Bang word segmentation.
+* **Network** — Powers the Wi-Fi file transfer service.
+* **Combine** — Manages asynchronous events and state.
+* **App Groups** — Shared inbox for handing off content from the Share Extension to the main app.
+* **Core iOS Frameworks** — File management and persistence (`UserDefaults`, JSON for library metadata).
 
-## Architecture & Refactoring Highlights
+## Project Structure
 
-The application has undergone significant refactoring to improve code structure, maintainability, and adherence to software design principles:
+```
+TextReader/
+├── Shared/                      # Code shared between app & extension (SharedImportStore)
+├── TextReader/
+│   └── TextReader/
+│       ├── Application/          # App entry point (TextReaderApp)
+│       ├── Managers/             # Library, Speech, Settings, AudioSession, Template
+│       ├── Models/               # Book, BookProgress, PromptTemplate, AccentColor
+│       ├── Services/             # SearchService, TextPaginator, Tokenizer, WiFiTransfer
+│       ├── ViewModels/           # ContentViewModel (central orchestrator)
+│       ├── Views/                # SwiftUI views (BookList, MainView, Search, BigBang, …)
+│       ├── Resources/            # Built-in books (使用说明.txt)
+│       └── Supporting Files/     # Utilities & entitlements
+├── TextReaderExtension/          # Share Extension target
+├── TextReaderTests/              # Unit tests
+└── TextReaderUITests/            # UI tests
+```
 
-* **MVVM Design:** `ContentViewModel` acts as the central orchestrator for views and business logic.
-* **Decomposition:** The original monolithic `ContentModel` has been broken down into dedicated managers and services:
-    * **Managers:** `LibraryManager`, `SpeechManager`, `SettingsManager`, `AudioSessionManager`, `TemplateManager`.
-    * **Services:** `SearchService`, `TextPaginator`, `WiFiTransferService`.
-* **Single Responsibility Principle:** Each manager and service now has a clearly defined responsibility.
-* **Improved Persistence:** `LibraryManager` handles library metadata and progress using JSON, while `SettingsManager` (using `UserDefaults`) manages user preferences.
-* **Organized Code Structure:** Project files are organized into logical directories (Models, ViewModels, Views, Services, Managers, etc.).
+## Architecture
+
+The app follows an **MVVM** design with clear separation of concerns:
+
+* **ViewModel** — `ContentViewModel` is the central orchestrator between views and business logic.
+* **Managers** — `LibraryManager`, `SpeechManager`, `SettingsManager`, `AudioSessionManager`, and `TemplateManager`, each with a single, well-defined responsibility.
+* **Services** — `SearchService`, `TextPaginator`, and `WiFiTransferService` encapsulate discrete capabilities.
+* **Persistence** — `LibraryManager` stores library metadata and reading progress as JSON; `SettingsManager` persists user preferences via `UserDefaults`; `TemplateManager` saves prompt templates to `templates.json`.
+* **Organized layout** — Code is grouped into Models, ViewModels, Views, Services, and Managers for maintainability.
+
+## Testing
+
+Unit and UI tests live in `TextReaderTests/` and `TextReaderUITests/`, covering search composition state, the shared import flow, and core app behavior. Run them from Xcode (**Product ▸ Test**) or via `xcodebuild test`.
 
 ## License
 
