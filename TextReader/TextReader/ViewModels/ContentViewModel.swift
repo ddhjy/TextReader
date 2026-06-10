@@ -75,6 +75,12 @@ class ContentViewModel: ObservableObject {
     private var sleepTimerStopPendingAfterCurrentUtterance = false
     
     private var isAutoAdvancing = false
+    /// 自动续页保护的兜底解除任务：正常情况由 didStart/onSpeechError 解除，
+    /// 仅在语音引擎既不回调开始也不回调失败（引擎卡死）时按超时强制解除，
+    /// 避免对账定时器被 isAutoAdvancing 永久挡住。
+    private var autoAdvanceFallbackWorkItem: DispatchWorkItem?
+    /// 对账定时器连续检测到「UI 在播但引擎无声」的次数。
+    private var syncMismatchTickCount = 0
     private var activeUtteranceId: UUID?
     private var activeUtterancePageIndex: Int?
     private var pendingResumeAfterManualTurn: Bool = false
@@ -277,23 +283,57 @@ class ContentViewModel: ObservableObject {
                 let speechManagerActive = speechManager.isSpeaking
                 
                 if self.isAutoAdvancing || self.pendingResumeAfterManualTurn {
+                    self.syncMismatchTickCount = 0
                     return
                 }
                 
-                if self.isReading != speechManagerActive {
-                    print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
+                guard self.isReading != speechManagerActive else {
+                    self.syncMismatchTickCount = 0
+                    return
+                }
+                
+                print("检测到状态不一致: UI=\(self.isReading), Speech=\(speechManagerActive)")
+                
+                if !self.isReading && speechManagerActive {
+                    print("强制停止播放")
+                    self.syncMismatchTickCount = 0
+                    self.speechManager.stopReading()
+                } else if self.isReading && !speechManagerActive {
+                    // 页与页衔接时 didStart 可能迟到（后台 CPU 受限、合成首块音频慢），
+                    // 单次采样不足以判定播放已停止；连续两次（约 4 秒）不一致才纠偏，
+                    // 避免误杀正常的自动续页。
+                    self.syncMismatchTickCount += 1
+                    guard self.syncMismatchTickCount >= 2 else { return }
                     
-                    if !self.isReading && speechManagerActive {
-                        print("强制停止播放")
-                        self.speechManager.stopReading()
-                    } else if self.isReading && !speechManagerActive {
-                        print("状态同步：更新为已停止")
-                        self.isReading = false
-                        self.updateNowPlayingInfo()
-                    }
+                    print("状态同步：连续确认无声，更新为已停止")
+                    self.syncMismatchTickCount = 0
+                    self.isReading = false
+                    // 不在纠偏路径释放音频会话：若属误判，迟到的 didStart 仍可把
+                    // isReading 拉回并继续播放；释放会话会直接掐断正在准备发声的合成器。
+                    self.updateNowPlayingInfo(deactivateSessionWhenStopped: false)
                 }
             }
             .store(in: &cancellables)
+    }
+    
+    /// 开始自动续页保护：期间对账定时器不做状态纠偏。
+    /// 由 didStart/onSpeechError 解除；若两者都未到来（引擎卡死），10 秒后兜底解除。
+    private func beginAutoAdvanceProtection() {
+        isAutoAdvancing = true
+        autoAdvanceFallbackWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+            self.autoAdvanceFallbackWorkItem = nil
+            self.isAutoAdvancing = false
+        }
+        autoAdvanceFallbackWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: work)
+    }
+    
+    private func endAutoAdvanceProtection() {
+        autoAdvanceFallbackWorkItem?.cancel()
+        autoAdvanceFallbackWorkItem = nil
+        isAutoAdvancing = false
     }
 
     private func setupWiFiTransferCallbacks() {
@@ -342,14 +382,12 @@ class ContentViewModel: ObservableObject {
                 return
             }
             
-            self.isAutoAdvancing = true
-            
             if !self.pages.isEmpty && self.currentPageIndex < self.pages.count - 1 {
+                // 保护持续到下一页 didStart 真正回来（见 onSpeechStart/onSpeechError），
+                // 固定时长的保护窗在后台合成变慢时不够用，会被对账定时器误杀。
+                self.beginAutoAdvanceProtection()
                 self.setCurrentPageIndex(self.currentPageIndex + 1)
                 self.readCurrentPage()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self.isAutoAdvancing = false
-                }
             } else {
                 if self.sleepTimerActive {
                     self.cancelSleepTimer()
@@ -357,7 +395,7 @@ class ContentViewModel: ObservableObject {
                 self.activeUtteranceId = nil
                 self.activeUtterancePageIndex = nil
                 self.isReading = false
-                self.isAutoAdvancing = false
+                self.endAutoAdvanceProtection()
                 self.updateNowPlayingInfo()
             }
         }
@@ -366,6 +404,7 @@ class ContentViewModel: ObservableObject {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 guard utteranceId == self.activeUtteranceId else { return }
+                self.endAutoAdvanceProtection()
                 if !self.isReading {
                     self.isReading = true
                     self.updateNowPlayingInfo()
@@ -398,6 +437,7 @@ class ContentViewModel: ObservableObject {
         speechManager.onSpeechError = { [weak self] in
             DispatchQueue.main.async {
                 guard let self = self else { return }
+                self.endAutoAdvanceProtection()
                 if self.isReading {
                     self.isReading = false
                     self.updateNowPlayingInfo()
@@ -1040,6 +1080,7 @@ class ContentViewModel: ObservableObject {
 
     func stopReading() {
         cancelPendingManualResume()
+        endAutoAdvanceProtection()
         activeUtteranceId = nil
         activeUtterancePageIndex = nil
         speechManager.stopReading()
@@ -1097,14 +1138,15 @@ class ContentViewModel: ObservableObject {
         }
     }
 
-    private func updateNowPlayingInfo() {
+    private func updateNowPlayingInfo(deactivateSessionWhenStopped: Bool = true) {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.audioSessionManager.updateNowPlayingInfo(
                 title: self.currentBookTitle,
                 isPlaying: self.isReading,
                 currentPage: self.currentPageIndex + 1,
-                totalPages: self.pages.count
+                totalPages: self.pages.count,
+                deactivateSessionWhenStopped: deactivateSessionWhenStopped
             )
         }
     }
@@ -1365,7 +1407,7 @@ class ContentViewModel: ObservableObject {
         cancelSleepTimer()
         activeUtteranceId = nil
         activeUtterancePageIndex = nil
-        isAutoAdvancing = false
+        endAutoAdvanceProtection()
         isReading = false
         updateNowPlayingInfo()
     }

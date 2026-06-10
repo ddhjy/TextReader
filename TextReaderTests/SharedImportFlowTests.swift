@@ -361,7 +361,7 @@ private final class MockAudioSessionManager: AudioSessionManager {
                                            nextAction: (() -> Void)? = nil,
                                            previousAction: (() -> Void)? = nil) {}
 
-    override func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {}
+    override func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil, deactivateSessionWhenStopped: Bool = true) {}
 }
 
 private final class MockSpeechManager: SpeechManager, @unchecked Sendable {

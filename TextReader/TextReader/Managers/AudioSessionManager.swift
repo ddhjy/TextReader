@@ -114,7 +114,10 @@ class AudioSessionManager: NSObject {
         commandCenter.previousTrackCommand.removeTarget(nil)
     }
 
-    func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil) {
+    /// - Parameter deactivateSessionWhenStopped: 停止播放时是否释放音频会话。
+    ///   状态对账等「疑似停止」场景应传 `false`：若属误判，释放会话会掐断
+    ///   正在准备发声的合成器，且锁屏下 app 会随之失去后台运行资格。
+    func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil, deactivateSessionWhenStopped: Bool = true) {
         DispatchQueue.main.async {
             if isPlaying {
                 DispatchQueue.global(qos: .userInitiated).async {
@@ -152,7 +155,7 @@ class AudioSessionManager: NSObject {
                 MPNowPlayingInfoCenter.default().nowPlayingInfo = nil
                 self.isSystemPlaybackActive = false
                 
-                if self.isAudioSessionActive {
+                if deactivateSessionWhenStopped && self.isAudioSessionActive {
                     DispatchQueue.global(qos: .utility).async {
                         do {
                             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
