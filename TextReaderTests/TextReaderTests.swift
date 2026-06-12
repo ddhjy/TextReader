@@ -20,6 +20,8 @@ struct TextReaderTests {
 
         personalSettings.saveLastBookTitle("真实书籍")
         personalSettings.saveReadingSpeed(1.25)
+        personalSettings.saveDarkMode(true)
+        personalSettings.saveAccentColorThemeId("green")
         reviewSettings.saveLastBookTitle("审核样例")
         reviewSettings.saveReadingSpeed(2.0)
 
@@ -27,6 +29,14 @@ struct TextReaderTests {
         #expect(personalSettings.getReadingSpeed() == 1.25)
         #expect(reviewSettings.getLastBookTitle() == "审核样例")
         #expect(reviewSettings.getReadingSpeed() == 2.0)
+        #expect(reviewSettings.getDarkMode())
+        #expect(reviewSettings.getAccentColorThemeId() == "green")
+
+        reviewSettings.saveDarkMode(false)
+        reviewSettings.saveAccentColorThemeId("red")
+
+        #expect(!personalSettings.getDarkMode())
+        #expect(personalSettings.getAccentColorThemeId() == "red")
 
         reviewSettings.removeAllManagedValues()
 
@@ -34,6 +44,8 @@ struct TextReaderTests {
         #expect(personalSettings.getReadingSpeed() == 1.25)
         #expect(reviewSettings.getLastBookTitle() == nil)
         #expect(reviewSettings.getReadingSpeed() == 1.0)
+        #expect(!reviewSettings.getDarkMode())
+        #expect(reviewSettings.getAccentColorThemeId() == "red")
     }
 
     @Test
@@ -100,6 +112,7 @@ struct TextReaderTests {
             keyPrefix: AppDataProfile.reviewSample.settingsKeyPrefix
         )
         personalSettings.saveLastBookTitle("真实书籍")
+        personalSettings.saveAccentColorThemeId("purple")
         reviewSettings.saveLastBookTitle("审核导入")
 
         try AppDataProfile.reviewSample.clearPersistedData(
@@ -111,6 +124,7 @@ struct TextReaderTests {
         #expect(!FileManager.default.fileExists(atPath: reviewDirectory.path))
         #expect(personalSettings.getLastBookTitle() == "真实书籍")
         #expect(reviewSettings.getLastBookTitle() == nil)
+        #expect(reviewSettings.getAccentColorThemeId() == "purple")
     }
 }
 

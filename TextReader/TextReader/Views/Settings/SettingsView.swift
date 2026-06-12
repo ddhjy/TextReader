@@ -18,7 +18,7 @@ struct SettingsView: View {
     @ObservedObject var viewModel: ContentViewModel
     @ObservedObject var session: AppSessionController
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("advancedDebugUnlocked") private var advancedDebugUnlocked = false
+    @State private var advancedDebugUnlocked = false
     @State private var aboutTapCount = 0
     @State private var pendingDebugAction: DebugProfileAction?
 
@@ -163,13 +163,16 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("完成") {
-                        dismiss()
+                        closeSettings()
                     }
                 }
             }
         }
         .alert(item: $pendingDebugAction) { action in
             debugAlert(for: action)
+        }
+        .onDisappear {
+            lockAdvancedDebug()
         }
         .tint(viewModel.currentAccentColor)
         .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
@@ -204,7 +207,7 @@ struct SettingsView: View {
         case .switchProfile(let profile):
             primaryButton = .default(Text(profile == .reviewSample ? "切换" : "切回")) {
                 session.switchProfile(to: profile)
-                dismiss()
+                closeSettings()
             }
             return Alert(
                 title: Text(profile == .reviewSample ? "切换到审核样例状态？" : "切回日常状态？"),
@@ -218,7 +221,7 @@ struct SettingsView: View {
         case .resetReviewSample:
             primaryButton = .destructive(Text("重置")) {
                 session.resetReviewSampleProfile()
-                dismiss()
+                closeSettings()
             }
             return Alert(
                 title: Text("重置审核样例状态？"),
@@ -227,6 +230,17 @@ struct SettingsView: View {
                 secondaryButton: .cancel(Text("取消"))
             )
         }
+    }
+
+    private func closeSettings() {
+        lockAdvancedDebug()
+        dismiss()
+    }
+
+    private func lockAdvancedDebug() {
+        advancedDebugUnlocked = false
+        aboutTapCount = 0
+        pendingDebugAction = nil
     }
 }
 

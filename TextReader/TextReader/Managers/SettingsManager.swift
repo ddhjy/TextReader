@@ -20,21 +20,27 @@ class SettingsManager {
         static let lastBookTitle = "lastBookTitle"
         static let lastTotalPages = "lastTotalPages"
 
-        static let all = [
+        static let profileScoped = [
             readingSpeed,
             selectedVoiceIdentifier,
             lastOpenedBookId,
-            isDarkMode,
-            accentColorThemeId,
             lastPageContent,
             lastPageIndex,
             lastBookTitle,
             lastTotalPages
         ]
+
+        static let sharedAppearance = [
+            isDarkMode,
+            accentColorThemeId
+        ]
     }
 
     private func key(_ name: String) -> String {
-        keyPrefix + name
+        if Keys.sharedAppearance.contains(name) {
+            return name
+        }
+        return keyPrefix + name
     }
 
     func saveReadingSpeed(_ speed: Float) {
@@ -111,8 +117,13 @@ class SettingsManager {
     }
 
     func removeAllManagedValues() {
-        for managedKey in Keys.all {
+        for managedKey in Keys.profileScoped {
             defaults.removeObject(forKey: key(managedKey))
+        }
+        if keyPrefix.isEmpty {
+            for managedKey in Keys.sharedAppearance {
+                defaults.removeObject(forKey: key(managedKey))
+            }
         }
     }
 } 
