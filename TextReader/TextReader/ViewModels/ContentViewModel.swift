@@ -1088,6 +1088,26 @@ class ContentViewModel: ObservableObject {
         updateNowPlayingInfo()
     }
 
+    func prepareForDataProfileSwitch() {
+        stopReading()
+        cancelSleepTimer()
+        wiFiTransferService.stopServer()
+        sharedImportBannerDismissWorkItem?.cancel()
+        sharedImportBannerDismissWorkItem = nil
+        sharedImportBannerMessage = nil
+        showingBookList = false
+        showingSearchView = false
+        showingDocumentPicker = false
+        showingWiFiTransferView = false
+        showingPasteImport = false
+        showingBigBang = false
+        showingTemplatePicker = false
+        showingBookEdit = false
+        showingSettings = false
+        generatedPrompt = nil
+        bookToEdit = nil
+    }
+
     private func restartReading() {
         if isReading {
             print("重新开始朗读")

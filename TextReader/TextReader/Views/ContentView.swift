@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var viewModel: ContentViewModel
+    @ObservedObject var session: AppSessionController
     
     @State private var showProgressSlider = false
 
@@ -60,7 +61,7 @@ struct ContentView: View {
             BigBangView(vm: viewModel)
         }
         .sheet(isPresented: $viewModel.showingSettings) {
-            SettingsView(viewModel: viewModel)
+            SettingsView(viewModel: viewModel, session: session)
         }
         .overlay(alignment: .top) {
             if let bannerMessage = viewModel.sharedImportBannerMessage {
@@ -80,5 +81,5 @@ struct ContentView: View {
 } 
 
 #Preview {
-    ContentView(viewModel: ContentViewModel())
+    ContentView(viewModel: ContentViewModel(), session: AppSessionController())
 } 

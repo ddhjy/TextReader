@@ -5,6 +5,49 @@ class LibraryManager {
     private let bookMetadataFile = "library.json"
     private let fileManager: FileManager
     private let documentsDirectoryProvider: () throws -> URL
+    private let builtInBooks: [BuiltInBook]
+
+    struct BuiltInBook: Equatable {
+        let title: String
+        let fileName: String
+        let resourceName: String?
+        let content: String?
+
+        init(title: String,
+             fileName: String,
+             resourceName: String? = nil,
+             content: String? = nil) {
+            self.title = title
+            self.fileName = fileName
+            self.resourceName = resourceName
+            self.content = content
+        }
+
+        static let userGuide = BuiltInBook(
+            title: "使用说明",
+            fileName: "使用说明",
+            resourceName: "使用说明"
+        )
+
+        static let reviewSample = BuiltInBook(
+            title: "读书派示例文本",
+            fileName: "__builtin_review_sample__",
+            content: """
+            读书派是一款面向中文阅读和朗读场景的轻量阅读工具。
+
+            你可以导入 txt 或 md 文本，把长文、资料、笔记和电子书放进书架中管理。打开一本书后，App 会自动分页，记录阅读进度，并支持翻页、搜索和语音朗读。
+
+            典型使用流程：
+            1. 在书架中导入一份文本。
+            2. 打开文本开始阅读。
+            3. 点击播放按钮朗读当前页。
+            4. 使用搜索定位关键词。
+            5. 下次打开时继续上一次的阅读进度。
+
+            这份示例文本用于演示审核流程，不包含用户个人数据。
+            """
+        )
+    }
     
     enum LibraryError: Error {
         case fileNotFound
@@ -23,8 +66,10 @@ class LibraryManager {
     }
 
     init(fileManager: FileManager = .default,
-         documentsDirectoryProvider: (() throws -> URL)? = nil) {
+         documentsDirectoryProvider: (() throws -> URL)? = nil,
+         builtInBooks: [BuiltInBook] = [.userGuide]) {
         self.fileManager = fileManager
+        self.builtInBooks = builtInBooks
         self.documentsDirectoryProvider = documentsDirectoryProvider ?? {
             guard let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first else {
                 throw LibraryError.directoryAccessFailed
@@ -36,13 +81,16 @@ class LibraryManager {
     func loadBooks() -> [Book] {
         var allBooks: [Book] = []
         
-        let bundleBookFiles = [
-            ("使用说明", "使用说明"),
-        ]
-        
-        let bundleBooks = bundleBookFiles.compactMap { (title, fileName) in
-            if Bundle.main.url(forResource: fileName, withExtension: "txt") != nil {
-                return Book(title: title, fileName: fileName, isBuiltIn: true)
+        let bundleBooks = builtInBooks.compactMap { builtInBook in
+            if builtInBook.content != nil {
+                return Book(title: builtInBook.title, fileName: builtInBook.fileName, isBuiltIn: true)
+            }
+
+            let resourceName = builtInBook.resourceName
+                ?? URL(fileURLWithPath: builtInBook.fileName).deletingPathExtension().lastPathComponent
+
+            if Bundle.main.url(forResource: resourceName, withExtension: "txt") != nil {
+                return Book(title: builtInBook.title, fileName: builtInBook.fileName, isBuiltIn: true)
             }
             return nil
         }
@@ -80,7 +128,22 @@ class LibraryManager {
                 let url: URL
                 
                 if book.isBuiltIn {
-                    guard let bundleURL = Bundle.main.url(forResource: URL(fileURLWithPath: book.fileName).deletingPathExtension().lastPathComponent, withExtension: "txt") else {
+                    guard let builtInBook = self.builtInBooks.first(where: { $0.fileName == book.fileName }) else {
+                        completion(.failure(LibraryError.fileNotFound))
+                        return
+                    }
+
+                    if let content = builtInBook.content {
+                        DispatchQueue.main.async {
+                            completion(.success(content))
+                        }
+                        return
+                    }
+
+                    let resourceName = builtInBook.resourceName
+                        ?? URL(fileURLWithPath: builtInBook.fileName).deletingPathExtension().lastPathComponent
+
+                    guard let bundleURL = Bundle.main.url(forResource: resourceName, withExtension: "txt") else {
                         completion(.failure(LibraryError.fileNotFound))
                         return
                     }

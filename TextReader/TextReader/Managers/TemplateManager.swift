@@ -35,7 +35,12 @@ final class TemplateManager {
     @discardableResult
     func save(_ list:[PromptTemplate]) -> Bool {
         guard let data = try? JSONEncoder().encode(list) else { return false }
-        do { try data.write(to: templateURL(), options: .atomic) ; return true }
+        do {
+            let url = templateURL()
+            try fm.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try data.write(to: url, options: .atomic)
+            return true
+        }
         catch { print("⚠️ save templates failed:", error); return false }
     }
 } 

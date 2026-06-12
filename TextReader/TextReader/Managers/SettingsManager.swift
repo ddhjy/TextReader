@@ -2,9 +2,11 @@ import Foundation
 
 class SettingsManager {
     private let defaults: UserDefaults
+    private let keyPrefix: String
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, keyPrefix: String = "") {
         self.defaults = defaults
+        self.keyPrefix = keyPrefix
     }
 
     private enum Keys {
@@ -17,78 +19,100 @@ class SettingsManager {
         static let lastPageIndex = "lastPageIndex"
         static let lastBookTitle = "lastBookTitle"
         static let lastTotalPages = "lastTotalPages"
+
+        static let all = [
+            readingSpeed,
+            selectedVoiceIdentifier,
+            lastOpenedBookId,
+            isDarkMode,
+            accentColorThemeId,
+            lastPageContent,
+            lastPageIndex,
+            lastBookTitle,
+            lastTotalPages
+        ]
+    }
+
+    private func key(_ name: String) -> String {
+        keyPrefix + name
     }
 
     func saveReadingSpeed(_ speed: Float) {
-        defaults.set(speed, forKey: Keys.readingSpeed)
+        defaults.set(speed, forKey: key(Keys.readingSpeed))
     }
 
     func getReadingSpeed() -> Float {
-        let speed = defaults.float(forKey: Keys.readingSpeed)
+        let speed = defaults.float(forKey: key(Keys.readingSpeed))
         return speed == 0 ? 1.0 : speed
     }
 
     func saveSelectedVoiceIdentifier(_ identifier: String) {
-        defaults.set(identifier, forKey: Keys.selectedVoiceIdentifier)
+        defaults.set(identifier, forKey: key(Keys.selectedVoiceIdentifier))
     }
 
     func getSelectedVoiceIdentifier() -> String? {
-        return defaults.string(forKey: Keys.selectedVoiceIdentifier)
+        return defaults.string(forKey: key(Keys.selectedVoiceIdentifier))
     }
 
     func saveLastOpenedBookId(_ bookFileName: String) {
-        defaults.set(bookFileName, forKey: Keys.lastOpenedBookId)
+        defaults.set(bookFileName, forKey: key(Keys.lastOpenedBookId))
     }
 
     func getLastOpenedBookId() -> String? {
-        return defaults.string(forKey: Keys.lastOpenedBookId)
+        return defaults.string(forKey: key(Keys.lastOpenedBookId))
     }
     
     func saveDarkMode(_ enabled: Bool) {
-        defaults.set(enabled, forKey: Keys.isDarkMode)
+        defaults.set(enabled, forKey: key(Keys.isDarkMode))
     }
     
     func getDarkMode() -> Bool {
-        return defaults.bool(forKey: Keys.isDarkMode)
+        return defaults.bool(forKey: key(Keys.isDarkMode))
     }
     
     func saveAccentColorThemeId(_ id: String) {
-        defaults.set(id, forKey: Keys.accentColorThemeId)
+        defaults.set(id, forKey: key(Keys.accentColorThemeId))
     }
 
     func getAccentColorThemeId() -> String {
-        return defaults.string(forKey: Keys.accentColorThemeId) ?? "blue"
+        return defaults.string(forKey: key(Keys.accentColorThemeId)) ?? "blue"
     }
     
     func saveLastPageContent(_ content: String) {
-        defaults.set(content, forKey: Keys.lastPageContent)
+        defaults.set(content, forKey: key(Keys.lastPageContent))
     }
     
     func getLastPageContent() -> String? {
-        return defaults.string(forKey: Keys.lastPageContent)
+        return defaults.string(forKey: key(Keys.lastPageContent))
     }
     
     func saveLastPageIndex(_ index: Int) {
-        defaults.set(index, forKey: Keys.lastPageIndex)
+        defaults.set(index, forKey: key(Keys.lastPageIndex))
     }
     
     func getLastPageIndex() -> Int {
-        return defaults.integer(forKey: Keys.lastPageIndex)
+        return defaults.integer(forKey: key(Keys.lastPageIndex))
     }
     
     func saveLastBookTitle(_ title: String) {
-        defaults.set(title, forKey: Keys.lastBookTitle)
+        defaults.set(title, forKey: key(Keys.lastBookTitle))
     }
     
     func getLastBookTitle() -> String? {
-        return defaults.string(forKey: Keys.lastBookTitle)
+        return defaults.string(forKey: key(Keys.lastBookTitle))
     }
     
     func saveLastTotalPages(_ count: Int) {
-        defaults.set(count, forKey: Keys.lastTotalPages)
+        defaults.set(count, forKey: key(Keys.lastTotalPages))
     }
     
     func getLastTotalPages() -> Int {
-        return defaults.integer(forKey: Keys.lastTotalPages)
+        return defaults.integer(forKey: key(Keys.lastTotalPages))
+    }
+
+    func removeAllManagedValues() {
+        for managedKey in Keys.all {
+            defaults.removeObject(forKey: key(managedKey))
+        }
     }
 } 
