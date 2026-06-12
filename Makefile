@@ -1,5 +1,7 @@
 SHELL := /bin/bash
 
+.DEFAULT_GOAL := help
+
 PROJECT ?= TextReader.xcodeproj
 SCHEME ?= TextReader
 CONFIGURATION ?= Debug
@@ -8,39 +10,45 @@ APP_NAME ?= $(SCHEME)
 APP_PATH ?= $(DERIVED_DATA_PATH)/Build/Products/$(CONFIGURATION)-iphoneos/$(APP_NAME).app
 SIMULATOR_APP_PATH ?= $(DERIVED_DATA_PATH)/Build/Products/$(CONFIGURATION)-iphonesimulator/$(APP_NAME).app
 DEVICE_FILTER ?= connectionProperties.pairingState == 'paired'
+TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17
 XCODEBUILD_FLAGS ?= -allowProvisioningUpdates -allowProvisioningDeviceRegistration
 
-.PHONY: help build install devices simulators install-simulator clean
+.PHONY: help all build build-device build-for-testing install install-device install-simulator run-simulator test check list-devices list-simulators devices simulators clean
 
-help:
+help: ## Show all available commands
 	@printf "Targets:\n"
-	@printf "  make build                      Build for the first connected real device\n"
-	@printf "  make install                    Build, install, and launch on the first connected real device\n"
-	@printf "  make devices                    List connected devices detected by devicectl\n"
-	@printf "  make simulators                 List available iOS simulators detected by simctl\n"
-	@printf "  make install-simulator          Build, install, and launch on an iOS simulator\n"
-	@printf "  make clean                      Remove derived data\n"
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@printf "\n"
 	@printf "Overrides:\n"
 	@printf "  DEVICE_NAME='My iPhone'         Build/install to a specific device name\n"
 	@printf "  SIMULATOR_NAME='iPhone 17'      Install to a specific simulator name\n"
 	@printf "  SIMULATOR_UDID='<UDID>'         Install to a specific simulator UDID\n"
+	@printf "  TEST_DESTINATION='platform=...' Use a different xcodebuild test destination\n"
 	@printf "  CONFIGURATION=Release           Use a different build configuration\n"
 
-devices:
+all: build ## Build the app for the first connected real device
+
+list-devices: ## List connected iOS devices detected by devicectl
 	@xcrun devicectl list devices --filter "$(DEVICE_FILTER)"
 
-simulators:
+list-simulators: ## List available iOS simulators detected by simctl
 	@xcrun simctl list devices available
 
-build:
+devices: list-devices ## Alias for list-devices
+
+simulators: list-simulators ## Alias for list-simulators
+
+build: build-device ## Build the app for the first connected real device
+
+build-device: ## Build the app for the first connected real device
 	@set -euo pipefail; \
 	device_name="$(DEVICE_NAME)"; \
 	if [[ -z "$$device_name" ]]; then \
 		device_name="$$(xcrun devicectl list devices --filter "$(DEVICE_FILTER)" --hide-default-columns --hide-headers --columns Name | sed 's/[[:space:]]*$$//' | awk 'NF && $$0 != "No devices found." { print; exit }')"; \
 	fi; \
 	if [[ -z "$$device_name" ]]; then \
-		echo "No paired iOS device found. Run 'make devices' or pass DEVICE_NAME='...'" >&2; \
+		echo "No paired iOS device found. Run 'make list-devices' or pass DEVICE_NAME='...'" >&2; \
 		exit 1; \
 	fi; \
 	echo "Building $(SCHEME) for $$device_name..."; \
@@ -53,14 +61,16 @@ build:
 		$(XCODEBUILD_FLAGS) \
 		build
 
-install:
+install: install-device ## Build, install, and launch on the first connected real device
+
+install-device: ## Build, install, and launch on the first connected real device
 	@set -euo pipefail; \
 	device_name="$(DEVICE_NAME)"; \
 	if [[ -z "$$device_name" ]]; then \
 		device_name="$$(xcrun devicectl list devices --filter "$(DEVICE_FILTER)" --hide-default-columns --hide-headers --columns Name | sed 's/[[:space:]]*$$//' | awk 'NF && $$0 != "No devices found." { print; exit }')"; \
 	fi; \
 	if [[ -z "$$device_name" ]]; then \
-		echo "No paired iOS device found. Run 'make devices' or pass DEVICE_NAME='...'" >&2; \
+		echo "No paired iOS device found. Run 'make list-devices' or pass DEVICE_NAME='...'" >&2; \
 		exit 1; \
 	fi; \
 	echo "Building $(SCHEME) for $$device_name..."; \
@@ -86,7 +96,9 @@ install:
 	echo "Launching $$bundle_id on $$device_name..."; \
 	xcrun devicectl device process launch --device "$$device_name" --terminate-existing "$$bundle_id"
 
-install-simulator:
+install-simulator: run-simulator ## Alias for run-simulator
+
+run-simulator: ## Build, install, and launch on an iOS simulator
 	@set -euo pipefail; \
 	simulator_name="$(SIMULATOR_NAME)"; \
 	simulator_udid="$(SIMULATOR_UDID)"; \
@@ -103,7 +115,7 @@ install-simulator:
 		simulator_udid="$$(xcrun simctl list devices available | sed -nE 's/^[[:space:]]*(.*) \(([0-9A-F-]+)\) \(([^)]+)\)[[:space:]]*$$/\1|\2|\3/p' | awk -F '|' 'NF >= 2 { print $$2; exit }')"; \
 	fi; \
 	if [[ -z "$$simulator_udid" ]]; then \
-		echo "No available iOS simulator found. Run 'make simulators' or pass SIMULATOR_NAME='...' / SIMULATOR_UDID='...'" >&2; \
+		echo "No available iOS simulator found. Run 'make list-simulators' or pass SIMULATOR_NAME='...' / SIMULATOR_UDID='...'" >&2; \
 		exit 1; \
 	fi; \
 	resolved_name="$$(xcrun simctl list devices | sed -nE 's/^[[:space:]]*(.*) \(([0-9A-F-]+)\) \(([^)]+)\)[[:space:]]*$$/\1|\2|\3/p' | awk -F '|' -v target="$$simulator_udid" '$$2 == target { print $$1; exit }')"; \
@@ -152,7 +164,29 @@ install-simulator:
 	echo "Launching $$bundle_id on $$resolved_name..."; \
 	xcrun simctl launch --terminate-running-process "$$simulator_udid" "$$bundle_id"
 
-clean:
+build-for-testing: ## Build the app and unit test bundle without running tests
+	@xcodebuild \
+		-project "$(PROJECT)" \
+		-scheme "$(SCHEME)" \
+		-configuration "$(CONFIGURATION)" \
+		-destination "$(TEST_DESTINATION)" \
+		-derivedDataPath "$(DERIVED_DATA_PATH)" \
+		$(XCODEBUILD_FLAGS) \
+		build-for-testing
+
+test: ## Run the test suite on an iOS simulator
+	@xcodebuild \
+		-project "$(PROJECT)" \
+		-scheme "$(SCHEME)" \
+		-configuration "$(CONFIGURATION)" \
+		-destination "$(TEST_DESTINATION)" \
+		-derivedDataPath "$(DERIVED_DATA_PATH)" \
+		$(XCODEBUILD_FLAGS) \
+		test
+
+check: test ## Alias for test
+
+clean: ## Remove derived data produced by this Makefile
 	@rm -rf "$(DERIVED_DATA_PATH)"
 	@build_dir="$$(dirname "$(DERIVED_DATA_PATH)")"; \
 	if [[ -d "$$build_dir" ]]; then \

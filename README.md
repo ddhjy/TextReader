@@ -99,8 +99,11 @@ make install DEVICE_NAME="KAI"
 Other useful commands:
 
 ```bash
-make devices            # list connected devices
-make install-simulator  # build and run on a simulator
+make help             # list available repository commands
+make list-devices     # list connected devices
+make list-simulators  # list available simulators
+make run-simulator    # build and run on a simulator
+make test             # run the test suite
 ```
 
 ## Usage Overview
