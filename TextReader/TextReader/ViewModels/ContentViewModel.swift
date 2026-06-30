@@ -163,9 +163,12 @@ class ContentViewModel: ObservableObject {
             let cachedPageIndex = settingsManager.getLastPageIndex()
             let cachedTotalPages = settingsManager.getLastTotalPages()
             if cachedTotalPages > 0 {
+                // 防御性 clamp：UserDefaults 中的页码与总页数理论上一致，
+                // 但一旦因历史写入顺序等原因不一致，直接下标会崩溃。
+                let safeIndex = min(max(0, cachedPageIndex), cachedTotalPages - 1)
                 self.pages = Array(repeating: "", count: cachedTotalPages)
-                self.pages[cachedPageIndex] = cachedContent
-                self.setCurrentPageIndex(cachedPageIndex, silent: true)
+                self.pages[safeIndex] = cachedContent
+                self.setCurrentPageIndex(safeIndex, silent: true)
             } else {
                 self.pages = [cachedContent]
                 self.setCurrentPageIndex(0, silent: true)
@@ -200,6 +203,7 @@ class ContentViewModel: ObservableObject {
     
     private func loadFullBookContent(_ book: Book) {
         let savedPageIndex = settingsManager.getLastPageIndex()
+        let savedTotalPages = settingsManager.getLastTotalPages()
         
         libraryManager.loadBookContent(book: book) { [weak self] result in
             guard let self = self else { return }
@@ -215,6 +219,7 @@ class ContentViewModel: ObservableObject {
                             for: book,
                             pages: paginatedPages,
                             targetPageIndex: savedPageIndex,
+                            previousTotalPages: savedTotalPages,
                             summaries: summaries
                         )
                         print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页，当前页 \(self.currentPageIndex)")
@@ -600,6 +605,7 @@ class ContentViewModel: ObservableObject {
                                 for: book,
                                 pages: paginatedPages,
                                 targetPageIndex: savedPageIndex,
+                                previousTotalPages: savedProgress?.totalPages ?? 0,
                                 summaries: summaries
                             )
                             print("[ContentViewModel] 完整内容加载完成，共 \(paginatedPages.count) 页")
@@ -642,6 +648,7 @@ class ContentViewModel: ObservableObject {
                             for: book,
                             pages: paginatedPages,
                             targetPageIndex: savedPageIndex,
+                            previousTotalPages: savedProgress?.totalPages ?? 0,
                             summaries: summaries
                         )
                         completion?()
@@ -854,6 +861,23 @@ class ContentViewModel: ObservableObject {
         min(max(0, index), max(0, pageCount - 1))
     }
 
+    /// 当分页粒度变化（例如升级了分页算法 / 每页字符数）导致总页数改变时，
+    /// 按「阅读百分比」把旧页码映射到新页码，保持读者停留在相近的内容位置，
+    /// 避免直接沿用旧页码而跳到完全不同的地方（甚至被 clamp 到书末）。
+    ///
+    /// 采用页中点比例 `(oldIndex + 0.5) / oldTotal`，保证：
+    /// - 旧总页数与新总页数相同时为恒等映射（不影响正常的重复加载）；
+    /// - 首页映射到首页、末页映射到末页。
+    static func remapPageIndex(_ oldIndex: Int, oldTotal: Int, newTotal: Int) -> Int {
+        guard newTotal > 0 else { return 0 }
+        guard oldTotal > 1, oldIndex > 0 else {
+            return min(max(0, oldIndex), newTotal - 1)
+        }
+        let fraction = (Double(oldIndex) + 0.5) / Double(oldTotal)
+        let mapped = Int((fraction * Double(newTotal)).rounded(.down))
+        return min(max(0, mapped), newTotal - 1)
+    }
+
     private func requestContentScrollRefresh() {
         contentScrollRevision &+= 1
     }
@@ -891,8 +915,14 @@ class ContentViewModel: ObservableObject {
     private func applyLoadedPages(for book: Book,
                                   pages loadedPages: [String],
                                   targetPageIndex: Int,
+                                  previousTotalPages: Int = 0,
                                   summaries: [(Int, String)]) {
-        let targetIndex = clampedPageIndex(targetPageIndex, pageCount: loadedPages.count)
+        let remappedIndex = Self.remapPageIndex(
+            targetPageIndex,
+            oldTotal: previousTotalPages,
+            newTotal: loadedPages.count
+        )
+        let targetIndex = clampedPageIndex(remappedIndex, pageCount: loadedPages.count)
 
         setCurrentPageIndex(targetIndex, silent: true)
         pages = loadedPages
