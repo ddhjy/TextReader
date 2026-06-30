@@ -110,6 +110,16 @@ class ContentViewModel: ObservableObject {
         return theme.color(for: darkModeEnabled ? .dark : .light)
     }
 
+    /// 当前 `pages` 是否已是「最终分页结果」。
+    ///
+    /// `TextPaginator` 产出的每一页都是非空文本；而快速启动 / 切换书籍时为了即时占位，
+    /// 会先放入「仅当前页有内容、其余为空串」的预览数组（见 `loadInitialData` 与
+    /// `applyCachedPagePreview`）。视图层据此在占位预览阶段保持留白，待最终分页就位后
+    /// 再一次性居中定位并淡入，从而消除首屏「先错位、后跳正 + 预览→完整重排」的抖动。
+    var isContentSettled: Bool {
+        !pages.isEmpty && !pages.contains(where: { $0.isEmpty })
+    }
+
     init(libraryManager: LibraryManager = LibraryManager(),
          textPaginator: TextPaginator = TextPaginator(),
          speechManager: SpeechManager = SpeechManager(),
