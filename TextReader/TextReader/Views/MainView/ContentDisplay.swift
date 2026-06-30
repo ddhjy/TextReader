@@ -94,6 +94,12 @@ struct ContentDisplay: View {
                     }
             )
             .onAppear {
+                // 清除「静默翻页」残留标志：init / 缓存恢复阶段若把页码从 0 改到上次停留的
+                // 非首页，会置位该标志；但首屏定位由下方 positionAndPrepareReveal 无动画完成、
+                // 并不依赖它，且首屏 currentPageIndex 的基线已是目标页，不会触发 onChange 去
+                // 消费它。若不在此清除，它会残留到用户「第一次手动翻页」时才被消费，导致首次
+                // 翻页被误判为静默而丢失动画，要翻到第二页才恢复。
+                _ = viewModel.consumePendingSilentPageScroll()
                 positionAndPrepareReveal(using: proxy)
                 // 兜底：极端情况下当前页几何始终未回传，超时后也强制定位并显示，避免永久留白。
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
