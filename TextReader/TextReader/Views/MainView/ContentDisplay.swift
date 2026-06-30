@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
+    @Environment(\.scenePhase) private var scenePhase
 
     private let fontSize: CGFloat = 19
     private let kerning: CGFloat = 0.3
@@ -137,6 +138,20 @@ struct ContentDisplay: View {
             .onChange(of: viewModel.pages.count) { _, _ in
                 DispatchQueue.main.async {
                     proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
+                }
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                // 回到前台：后台朗读自动续页 / 远程翻页期间，ScrollView 并未真正滚动，
+                // 而 currentPageIndex 已推进多页。此处在恢复前台的第一时间无动画地直接
+                // 定位到当前朗读页，消除"打开后才补一段滚动"的突兀效果，并兜底覆盖
+                // 后台滚动未生效（页面停在离开前位置）的情况。
+                guard newPhase == .active else { return }
+                DispatchQueue.main.async {
+                    var transaction = Transaction()
+                    transaction.disablesAnimations = true
+                    withTransaction(transaction) {
+                        proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
+                    }
                 }
             }
         }

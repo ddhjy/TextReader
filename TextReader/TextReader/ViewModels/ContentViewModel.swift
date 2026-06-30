@@ -92,6 +92,11 @@ class ContentViewModel: ObservableObject {
     /// 由视图层在 onChange 中调用 `consumePendingSilentPageScroll()` 消费一次。
     private var pendingSilentPageScrollFlag = false
 
+    /// App 是否处于后台。后台朗读自动续页 / 远程控制翻页期间，屏幕并未实际渲染滚动，
+    /// 若仍按非静默推进页码，回到前台时 SwiftUI 会把这段累计的翻页以一段"补偿滚动动画"
+    /// 集中播放出来，与用户预期（打开即停在当前朗读页）不符。故后台期间的翻页一律静默。
+    private var isAppInBackground = false
+
     let libraryManager: LibraryManager
     private let textPaginator: TextPaginator
     private let speechManager: SpeechManager
@@ -156,6 +161,7 @@ class ContentViewModel: ObservableObject {
         setupBindings()
         setupWiFiTransferCallbacks()
         setupSpeechCallbacks()
+        setupAppLifecycleObservers()
         
         $isReading
             .dropFirst()
@@ -401,7 +407,8 @@ class ContentViewModel: ObservableObject {
                 // 保护持续到下一页 didStart 真正回来（见 onSpeechStart/onSpeechError），
                 // 固定时长的保护窗在后台合成变慢时不够用，会被对账定时器误杀。
                 self.beginAutoAdvanceProtection()
-                self.setCurrentPageIndex(self.currentPageIndex + 1)
+                // 后台续页静默推进：避免回到前台时补播一段"翻好几页"的滚动动画。
+                self.setCurrentPageIndex(self.currentPageIndex + 1, silent: self.isAppInBackground)
                 self.readCurrentPage()
             } else {
                 if self.sleepTimerActive {
@@ -460,6 +467,19 @@ class ContentViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    /// 监听前后台切换，维护 `isAppInBackground`。
+    /// 用 willEnterForeground 而非 didBecomeActive 解除后台标记：前者更早（视图恢复渲染前），
+    /// 能确保回到前台后的第一次翻页恢复正常动画，同时不影响后台期间已设好的静默标志。
+    private func setupAppLifecycleObservers() {
+        NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)
+            .sink { [weak self] _ in self?.isAppInBackground = true }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)
+            .sink { [weak self] _ in self?.isAppInBackground = false }
+            .store(in: &cancellables)
     }
 
     private func sortBooks() {
@@ -1068,7 +1088,8 @@ class ContentViewModel: ObservableObject {
             speechManager.stopReading()
         }
 
-        setCurrentPageIndex(index)
+        // 后台（如锁屏 / 控制中心远程翻页）期间静默推进，避免回前台时补播滚动动画。
+        setCurrentPageIndex(index, silent: isAppInBackground)
 
         if shouldResume {
             scheduleResumeAfterManualTurn()
