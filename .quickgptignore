@@ -1,0 +1,9 @@
+# 发布与构建产物：App Store Connect/Xcode 导出的归档、日志和缓存，不属于源码上下文
+.asc/
+
+# 本地 Agent 环境配置：用于工作区运行环境，不影响应用架构与业务逻辑
+.codex/
+
+# 法务/发布文档：对理解代码实现帮助有限，README 保留作为项目入口
+LICENSE
+PRIVACY.md
