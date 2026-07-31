@@ -268,179 +268,281 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         Content-Type: text/html; charset=utf-8\r
         Connection: close\r
         \r
-        <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <title>文件上传</title>
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        text-align: center;
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="color-scheme" content="light dark">
+            <title>WiFi 传书 · TextReader</title>
+            <style>
+                :root {
+                    --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E;
+                    --secondary: #6E6E73; --separator: rgba(60, 60, 67, 0.18);
+                    --fill: rgba(120, 120, 128, 0.08);
+                    --tint: #007AFF; --tint-hover: #0071E3;
+                    --green: #248A3D; --bar-green: #34C759; --red: #D70015;
+                }
+                @media (prefers-color-scheme: dark) {
+                    :root {
+                        --bg: #000000; --card: #1C1C1E; --label: #F2F2F7;
+                        --secondary: #98989E; --separator: rgba(84, 84, 88, 0.65);
+                        --fill: rgba(120, 120, 128, 0.16);
+                        --tint: #0A84FF; --tint-hover: #409CFF;
+                        --green: #30D158; --bar-green: #30D158; --red: #FF453A;
                     }
-                    .upload-form {
-                        border: 2px dashed #ccc;
-                        border-radius: 10px;
-                        padding: 40px 20px;
-                        margin: 20px 0;
-                        transition: border-color 0.2s, background-color 0.2s;
-                    }
-                    .upload-form.drag-over {
-                        border-color: #007AFF;
-                        background-color: rgba(0, 122, 255, 0.05);
-                    }
-                    .file-input {
-                        display: none;
-                    }
-                    .upload-button {
-                        background: #007AFF;
-                        color: white;
-                        padding: 10px 20px;
-                        border: none;
-                        border-radius: 5px;
-                        font-size: 16px;
-                        cursor: pointer;
-                    }
-                    .file-label {
-                        display: block;
-                        margin: 10px 0;
-                        color: #666;
-                    }
-                    #selected-file {
-                        margin: 10px 0;
-                        color: #333;
-                    }
-                    .error {
-                        color: #FF3B30;
-                        margin: 10px 0;
-                        display: none;
-                    }
-                    #progress { margin-top: 14px; display: none; }
-                    #progress .bar-wrap { width: 100%; height: 4px; background: #E5E5EA; border-radius: 2px; overflow: hidden; }
-                    #progress .bar { height: 100%; width: 0%; background: #34C759; }
-                    #progress .percent { margin-top: 8px; color: #666; }
-                </style>
-            </head>
-            <body>
-                <h1>WiFi 传书</h1>
-                <div class="upload-form">
-                    <form action="/upload" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
-                        <label class="file-label">拖入 TXT 文件，或点击选择</label>
-                        <input type="file" name="book" accept=".txt" class="file-input" id="file-input" onchange="updateFileName()">
-                        <button type="button" class="upload-button" onclick="document.getElementById('file-input').click()">
-                            选择文件
-                        </button>
-                        <div id="selected-file"></div>
-                        <div class="error" id="error-message">仅支持 .txt 格式的文本文件</div>
-                        <button type="submit" class="upload-button" style="margin-top: 10px;">上传</button>
-                        <div id="progress">
-                            <div class="bar-wrap"><div id="bar" class="bar"></div></div>
-                            <div id="percent" class="percent">0%</div>
+                }
+                * { box-sizing: border-box; }
+                body {
+                    margin: 0; min-height: 100vh;
+                    display: flex; flex-direction: column; align-items: center;
+                    padding: 24px 16px 48px;
+                    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+                    background: var(--bg); color: var(--label);
+                    -webkit-font-smoothing: antialiased;
+                }
+                main { width: 100%; max-width: 440px; }
+                header { text-align: center; margin: 28px 0 20px; }
+                h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: 0.2px; }
+                .subtitle { margin: 6px 0 0; font-size: 14px; color: var(--secondary); }
+                .card {
+                    background: var(--card); border-radius: 14px; padding: 16px;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+                }
+                .dropzone {
+                    border: 1.5px dashed var(--separator); border-radius: 10px;
+                    padding: 36px 16px; text-align: center; cursor: pointer;
+                    transition: border-color 0.15s ease, background-color 0.15s ease;
+                }
+                .dropzone:hover { background: var(--fill); }
+                .dropzone:focus-visible { outline: 3px solid var(--tint); outline-offset: 2px; }
+                .dropzone.drag-over { border-color: var(--tint); background: var(--fill); }
+                .dropzone svg { width: 34px; height: 34px; color: var(--tint); }
+                .drop-title { margin: 10px 0 2px; font-size: 15px; font-weight: 500; }
+                .drop-hint { margin: 0; font-size: 13px; color: var(--secondary); }
+                .file-row {
+                    display: flex; align-items: center; gap: 10px;
+                    margin-top: 12px; padding: 10px 12px;
+                    background: var(--fill); border-radius: 10px;
+                }
+                .file-meta { flex: 1; min-width: 0; }
+                .file-name {
+                    display: block; font-size: 14px; font-weight: 500;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                }
+                .file-size { font-size: 12px; color: var(--secondary); }
+                .icon-btn {
+                    border: none; background: none; padding: 4px;
+                    color: var(--secondary); font-size: 18px; line-height: 1;
+                    cursor: pointer; border-radius: 6px;
+                }
+                .icon-btn:focus-visible { outline: 2px solid var(--tint); }
+                .progress { margin-top: 12px; }
+                .track { height: 4px; background: var(--fill); border-radius: 2px; overflow: hidden; }
+                .bar { height: 100%; width: 0%; background: var(--bar-green); transition: width 0.2s ease; }
+                .progress-info {
+                    display: flex; justify-content: space-between;
+                    margin-top: 6px; font-size: 12px; color: var(--secondary);
+                }
+                .message { margin: 12px 0 0; font-size: 13px; }
+                .message.error { color: var(--red); }
+                .message.success { color: var(--green); font-weight: 500; }
+                .primary {
+                    width: 100%; margin-top: 14px; padding: 11px 16px;
+                    border: none; border-radius: 10px;
+                    background: var(--tint); color: #FFFFFF;
+                    font-size: 15px; font-weight: 600; cursor: pointer;
+                    transition: background-color 0.15s ease;
+                }
+                .primary:hover:enabled { background: var(--tint-hover); }
+                .primary:disabled { opacity: 0.45; cursor: default; }
+                .primary:focus-visible { outline: 3px solid var(--tint); outline-offset: 2px; }
+                .footnote { margin-top: 16px; font-size: 12px; color: var(--secondary); text-align: center; }
+                @media (prefers-reduced-motion: reduce) {
+                    * { transition: none !important; animation: none !important; }
+                }
+            </style>
+        </head>
+        <body>
+            <main>
+                <header>
+                    <h1>WiFi 传书</h1>
+                    <p class="subtitle">将电脑上的 TXT 文件传入手机书架</p>
+                </header>
+                <section class="card">
+                    <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+                        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="拖入或选择 TXT 文件">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
+                                <path d="M14 3v5h5"></path>
+                                <path d="M12 17v-5"></path>
+                                <path d="M9.5 14.5 12 12l2.5 2.5"></path>
+                            </svg>
+                            <p class="drop-title">拖入 TXT 文件</p>
+                            <p class="drop-hint">或点击从电脑中选择</p>
                         </div>
+                        <input type="file" id="file-input" name="book" accept=".txt,text/plain" hidden>
+                        <div id="file-row" class="file-row" hidden>
+                            <div class="file-meta">
+                                <span id="file-name" class="file-name"></span>
+                                <span id="file-size" class="file-size"></span>
+                            </div>
+                            <button type="button" id="clear-btn" class="icon-btn" aria-label="移除文件">&#10005;</button>
+                        </div>
+                        <div id="progress" class="progress" hidden>
+                            <div class="track"><div id="bar" class="bar"></div></div>
+                            <div class="progress-info">
+                                <span id="status-text">正在上传…</span>
+                                <span id="percent">0%</span>
+                            </div>
+                        </div>
+                        <p id="message" class="message" role="status" aria-live="polite" hidden></p>
+                        <button type="submit" id="submit-btn" class="primary" disabled>上传到书架</button>
                     </form>
-                </div>
-                <script>
-                    const dropZone = document.querySelector('.upload-form');
-                    const fileInput = document.getElementById('file-input');
+                </section>
+                <p class="footnote">传输时请保持手机停留在「WiFi 传输」页面，且与电脑处于同一 WiFi。</p>
+            </main>
+            <script>
+                var dropzone = document.getElementById('dropzone');
+                var input = document.getElementById('file-input');
+                var fileRow = document.getElementById('file-row');
+                var fileNameEl = document.getElementById('file-name');
+                var fileSizeEl = document.getElementById('file-size');
+                var clearBtn = document.getElementById('clear-btn');
+                var progress = document.getElementById('progress');
+                var bar = document.getElementById('bar');
+                var percent = document.getElementById('percent');
+                var statusText = document.getElementById('status-text');
+                var message = document.getElementById('message');
+                var submitBtn = document.getElementById('submit-btn');
+                var form = document.getElementById('upload-form');
+                var uploading = false;
 
-                    ['dragenter', 'dragover'].forEach(evt => {
-                        dropZone.addEventListener(evt, function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dropZone.classList.add('drag-over');
-                        });
+                function formatSize(bytes) {
+                    if (bytes < 1024) { return bytes + ' B'; }
+                    if (bytes < 1048576) { return (bytes / 1024).toFixed(1) + ' KB'; }
+                    return (bytes / 1048576).toFixed(1) + ' MB';
+                }
+                function showMessage(text, type) {
+                    message.textContent = text;
+                    message.className = 'message ' + type;
+                    message.hidden = false;
+                }
+                function resetToIdle() {
+                    input.value = '';
+                    fileRow.hidden = true;
+                    progress.hidden = true;
+                    message.hidden = true;
+                    bar.style.width = '0%';
+                    percent.textContent = '0%';
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '上传到书架';
+                    submitBtn.dataset.done = '';
+                    uploading = false;
+                }
+                function setSelectedFile(file) {
+                    if (!file) { resetToIdle(); return; }
+                    if (!file.name.toLowerCase().endsWith('.txt')) {
+                        resetToIdle();
+                        showMessage('仅支持 .txt 格式的文本文件', 'error');
+                        return;
+                    }
+                    message.hidden = true;
+                    progress.hidden = true;
+                    submitBtn.dataset.done = '';
+                    fileNameEl.textContent = file.name;
+                    fileSizeEl.textContent = formatSize(file.size);
+                    fileRow.hidden = false;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '上传到书架';
+                }
+
+                dropzone.addEventListener('click', function () { if (!uploading) { input.click(); } });
+                dropzone.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        if (!uploading) { input.click(); }
+                    }
+                });
+                ['dragenter', 'dragover'].forEach(function (evt) {
+                    dropzone.addEventListener(evt, function (e) {
+                        e.preventDefault();
+                        dropzone.classList.add('drag-over');
                     });
-                    ['dragleave', 'drop'].forEach(evt => {
-                        dropZone.addEventListener(evt, function(e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            dropZone.classList.remove('drag-over');
-                        });
+                });
+                ['dragleave', 'drop'].forEach(function (evt) {
+                    dropzone.addEventListener(evt, function (e) {
+                        e.preventDefault();
+                        dropzone.classList.remove('drag-over');
                     });
-                    dropZone.addEventListener('drop', function(e) {
-                        const files = e.dataTransfer.files;
-                        if (files.length > 0) {
-                            fileInput.files = files;
-                            updateFileName();
+                });
+                dropzone.addEventListener('drop', function (e) {
+                    if (uploading) { return; }
+                    if (e.dataTransfer.files.length > 0) {
+                        input.files = e.dataTransfer.files;
+                        setSelectedFile(input.files[0]);
+                    }
+                });
+                input.addEventListener('change', function () { setSelectedFile(input.files[0]); });
+                clearBtn.addEventListener('click', function () { if (!uploading) { resetToIdle(); } });
+
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    if (uploading) { return; }
+                    if (submitBtn.dataset.done === '1') { resetToIdle(); return; }
+                    var file = input.files[0];
+                    if (!file) { showMessage('请先选择一个 TXT 文件', 'error'); return; }
+
+                    uploading = true;
+                    submitBtn.disabled = true;
+                    clearBtn.disabled = true;
+                    message.hidden = true;
+                    progress.hidden = false;
+                    statusText.textContent = '正在上传…';
+                    bar.style.width = '0%';
+                    percent.textContent = '0%';
+
+                    var fd = new FormData();
+                    fd.append('book', file, file.name);
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/upload');
+                    xhr.upload.onprogress = function (e2) {
+                        if (e2.lengthComputable) {
+                            var p = Math.round(e2.loaded * 100 / e2.total);
+                            bar.style.width = p + '%';
+                            percent.textContent = p + '%';
                         }
-                    });
-
-                    function updateFileName() {
-                        const input = document.getElementById('file-input');
-                        const fileInfo = document.getElementById('selected-file');
-                        const errorMsg = document.getElementById('error-message');
-                        
-                        if (input.files.length > 0) {
-                            const file = input.files[0];
-                            fileInfo.textContent = file.name;
-                            
-                            if (!file.name.toLowerCase().endsWith('.txt')) {
-                                errorMsg.style.display = 'block';
-                                return false;
-                            }
-                            errorMsg.style.display = 'none';
+                    };
+                    xhr.onload = function () {
+                        uploading = false;
+                        clearBtn.disabled = false;
+                        if (xhr.status === 200) {
+                            bar.style.width = '100%';
+                            percent.textContent = '100%';
+                            statusText.textContent = '已完成';
+                            showMessage('「' + file.name + '」已加入书架', 'success');
+                            submitBtn.dataset.done = '1';
+                            submitBtn.textContent = '再传一本';
+                            submitBtn.disabled = false;
                         } else {
-                            fileInfo.textContent = '';
-                            errorMsg.style.display = 'none';
+                            statusText.textContent = '上传失败';
+                            showMessage('上传失败（' + xhr.status + '），请重试', 'error');
+                            submitBtn.textContent = '重试';
+                            submitBtn.disabled = false;
                         }
-                    }
-                    
-                    function uploadViaXHR() {
-                        const input = document.getElementById('file-input');
-                        const errorMsg = document.getElementById('error-message');
-                        const progress = document.getElementById('progress');
-                        const bar = document.getElementById('bar');
-                        const percent = document.getElementById('percent');
-                        
-                        if (input.files.length === 0) {
-                            errorMsg.style.display = 'block';
-                            return false;
-                        }
-                        const file = input.files[0];
-                        if (!file.name.toLowerCase().endsWith('.txt')) {
-                            errorMsg.style.display = 'block';
-                            return false;
-                        }
-                        errorMsg.style.display = 'none';
-                        progress.style.display = 'block';
-                        bar.style.width = '0%';
-                        percent.textContent = '0%';
-                        
-                        const fd = new FormData();
-                        fd.append('book', file, file.name);
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('POST', '/upload');
-                        xhr.upload.onprogress = function(e) {
-                            if (e.lengthComputable) {
-                                const p = Math.round(e.loaded * 100 / e.total);
-                                bar.style.width = p + '%';
-                                percent.textContent = p + '%';
-                            }
-                        };
-                        xhr.onload = function() {
-                            if (xhr.status === 200) {
-                                setTimeout(function() { window.location.href = '/'; }, 2000);
-                            } else {
-                                errorMsg.textContent = '上传失败：' + xhr.status + ' ' + (xhr.statusText || '');
-                                errorMsg.style.display = 'block';
-                            }
-                        };
-                        xhr.onerror = function() {
-                            errorMsg.textContent = '网络连接中断，请重试';
-                            errorMsg.style.display = 'block';
-                        };
-                        xhr.send(fd);
-                        return false;
-                    }
-                    
-                    function validateForm() {
-                        return uploadViaXHR();
-                    }
-                </script>
-            </body>
+                    };
+                    xhr.onerror = function () {
+                        uploading = false;
+                        clearBtn.disabled = false;
+                        statusText.textContent = '连接中断';
+                        showMessage('网络连接中断，请确认手机仍停留在传输页面后重试', 'error');
+                        submitBtn.textContent = '重试';
+                        submitBtn.disabled = false;
+                    };
+                    xhr.send(fd);
+                });
+            </script>
+        </body>
         </html>
         """
         sendHTTPResponse(response, on: connection)
@@ -452,56 +554,46 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         Content-Type: text/html; charset=utf-8\r
         Connection: close\r
         \r
-        <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        text-align: center;
-                    }
-                    .success-icon {
-                        color: #34C759;
-                        font-size: 48px;
-                        margin: 20px 0;
-                    }
-                    .file-name {
-                        color: #666;
-                        margin: 10px 0;
-                    }
-                    .progress {
-                        width: 100%;
-                        height: 4px;
-                        background: #E5E5EA;
-                        border-radius: 2px;
-                        overflow: hidden;
-                        margin: 20px 0;
-                    }
-                    .progress-bar {
-                        width: 0%;
-                        height: 100%;
-                        background: #34C759;
-                        animation: progress 2s ease-in-out forwards;
-                    }
-                    @keyframes progress {
-                        to { width: 100%; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="success-icon">✓</div>
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="color-scheme" content="light dark">
+            <title>上传成功 · WiFi 传书</title>
+            <style>
+                :root { --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E; --secondary: #6E6E73; --tint: #007AFF; --green: #248A3D; }
+                @media (prefers-color-scheme: dark) {
+                    :root { --bg: #000000; --card: #1C1C1E; --label: #F2F2F7; --secondary: #98989E; --tint: #0A84FF; --green: #30D158; }
+                }
+                body {
+                    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+                    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+                    background: var(--bg); color: var(--label);
+                }
+                .card {
+                    background: var(--card); border-radius: 14px; padding: 32px 24px;
+                    width: 100%; max-width: 360px; text-align: center;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); box-sizing: border-box;
+                }
+                .icon { font-size: 40px; color: var(--green); }
+                h1 { font-size: 20px; margin: 12px 0 6px; }
+                .detail { margin: 0; font-size: 14px; color: var(--secondary); overflow-wrap: anywhere; }
+                .primary {
+                    display: inline-block; margin-top: 20px; padding: 10px 20px; border-radius: 10px;
+                    background: var(--tint); color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600;
+                }
+            </style>
+        </head>
+        <body>
+            <main class="card">
+                <div class="icon" aria-hidden="true">✓</div>
                 <h1>上传成功</h1>
-                <p class="file-name">文件名：\(filename)</p>
-                <div class="progress">
-                    <div class="progress-bar"></div>
-                </div>
-                <p>即将返回…</p>
-                <script>setTimeout(function() { window.location.href = '/'; }, 2000);</script>
-            </body>
+                <p class="detail">「\(filename)」已加入书架</p>
+                <a href="/" class="primary">继续传书</a>
+            </main>
+            <script>setTimeout(function () { window.location.href = '/'; }, 2000);</script>
+        </body>
         </html>
         """
         sendHTTPResponse(successResponse, on: connection)
@@ -513,45 +605,45 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         Content-Type: text/html; charset=utf-8\r
         Connection: close\r
         \r
-        <html>
-            <head>
-                <meta charset="utf-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1">
-                <style>
-                    body {
-                        font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-                        max-width: 600px;
-                        margin: 0 auto;
-                        padding: 20px;
-                        text-align: center;
-                    }
-                    .error-icon {
-                        color: #FF3B30;
-                        font-size: 48px;
-                        margin: 20px 0;
-                    }
-                    .error-message {
-                        color: #666;
-                        margin: 10px 0;
-                    }
-                    .back-button {
-                        display: inline-block;
-                        background: #007AFF;
-                        color: white;
-                        padding: 10px 20px;
-                        border-radius: 5px;
-                        text-decoration: none;
-                        margin-top: 20px;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="error-icon">✕</div>
+        <!DOCTYPE html>
+        <html lang="zh-CN">
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <meta name="color-scheme" content="light dark">
+            <title>上传失败 · WiFi 传书</title>
+            <style>
+                :root { --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E; --secondary: #6E6E73; --tint: #007AFF; --red: #D70015; }
+                @media (prefers-color-scheme: dark) {
+                    :root { --bg: #000000; --card: #1C1C1E; --label: #F2F2F7; --secondary: #98989E; --tint: #0A84FF; --red: #FF453A; }
+                }
+                body {
+                    margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+                    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+                    background: var(--bg); color: var(--label);
+                }
+                .card {
+                    background: var(--card); border-radius: 14px; padding: 32px 24px;
+                    width: 100%; max-width: 360px; text-align: center;
+                    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); box-sizing: border-box;
+                }
+                .icon { font-size: 40px; color: var(--red); }
+                h1 { font-size: 20px; margin: 12px 0 6px; }
+                .detail { margin: 0; font-size: 14px; color: var(--secondary); overflow-wrap: anywhere; }
+                .primary {
+                    display: inline-block; margin-top: 20px; padding: 10px 20px; border-radius: 10px;
+                    background: var(--tint); color: #FFFFFF; text-decoration: none; font-size: 15px; font-weight: 600;
+                }
+            </style>
+        </head>
+        <body>
+            <main class="card">
+                <div class="icon" aria-hidden="true">✕</div>
                 <h1>上传失败</h1>
-                <p class="error-message">\(message)</p>
-                <a href="/" class="back-button">返回重试</a>
-                <script>setTimeout(function() { window.location.href = '/'; }, 3000);</script>
-            </body>
+                <p class="detail">\(message)</p>
+                <a href="/" class="primary">返回重试</a>
+            </main>
+        </body>
         </html>
         """
         sendHTTPResponse(errorResponse, on: connection)
