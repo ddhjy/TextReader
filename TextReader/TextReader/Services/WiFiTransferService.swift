@@ -83,258 +83,170 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     }
     
     private func receiveData(on connection: NWConnection) {
-        connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
-            if error != nil {
-                return
-            }
-            
-            if let data = data, let request = String(data: data, encoding: .utf8) {
-                if request.hasPrefix("OPTIONS ") {
-                    self?.sendOptionsPreflight(on: connection)
-                    return
-                }
-                if request.contains("Content-Type: multipart/form-data") {
-                    self?.receiveFileUpload(connection: connection, initialData: data)
-                } else {
-                    self?.processRequest(request, on: connection)
-                }
-            } else {
-                connection.cancel()
-            }
-        }
-    }
-    
-    private func receiveFileUpload(connection: NWConnection, initialData: Data) {
-        var buffer = initialData
-        let startTime = Date()
-        var headerEndOffset: Int? = nil
-        var declaredContentLength: Int? = nil
-        var detectedFileName: String? = nil
-        
-        if let headerDelimiter = "\r\n\r\n".data(using: .utf8),
-           let range = buffer.range(of: headerDelimiter) {
-            headerEndOffset = range.upperBound
-            let headerData = buffer.subdata(in: 0..<range.upperBound)
-            if let headerString = String(data: headerData, encoding: .utf8) {
-                if let lenLine = headerString.components(separatedBy: "\r\n").first(where: { $0.lowercased().hasPrefix("content-length:") }) {
-                    let numPart = lenLine.split(separator: ":", maxSplits: 1).last?.trimmingCharacters(in: .whitespaces)
-                    if let n = numPart, let v = Int(n) {
-                        declaredContentLength = v
-                    }
-                }
-            }
-        }
-        
-        DispatchQueue.main.async { [weak self] in
-            let receivedBody = headerEndOffset.map { max(0, buffer.count - $0) } ?? 0
-            self?.uploadState = UploadState(
-                fileName: detectedFileName,
-                receivedBytes: receivedBody,
-                totalBytes: declaredContentLength,
-                startedAt: startTime,
-                isCompleted: false,
-                errorMessage: nil
-            )
-        }
-        
-        func receive() {
-            connection.receive(minimumIncompleteLength: 1, maximumLength: 65536) { [weak self] (data, _, isComplete, error) in
+        var buffer = Data()
+
+        func receiveHeaders() {
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { [weak self] data, _, isComplete, error in
+                guard let self else { return }
                 if error != nil {
-                    self?.sendErrorResponse(on: connection, message: "接收数据时发生错误")
-                    DispatchQueue.main.async {
-                        if var s = self?.uploadState {
-                            s.errorMessage = "接收数据时发生错误"
-                            s.isCompleted = false
-                            self?.uploadState = s
-                        } else {
-                            self?.uploadState = UploadState(
-                                fileName: detectedFileName,
-                                receivedBytes: 0,
-                                totalBytes: declaredContentLength,
-                                startedAt: startTime,
-                                isCompleted: false,
-                                errorMessage: "接收数据时发生错误"
-                            )
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                            self?.uploadState = nil
-                        }
-                    }
+                    connection.cancel()
                     return
                 }
-                
-                if let data = data {
+
+                if let data {
                     buffer.append(data)
                 }
-                
-                if headerEndOffset == nil, let headerDelimiter = "\r\n\r\n".data(using: .utf8), let range = buffer.range(of: headerDelimiter) {
-                    headerEndOffset = range.upperBound
-                }
-                
-                if detectedFileName == nil, let contentStr = String(data: buffer, encoding: .utf8) {
-                    if let filenameRange = contentStr.range(of: "filename=\"") {
-                        if let filenameEnd = contentStr[filenameRange.upperBound...].range(of: "\"") {
-                            detectedFileName = String(contentStr[filenameRange.upperBound..<filenameEnd.lowerBound])
+
+                if let head = WiFiUploadRequestParser.parseHead(from: buffer) {
+                    if head.method == "OPTIONS" {
+                        self.sendOptionsPreflight(on: connection)
+                    } else if head.method == "POST", head.path == "/upload" {
+                        guard head.multipartBoundary != nil else {
+                            self.sendErrorResponse(on: connection, message: "无法找到 multipart boundary")
+                            return
                         }
-                    }
-                }
-                
-                if let total = declaredContentLength, let headerEnd = headerEndOffset {
-                    let receivedBody = max(0, buffer.count - headerEnd)
-                    DispatchQueue.main.async { [weak self] in
-                        if var s = self?.uploadState {
-                            s.receivedBytes = receivedBody
-                            s.totalBytes = total
-                            s.fileName = s.fileName ?? detectedFileName
-                            self?.uploadState = s
-                        } else {
-                            self?.uploadState = UploadState(
-                                fileName: detectedFileName,
-                                receivedBytes: receivedBody,
-                                totalBytes: total,
-                                startedAt: startTime,
-                                isCompleted: false,
-                                errorMessage: nil
-                            )
+                        guard head.contentLength != nil else {
+                            self.sendErrorResponse(on: connection, message: "请求缺少 Content-Length")
+                            return
                         }
+                        self.receiveFileUpload(connection: connection, initialData: buffer, head: head)
+                    } else {
+                        self.sendUploadForm(on: connection)
                     }
-                    if receivedBody >= total {
-                        self?.processReceivedData(buffer: buffer, connection: connection)
-                        DispatchQueue.main.async { [weak self] in
-                            if var s = self?.uploadState {
-                                s.receivedBytes = max(receivedBody, total)
-                                s.totalBytes = total
-                                s.fileName = s.fileName ?? detectedFileName
-                                s.isCompleted = true
-                                self?.uploadState = s
-                            }
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                self?.uploadState = nil
-                            }
-                        }
-                        return
-                    }
+                    return
                 }
-                
+
+                if buffer.count > 65_536 {
+                    self.sendErrorResponse(on: connection, message: "请求头过大")
+                } else if isComplete {
+                    self.sendErrorResponse(on: connection, message: "请求头不完整")
+                } else {
+                    receiveHeaders()
+                }
+            }
+        }
+
+        receiveHeaders()
+    }
+    
+    private func receiveFileUpload(
+        connection: NWConnection,
+        initialData: Data,
+        head: WiFiUploadRequestParser.RequestHead
+    ) {
+        var buffer = initialData
+        let startTime = Date()
+        let totalBytes = head.contentLength
+        var detectedFileName = WiFiUploadRequestParser.fileNameIfAvailable(in: buffer, head: head)
+
+        func publishProgress() {
+            let receivedBytes = WiFiUploadRequestParser.receivedBodyByteCount(in: buffer, head: head)
+            DispatchQueue.main.async { [weak self] in
+                self?.uploadState = UploadState(
+                    fileName: detectedFileName,
+                    receivedBytes: min(receivedBytes, totalBytes ?? receivedBytes),
+                    totalBytes: totalBytes,
+                    startedAt: startTime,
+                    isCompleted: false,
+                    errorMessage: nil
+                )
+            }
+        }
+
+        func publishConnectionError() {
+            DispatchQueue.main.async { [weak self] in
+                self?.uploadState = UploadState(
+                    fileName: detectedFileName,
+                    receivedBytes: WiFiUploadRequestParser.receivedBodyByteCount(in: buffer, head: head),
+                    totalBytes: totalBytes,
+                    startedAt: startTime,
+                    isCompleted: false,
+                    errorMessage: "接收数据时发生错误"
+                )
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                    self?.uploadState = nil
+                }
+            }
+        }
+
+        @discardableResult
+        func processIfComplete() -> Bool {
+            if detectedFileName == nil {
+                detectedFileName = WiFiUploadRequestParser.fileNameIfAvailable(in: buffer, head: head)
+            }
+            publishProgress()
+
+            guard let requestData = WiFiUploadRequestParser.completeRequestData(from: buffer, head: head) else {
+                return false
+            }
+            self.processReceivedData(buffer: requestData, head: head, connection: connection)
+            return true
+        }
+
+        func receive() {
+            connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { data, _, isComplete, error in
+                if error != nil {
+                    publishConnectionError()
+                    connection.cancel()
+                    return
+                }
+
+                if let data {
+                    buffer.append(data)
+                }
+
+                if processIfComplete() {
+                    return
+                }
+
                 if isComplete {
-                    self?.processReceivedData(buffer: buffer, connection: connection)
-                } else if error == nil {
+                    self.sendErrorResponse(on: connection, message: "文件数据接收不完整")
+                } else {
                     receive()
                 }
             }
         }
-        
+
+        if processIfComplete() {
+            return
+        }
         receive()
     }
     
-    private func processReceivedData(buffer: Data, connection: NWConnection) {
-        let encodings: [String.Encoding] = [.utf8]
-        var fileContent: String?
-        var filenameToPublish: String? = nil
-        
-        for encoding in encodings {
-            if let content = String(data: buffer, encoding: encoding) {
-                fileContent = content
-                break
-            }
-        }
-        
-        if let content = fileContent {
-            if let boundaryStart = content.range(of: "boundary="),
-               let headerEnd = content.range(of: "\r\n\r\n") {
-                let boundary = "--" + content[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
-                
-                if let filenameRange = content.range(of: "filename=\""),
-                   let filenameEnd = content[filenameRange.upperBound...].range(of: "\"") {
-                    let filename = String(content[filenameRange.upperBound..<filenameEnd.lowerBound])
-                    filenameToPublish = filename
-                    
-                    let boundaryEnd = "\(boundary)--"
-                    if let contentStart = content.range(of: "\r\n\r\n", range: headerEnd.upperBound..<content.endIndex),
-                       let contentEnd = content.range(of: boundaryEnd) {
-                        let fileContent = String(content[contentStart.upperBound..<contentEnd.lowerBound])
-                        
-                        DispatchQueue.main.async { [weak self] in
-                            self?.onFileReceived?(filename, fileContent)
-                            if var s = self?.uploadState {
-                                s.fileName = s.fileName ?? filename
-                                s.isCompleted = true
-                                self?.uploadState = s
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                    self?.uploadState = nil
-                                }
-                            }
-                        }
-                        
-                        sendSuccessResponse(on: connection, filename: filename)
-                        return
-                    }
-                }
-            }
-            sendErrorResponse(on: connection, message: "文件格式解析失败")
+    private func processReceivedData(
+        buffer: Data,
+        head: WiFiUploadRequestParser.RequestHead,
+        connection: NWConnection
+    ) {
+        do {
+            let upload = try WiFiUploadRequestParser.parseUpload(from: buffer, head: head)
             DispatchQueue.main.async { [weak self] in
-                if var s = self?.uploadState {
-                    s.fileName = s.fileName ?? filenameToPublish
-                    s.errorMessage = "文件格式解析失败"
-                    s.isCompleted = false
-                    self?.uploadState = s
+                self?.onFileReceived?(upload.fileName, upload.content)
+                if var state = self?.uploadState {
+                    state.fileName = upload.fileName
+                    state.receivedBytes = state.totalBytes ?? state.receivedBytes
+                    state.isCompleted = true
+                    state.errorMessage = nil
+                    self?.uploadState = state
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     self?.uploadState = nil
                 }
             }
-        } else {
-            sendErrorResponse(on: connection, message: "不支持的文件编码格式")
+            sendSuccessResponse(on: connection, filename: upload.fileName)
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? "文件格式解析失败"
+            sendErrorResponse(on: connection, message: message)
             DispatchQueue.main.async { [weak self] in
-                if var s = self?.uploadState {
-                    s.errorMessage = "不支持的文件编码格式"
-                    s.isCompleted = false
-                    self?.uploadState = s
+                if var state = self?.uploadState {
+                    state.errorMessage = message
+                    state.isCompleted = false
+                    self?.uploadState = state
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                     self?.uploadState = nil
                 }
             }
-        }
-    }
-    
-    private func processRequest(_ request: String, on connection: NWConnection) {
-        if request.hasPrefix("OPTIONS ") {
-            sendOptionsPreflight(on: connection)
-            return
-        }
-        if request.contains("Content-Type: multipart/form-data") {
-            guard let boundaryStart = request.range(of: "boundary="),
-                  let headerEnd = request.range(of: "\r\n\r\n") else {
-                sendErrorResponse(on: connection, message: "无法找到boundary")
-                return
-            }
-            
-            let boundary = "--" + request[boundaryStart.upperBound...].components(separatedBy: "\r\n").first!
-            let body = String(request[headerEnd.upperBound...])
-            
-            if let filenameRange = request.range(of: "filename=\""),
-               let filenameEnd = request[filenameRange.upperBound...].range(of: "\"") {
-                let filename = String(request[filenameRange.upperBound..<filenameEnd.lowerBound])
-                
-                let boundaryEnd = "\(boundary)--"
-                if let fileContentStart = body.range(of: "\r\n\r\n"),
-                   let fileContentEnd = body.range(of: boundaryEnd) {
-                    let fileContent = String(body[fileContentStart.upperBound..<fileContentEnd.lowerBound])
-                    
-                    DispatchQueue.main.async {
-                        self.onFileReceived?(filename, fileContent)
-                    }
-                    
-                    sendSuccessResponse(on: connection, filename: filename)
-                } else {
-                    sendErrorResponse(on: connection, message: "文件内容解析失败")
-                }
-            } else {
-                sendErrorResponse(on: connection, message: "文件名解析失败")
-            }
-        } else {
-            sendUploadForm(on: connection)
         }
     }
 
@@ -347,9 +259,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         Connection: close\r
         \r
         """
-        connection.send(content: resp.data(using: .utf8), completion: .contentProcessed({ _ in
-            connection.cancel()
-        }))
+        sendHTTPResponse(resp, on: connection)
     }
     
     private func sendUploadForm(on connection: NWConnection) {
@@ -533,9 +443,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             </body>
         </html>
         """
-        connection.send(content: response.data(using: .utf8), completion: .contentProcessed({ _ in
-            connection.cancel()
-        }))
+        sendHTTPResponse(response, on: connection)
     }
     
     private func sendSuccessResponse(on connection: NWConnection, filename: String) {
@@ -596,9 +504,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             </body>
         </html>
         """
-        connection.send(content: successResponse.data(using: .utf8), completion: .contentProcessed({ _ in
-            connection.cancel()
-        }))
+        sendHTTPResponse(successResponse, on: connection)
     }
     
     private func sendErrorResponse(on connection: NWConnection, message: String) {
@@ -648,9 +554,35 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             </body>
         </html>
         """
-        connection.send(content: errorResponse.data(using: .utf8), completion: .contentProcessed({ _ in
+        sendHTTPResponse(errorResponse, on: connection)
+    }
+
+    private func sendHTTPResponse(_ response: String, on connection: NWConnection) {
+        guard let originalData = response.data(using: .utf8) else {
             connection.cancel()
-        }))
+            return
+        }
+
+        let delimiter = Data("\r\n\r\n".utf8)
+        var responseData = originalData
+        if let headerRange = originalData.range(of: delimiter) {
+            let headerData = originalData.subdata(in: 0..<headerRange.lowerBound)
+            let bodyData = originalData.subdata(in: headerRange.upperBound..<originalData.endIndex)
+            let header = String(decoding: headerData, as: UTF8.self)
+            if !header.lowercased().contains("\r\ncontent-length:") {
+                responseData = Data("\(header)\r\nContent-Length: \(bodyData.count)\r\n\r\n".utf8)
+                responseData.append(bodyData)
+            }
+        }
+
+        connection.send(
+            content: responseData,
+            contentContext: .finalMessage,
+            isComplete: true,
+            completion: .contentProcessed { _ in
+                connection.cancel()
+            }
+        )
     }
     
     func getLocalIPAddress() -> String? {
