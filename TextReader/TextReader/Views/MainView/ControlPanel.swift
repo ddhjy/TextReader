@@ -48,19 +48,20 @@ struct ControlPanel: View {
     var body: some View {
         VStack(spacing: 16) {
             if showProgressSlider && !sleepPickerActive {
-                VStack(spacing: 4) {
-                    Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
-                        .tint(viewModel.currentAccentColor)
-                    
-                    Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 12)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .padding(.horizontal, 16)
-                .transition(.blurReplace)
+                Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
+                    .tint(viewModel.currentAccentColor)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 20)
+                    .overlay(alignment: .bottom) {
+                        Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .padding(.bottom, 5)
+                            .allowsHitTesting(false)
+                    }
+                    .glassEffect(.regular.interactive(), in: .capsule)
+                    .padding(.horizontal, 16)
+                    .transition(.blurReplace)
             }
             
             ZStack {
