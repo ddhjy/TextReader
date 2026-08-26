@@ -2,6 +2,8 @@
 
 TextReader is a SwiftUI-based iOS application built for a focused text reading and narration experience. It lets you import, organize, read, and listen to plain-text content, with deep customization, background audio playback, and AI-assisted prompt workflows.
 
+**App Store:** [读书派](https://apps.apple.com/cn/app/id6778748756)
+
 > **Custom Prompt for AI** demo:
 > https://github.com/user-attachments/assets/5b297d9c-38e1-41f1-996b-b519b604e81a
 
