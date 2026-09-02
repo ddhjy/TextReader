@@ -190,96 +190,142 @@ struct BigBangView: View {
     @ObservedObject var vm: ContentViewModel
     @Environment(\.dismiss) private var dismiss
     
-    private let tokenHeight: CGFloat = 32
+    private let tokenHeight: CGFloat = 38
     private let tokenSpacing: CGFloat = 8
     
     var body: some View {
         NavigationStack {
-            ScrollView {
-                FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
-                    Text(token.value)
-                        .lineLimit(1)
-                        .padding(.horizontal, 6)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.vertical, 4)
-                        .frame(height: tokenHeight)
-                        .background(vm.selectedTokenIDs.contains(token.id) ?
-                                    vm.currentAccentColor.opacity(0.8) :
-                                    Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                        .foregroundStyle(vm.selectedTokenIDs.contains(token.id) ? .white : .primary)
-                        .gesture(DragGesture(minimumDistance: 0)
-                                 .onEnded{ _ in 
-                                     vm.processTokenTap(tappedTokenID: token.id)
-                                     HapticFeedback.shared.selectionChanged()
-                                 })
-                }
-                .padding()
-            }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    HStack {
-                        Button("清空") {
-                            if !vm.selectedTokenIDs.isEmpty {
-                                vm.clearSelectedTokens()
-                                HapticFeedback.shared.impactOccurred()
+            Group {
+                if vm.tokens.isEmpty {
+                    ContentUnavailableView {
+                        ProgressView()
+                    } description: {
+                        Text("正在分词…")
+                    }
+                } else {
+                    ScrollView {
+                        FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
+                            let isSelected = vm.selectedTokenIDs.contains(token.id)
+                            Button {
+                                vm.processTokenTap(tappedTokenID: token.id)
+                                HapticFeedback.shared.selectionChanged()
+                            } label: {
+                                Text(token.value)
+                                    .font(.body)
+                                    .fontWeight(isSelected ? .semibold : .regular)
+                                    .lineLimit(1)
+                                    .padding(.horizontal, 8)
+                                    .fixedSize(horizontal: true, vertical: false)
+                                    .frame(height: tokenHeight)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(isSelected ? vm.currentAccentColor.opacity(0.20) : Color(.secondarySystemBackground))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .strokeBorder(isSelected ? vm.currentAccentColor : .clear, lineWidth: 1.5)
+                                    )
+                                    .foregroundStyle(isSelected ? vm.currentAccentColor : .primary)
+                                    .contentShape(Rectangle().inset(by: -3))
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(token.value)
+                            .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
                         }
-                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
-                        .disabled(vm.selectedTokenIDs.isEmpty)
-                        
-                        Button("复制") { 
-                            HapticFeedback.shared.impactOccurred()
-                            vm.copySelected()
-                            dismiss() 
-                        }
-                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
-                        .disabled(vm.selectedTokenIDs.isEmpty)
-                        
-                        Menu("模板") {
-                            ForEach(vm.templates) { tpl in
-                                Menu(tpl.name) {
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .perplexity)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("打开 Perplexity", systemImage: "safari")
-                                    }
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .raycast)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("打开 Raycast", systemImage: "command")
-                                    }
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .copyOnly)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("仅复制", systemImage: "doc.on.doc")
-                                    }
+                        .padding()
+                    }
+                }
+            }
+            .navigationTitle("选词")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(role: .close) {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("关闭")
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("清空") {
+                        vm.clearSelectedTokens()
+                        HapticFeedback.shared.impactOccurred()
+                    }
+                    .disabled(vm.selectedTokenIDs.isEmpty)
+                }
+
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Menu {
+                        ForEach(vm.templates) { tpl in
+                            Menu(tpl.name) {
+                                Button {
+                                    vm.buildPrompt(using: tpl, destination: .perplexity)
+                                    HapticFeedback.shared.impactOccurred()
+                                    dismiss()
+                                } label: {
+                                    Label("打开 Perplexity", systemImage: "safari")
+                                }
+                                Button {
+                                    vm.buildPrompt(using: tpl, destination: .raycast)
+                                    HapticFeedback.shared.impactOccurred()
+                                    dismiss()
+                                } label: {
+                                    Label("打开 Raycast", systemImage: "command")
+                                }
+                                Button {
+                                    vm.buildPrompt(using: tpl, destination: .copyOnly)
+                                    HapticFeedback.shared.impactOccurred()
+                                    dismiss()
+                                } label: {
+                                    Label("仅复制", systemImage: "doc.on.doc")
                                 }
                             }
-                            Divider()
-                            Button("管理模板…") {
-                                vm.showingTemplatePicker = true
-                            }
                         }
-                        .foregroundStyle(vm.selectedTokenIDs.isEmpty ? .secondary : vm.currentAccentColor)
-                        .disabled(vm.selectedTokenIDs.isEmpty)
+                        Divider()
+                        Button {
+                            vm.showingTemplatePicker = true
+                        } label: {
+                            Label("管理模板…", systemImage: "slider.horizontal.3")
+                        }
+                    } label: {
+                        Label("模板", systemImage: "text.badge.star")
                     }
+                    .disabled(vm.selectedTokenIDs.isEmpty)
+
+                    Spacer()
+
+                    if !vm.selectedTokenIDs.isEmpty {
+                        Text("已选 \(vm.selectedTokenIDs.count) 个词")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        HapticFeedback.shared.impactOccurred()
+                        vm.copySelected()
+                        dismiss()
+                    } label: {
+                        Label("复制", systemImage: "doc.on.doc")
+                    }
+                    .disabled(vm.selectedTokenIDs.isEmpty)
                 }
             }
             .sheet(isPresented: $vm.showingTemplatePicker) {
                 PromptTemplatePicker(viewModel: vm)
             }
-            .alert(item: $vm.generatedPrompt) { alertMsg in
-                Alert(title: Text(alertMsg.message))
+            .alert(
+                vm.generatedPrompt?.message ?? "",
+                isPresented: Binding(
+                    get: { vm.generatedPrompt != nil },
+                    set: { if !$0 { vm.generatedPrompt = nil } }
+                )
+            ) {
+                Button("好") {}
             }
         }
         .tint(vm.currentAccentColor)

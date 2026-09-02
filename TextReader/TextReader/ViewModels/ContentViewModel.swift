@@ -42,6 +42,7 @@ class ContentViewModel: ObservableObject {
     @Published var showingWiFiTransferView = false
     @Published var showingPasteImport = false
     @Published var bookProgressText: String?
+    @Published var appearanceMode: AppearanceMode = .system
     @Published var darkModeEnabled: Bool = false
     @Published var accentColorThemeId: String = "blue"
     @Published var showingBigBang = false
@@ -112,7 +113,7 @@ class ContentViewModel: ObservableObject {
     
     var currentAccentColor: Color {
         let theme = AccentColorTheme.presets.first { $0.id == accentColorThemeId } ?? AccentColorTheme.presets[0]
-        return theme.color(for: darkModeEnabled ? .dark : .light)
+        return theme.dynamicColor
     }
 
     /// 当前 `pages` 是否已是「最终分页结果」。
@@ -199,7 +200,8 @@ class ContentViewModel: ObservableObject {
         self.availableVoices = speechManager.getAvailableVoices(languagePrefix: "zh")
         self.selectedVoiceIdentifier = settingsManager.getSelectedVoiceIdentifier() ?? availableVoices.first?.identifier
         self.accentColorThemeId = settingsManager.getAccentColorThemeId()
-        self.darkModeEnabled = settingsManager.getDarkMode()
+        self.appearanceMode = settingsManager.getAppearanceMode()
+        self.darkModeEnabled = (appearanceMode == .dark)
         
         self.books = self.libraryManager.loadBooks()
         self.sortBooks()
@@ -280,9 +282,23 @@ class ContentViewModel: ObservableObject {
             }
             .store(in: &cancellables)
             
+        $appearanceMode
+            .dropFirst()
+            .sink { [weak self] mode in
+                self?.settingsManager.saveAppearanceMode(mode)
+                self?.darkModeEnabled = (mode == .dark)
+            }
+            .store(in: &cancellables)
+
         $darkModeEnabled
             .dropFirst()
-            .sink { [weak self] enabled in self?.settingsManager.saveDarkMode(enabled) }
+            .sink { [weak self] enabled in
+                guard let self = self else { return }
+                let target: AppearanceMode = enabled ? .dark : .light
+                if self.appearanceMode != target && (self.appearanceMode != .system || enabled) {
+                    self.appearanceMode = target
+                }
+            }
             .store(in: &cancellables)
             
         $accentColorThemeId

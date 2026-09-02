@@ -146,8 +146,8 @@ struct SharedImportFlowTests {
         )
 
         viewModel.consumePendingSharedImports()
-        try await waitUntil(timeoutNanoseconds: 2_000_000_000) {
-            viewModel.currentBookId == "第二本.txt"
+        try await waitUntil(timeoutNanoseconds: 4_000_000_000) {
+            viewModel.currentBookId == "第二本.txt" && viewModel.sharedImportBannerMessage != nil
         }
 
         #expect(viewModel.currentBookTitle == "第二本")

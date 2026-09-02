@@ -3,7 +3,7 @@ import UniformTypeIdentifiers
 
 struct DocumentPicker: UIViewControllerRepresentable {
     @ObservedObject var viewModel: ContentViewModel
-    @Environment(\.presentationMode) var presentationMode
+    @Environment(\.dismiss) private var dismiss
 
     func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
         let supportedTypes: [UTType] = [.text, .plainText]
@@ -29,20 +29,15 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else {
-                print("[DocumentPicker][Error] No URL selected or provided by picker.")
-                parent.presentationMode.wrappedValue.dismiss()
+                parent.dismiss()
                 return
             }
-            print("[DocumentPicker] Picked URL: \(url.absoluteString)")
-            print("[DocumentPicker] Is File URL: \(url.isFileURL)")
-
             parent.viewModel.importBookFromURL(url)
-            parent.presentationMode.wrappedValue.dismiss()
+            parent.dismiss()
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
-            print("[DocumentPicker] Picker was cancelled by user.")
-            parent.presentationMode.wrappedValue.dismiss()
+            parent.dismiss()
         }
     }
-} 
+}

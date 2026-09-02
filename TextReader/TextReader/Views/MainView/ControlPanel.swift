@@ -5,6 +5,7 @@ struct ControlPanel: View {
     @ObservedObject var viewModel: ContentViewModel
     
     @Binding var showProgressSlider: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     /// 是否处于「定时选择」状态：长按播放按钮后弹出，松手后退出。
     @State private var sleepPickerActive: Bool = false
@@ -14,9 +15,8 @@ struct ControlPanel: View {
     @State private var sleepActivationWorkItem: DispatchWorkItem? = nil
     
     private let playButtonSize: CGFloat = 44
-    private let compactProgressRingSize: CGFloat = 22
+    private let compactProgressRingSize: CGFloat = 28
     private let compactProgressLineWidth: CGFloat = 2
-    private let compactProgressFontSize: CGFloat = 8
     private let longPressActivationDelay: TimeInterval = 0.35
     private let pickerHaptic = UIImpactFeedbackGenerator(style: .medium)
     private let selectionHaptic = UISelectionFeedbackGenerator()
@@ -50,36 +50,41 @@ struct ControlPanel: View {
             if showProgressSlider && !sleepPickerActive {
                 Slider(value: sliderBinding, in: 0...Double(max(0, viewModel.pages.count - 1)))
                     .tint(viewModel.currentAccentColor)
+                    .accessibilityLabel("阅读进度")
+                    .accessibilityValue("第 \(viewModel.currentPageIndex + 1) 页，共 \(max(1, viewModel.pages.count)) 页")
                     .padding(.horizontal, 24)
                     .padding(.vertical, 20)
                     .overlay(alignment: .bottom) {
                         Text("\(viewModel.currentPageIndex + 1) / \(max(1, viewModel.pages.count))")
                             .font(.caption2)
+                            .monospacedDigit()
                             .foregroundStyle(.secondary)
                             .padding(.bottom, 5)
                             .allowsHitTesting(false)
                     }
                     .glassEffect(.regular.interactive(), in: .capsule)
                     .padding(.horizontal, 16)
-                    .transition(.blurReplace)
+                    .transition(reduceMotion ? .opacity : .scale(scale: 0.96).combined(with: .opacity))
             }
             
             ZStack {
-                HStack(spacing: 16) {
-                    secondaryButton(systemName: "books.vertical.fill") {
-                        viewModel.showingBookList = true
-                    }
-                    
-                    secondaryButton(systemName: "magnifyingglass") {
-                        viewModel.showingSearchView = true
-                    }
-                    
-                    playButton
-                    
-                    progressButton
-                    
-                    secondaryButton(systemName: "gearshape.fill") {
-                        viewModel.showingSettings = true
+                GlassEffectContainer(spacing: 16) {
+                    HStack(spacing: 16) {
+                        secondaryButton(systemName: "books.vertical.fill", accessibilityLabel: "书架") {
+                            viewModel.showingBookList = true
+                        }
+                        
+                        secondaryButton(systemName: "magnifyingglass", accessibilityLabel: "搜索") {
+                            viewModel.showingSearchView = true
+                        }
+                        
+                        playButton
+                        
+                        progressButton
+                        
+                        secondaryButton(systemName: "gearshape.fill", accessibilityLabel: "设置") {
+                            viewModel.showingSettings = true
+                        }
                     }
                 }
                 // 仅在进度调节弹出时禁用整排命中。
@@ -90,7 +95,7 @@ struct ControlPanel: View {
                     Color.black.opacity(0.001)
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            withAnimation(.spring(response: 0.3)) {
+                            withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                                 showProgressSlider = false
                             }
                         }
@@ -99,7 +104,7 @@ struct ControlPanel: View {
             .frame(height: 56)
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
-            .animation(.spring(response: 0.3, dampingFraction: 0.85), value: sleepPickerActive)
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: sleepPickerActive)
         }
         .onAppear {
             pickerHaptic.prepare()
@@ -110,7 +115,7 @@ struct ControlPanel: View {
     // MARK: - Buttons
     
     /// 「除播放外」的按钮的统一构造，便于在定时选择期间整体淡出。
-    private func secondaryButton(systemName: String, action: @escaping () -> Void) -> some View {
+    private func secondaryButton(systemName: String, accessibilityLabel: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.body)
@@ -119,12 +124,13 @@ struct ControlPanel: View {
         }
         .buttonStyle(.plain)
         .tint(viewModel.currentAccentColor)
+        .accessibilityLabel(accessibilityLabel)
         .opacity(sleepPickerActive ? 0 : 1)
     }
     
     private var progressButton: some View {
         Button {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                 showProgressSlider.toggle()
             }
         } label: {
@@ -143,7 +149,7 @@ struct ControlPanel: View {
                     .frame(width: compactProgressRingSize, height: compactProgressRingSize)
                 
                 Text("\(Int(progress * 100))")
-                    .font(.system(size: compactProgressFontSize, weight: .medium))
+                    .font(.caption2.weight(.semibold).monospacedDigit())
                     .foregroundStyle(viewModel.currentAccentColor)
             }
             .frame(width: 44, height: 44)
@@ -151,6 +157,9 @@ struct ControlPanel: View {
         }
         .buttonStyle(.plain)
         .tint(viewModel.currentAccentColor)
+        .accessibilityLabel("阅读进度")
+        .accessibilityValue("\(Int(progress * 100))%")
+        .accessibilityHint("轻触显示或隐藏快速跳转滑块")
         .opacity(sleepPickerActive ? 0 : 1)
     }
     
@@ -173,7 +182,7 @@ struct ControlPanel: View {
                     )
                     .rotationEffect(.degrees(-90))
                     .frame(width: compactProgressRingSize, height: compactProgressRingSize)
-                    .animation(.linear(duration: 0.5), value: viewModel.sleepTimerProgress)
+                    .animation(reduceMotion ? nil : .linear(duration: 0.5), value: viewModel.sleepTimerProgress)
                 
                 sleepCountdownLabel
             } else {
@@ -185,7 +194,7 @@ struct ControlPanel: View {
         .glassEffect(.regular.interactive(), in: .circle)
         .tint(viewModel.currentAccentColor)
         .scaleEffect(sleepPickerActive ? 1.08 : 1.0)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: sleepPickerActive)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: sleepPickerActive)
         // 选项浮层（仅展示，不参与命中测试）
         .overlay(alignment: .center) {
             if sleepPickerActive {
@@ -197,17 +206,47 @@ struct ControlPanel: View {
             }
         }
         .contentShape(Rectangle())
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(playButtonAccessibilityLabel)
+        .accessibilityValue(playButtonAccessibilityValue)
+        .accessibilityHint(viewModel.sleepTimerActive ? "轻触停止定时与朗读" : "轻触切换播放，长按可设置定时关闭")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
+            viewModel.handlePlayButtonTap()
+        }
+        .accessibilityAction(named: "定时 5 分钟") {
+            viewModel.startSleepTimer(minutes: 5)
+        }
+        .accessibilityAction(named: "定时 15 分钟") {
+            viewModel.startSleepTimer(minutes: 15)
+        }
+        .accessibilityAction(named: "定时 25 分钟") {
+            viewModel.startSleepTimer(minutes: 25)
+        }
         .gesture(playButtonGesture)
     }
     
+    private var playButtonAccessibilityLabel: String {
+        if viewModel.sleepTimerActive {
+            return "定时播放"
+        }
+        return viewModel.isReading ? "暂停" : "播放"
+    }
+
+    private var playButtonAccessibilityValue: String {
+        if viewModel.sleepTimerActive {
+            return "剩余 \(viewModel.sleepTimerRemainingMinutes) 分钟"
+        }
+        return viewModel.isReading ? "正在朗读" : "已暂停"
+    }
+
     private var playIconName: String {
         viewModel.isReading ? "pause.fill" : "play.fill"
     }
     
     private var sleepCountdownLabel: some View {
         Text("\(viewModel.sleepTimerRemainingMinutes)")
-            .font(.system(size: compactProgressFontSize, weight: .medium))
-            .monospacedDigit()
+            .font(.caption2.weight(.semibold).monospacedDigit())
             .foregroundStyle(viewModel.currentAccentColor)
     }
     
@@ -268,7 +307,7 @@ struct ControlPanel: View {
         sleepHoveredOption = nil
         pickerHaptic.impactOccurred()
         if showProgressSlider {
-            withAnimation(.spring(response: 0.3)) {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.3)) {
                 showProgressSlider = false
             }
         }

@@ -30,13 +30,27 @@ struct TextReaderTests {
         #expect(reviewSettings.getLastBookTitle() == "审核样例")
         #expect(reviewSettings.getReadingSpeed() == 2.0)
         #expect(reviewSettings.getDarkMode())
+        #expect(reviewSettings.getAppearanceMode() == .dark)
         #expect(reviewSettings.getAccentColorThemeId() == "green")
 
         reviewSettings.saveDarkMode(false)
         reviewSettings.saveAccentColorThemeId("red")
 
         #expect(!personalSettings.getDarkMode())
+        #expect(personalSettings.getAppearanceMode() == .light)
         #expect(personalSettings.getAccentColorThemeId() == "red")
+
+        personalSettings.saveAppearanceMode(.system)
+        #expect(reviewSettings.getAppearanceMode() == .system)
+        #expect(!reviewSettings.getDarkMode())
+
+        reviewSettings.saveAppearanceMode(.dark)
+        #expect(personalSettings.getAppearanceMode() == .dark)
+        #expect(personalSettings.getDarkMode())
+
+        reviewSettings.saveAppearanceMode(.light)
+        #expect(personalSettings.getAppearanceMode() == .light)
+        #expect(!personalSettings.getDarkMode())
 
         reviewSettings.removeAllManagedValues()
 

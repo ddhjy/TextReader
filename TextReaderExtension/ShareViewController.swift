@@ -7,7 +7,7 @@ class ShareViewController: SLComposeServiceViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "导入到 TextReader"
+        title = "导入到「读书」"
         placeholder = "标题（可选）"
     }
 
@@ -23,22 +23,14 @@ class ShareViewController: SLComposeServiceViewController {
             DispatchQueue.main.async {
                 progressAlert.dismiss(animated: true) {
                     if success {
-                        let successAlert = UIAlertController(
-                            title: "已导入",
-                            message: "返回 TextReader 即可阅读",
-                            preferredStyle: .alert
-                        )
-                        successAlert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
-                            self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
-                        })
-                        self.present(successAlert, animated: true)
+                        self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                     } else {
                         let failureAlert = UIAlertController(
                             title: "导入失败",
-                            message: "仅支持分享纯文本或 `.txt` / `.md` 文件",
+                            message: "仅支持分享纯文本或 .txt / .md 文件",
                             preferredStyle: .alert
                         )
-                        failureAlert.addAction(UIAlertAction(title: "好的", style: .default) { _ in
+                        failureAlert.addAction(UIAlertAction(title: "好", style: .default) { _ in
                             self.extensionContext?.completeRequest(returningItems: [], completionHandler: nil)
                         })
                         self.present(failureAlert, animated: true)

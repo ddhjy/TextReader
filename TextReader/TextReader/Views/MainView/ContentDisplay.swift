@@ -3,8 +3,12 @@ import SwiftUI
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let fontSize: CGFloat = 19
+    @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = 19
+    private var effectiveFontSize: CGFloat {
+        min(max(scaledFontSize, 15), 24)
+    }
     private let kerning: CGFloat = 0.3
     private let lineSpacing: CGFloat = 8
     private let segmentSpacing: CGFloat = 22
@@ -49,10 +53,18 @@ struct ContentDisplay: View {
     }
 
     private func emptyState(width: CGFloat, height: CGFloat) -> some View {
-        Text("轻触书架，开始阅读")
-            .font(.system(size: fontSize))
-            .foregroundStyle(Color.primary.opacity(0.5))
-            .frame(width: width, height: height)
+        ContentUnavailableView {
+            Label("开始阅读", systemImage: "books.vertical")
+        } description: {
+            Text("轻触书架选择书籍，或导入新的文本。")
+        } actions: {
+            Button("打开书架") {
+                viewModel.showingBookList = true
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(viewModel.currentAccentColor)
+        }
+        .frame(width: width, height: height)
     }
 
     private func scrollingContent(geometry: GeometryProxy) -> some View {
@@ -63,27 +75,32 @@ struct ContentDisplay: View {
 
                 LazyVStack(alignment: .leading, spacing: segmentSpacing) {
                     ForEach(viewModel.pages.indices, id: \.self) { idx in
-                        Text(viewModel.pages[idx])
-                            .font(.system(size: fontSize))
-                            .kerning(kerning)
-                            .lineSpacing(lineSpacing)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .id(idx)
-                            .accessibilityHidden(idx != viewModel.currentPageIndex)
-                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                        PageTextView(
+                            index: idx,
+                            text: viewModel.pages[idx],
+                            fontSize: effectiveFontSize,
+                            kerning: kerning,
+                            lineSpacing: lineSpacing,
+                            isCurrentPage: idx == viewModel.currentPageIndex,
+                            totalPages: viewModel.pages.count,
+                            onPrevious: { viewModel.previousPage() },
+                            onNext: { viewModel.nextPage() },
+                            onBigBang: { viewModel.triggerBigBang() },
+                            onHeightChange: { height in
                                 if pageHeights[idx] != height {
                                     pageHeights[idx] = height
                                 }
-                                // 当前页几何回传后，聚焦蒙层已可正确计算，此时方可淡入。
                                 if idx == viewModel.currentPageIndex {
                                     revealIfCurrentPageMeasured()
                                 }
                             }
+                        )
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
+                .frame(maxWidth: 680)
+                .frame(maxWidth: .infinity)
 
                 Color.clear
                     .frame(height: geometry.size.height * 0.5)
@@ -125,8 +142,12 @@ struct ContentDisplay: View {
             } else {
                 // 切换书籍等场景回到占位预览：先淡出，待新内容就位后再淡入。
                 awaitingReveal = false
-                withAnimation(.easeOut(duration: 0.18)) {
+                if reduceMotion {
                     contentRevealed = false
+                } else {
+                    withAnimation(.easeOut(duration: 0.18)) {
+                        contentRevealed = false
+                    }
                 }
             }
         }
@@ -157,7 +178,7 @@ struct ContentDisplay: View {
     /// 把阅读区定位到当前页（居中）。滚动位置是视图状态，回前台后的首次布局会自动按它落位。
     private func scrollToCurrentPage(animated: Bool) {
         let target = viewModel.currentPageIndex
-        if animated {
+        if animated && !reduceMotion {
             withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
                 scrollPosition.scrollTo(id: target, anchor: .center)
             }
@@ -188,8 +209,12 @@ struct ContentDisplay: View {
         guard awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
         guard let height = pageHeights[viewModel.currentPageIndex], height > 1 else { return }
         awaitingReveal = false
-        withAnimation(.easeOut(duration: 0.22)) {
+        if reduceMotion {
             contentRevealed = true
+        } else {
+            withAnimation(.easeOut(duration: 0.22)) {
+                contentRevealed = true
+            }
         }
     }
 
@@ -201,8 +226,12 @@ struct ContentDisplay: View {
             scrollToCurrentPage(animated: false)
             DispatchQueue.main.async {
                 guard !contentRevealed else { return }
-                withAnimation(.easeOut(duration: 0.22)) {
+                if reduceMotion {
                     contentRevealed = true
+                } else {
+                    withAnimation(.easeOut(duration: 0.22)) {
+                        contentRevealed = true
+                    }
                 }
             }
         }
@@ -271,5 +300,38 @@ struct ContentDisplay: View {
         } else {
             viewModel.nextPage()
         }
+    }
+}
+
+private struct PageTextView: View {
+    let index: Int
+    let text: String
+    let fontSize: CGFloat
+    let kerning: CGFloat
+    let lineSpacing: CGFloat
+    let isCurrentPage: Bool
+    let totalPages: Int
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onBigBang: () -> Void
+    let onHeightChange: (CGFloat) -> Void
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: fontSize))
+            .kerning(kerning)
+            .lineSpacing(lineSpacing)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .id(index)
+            .accessibilityHidden(!isCurrentPage)
+            .accessibilityLabel("书籍正文")
+            .accessibilityValue("第 \(index + 1) 页，共 \(max(1, totalPages)) 页")
+            .accessibilityAction(named: "上一页", onPrevious)
+            .accessibilityAction(named: "下一页", onNext)
+            .accessibilityAction(named: "分词与模板", onBigBang)
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                onHeightChange(height)
+            }
     }
 }

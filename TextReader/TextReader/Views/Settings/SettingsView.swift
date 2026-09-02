@@ -23,107 +23,87 @@ struct SettingsView: View {
     @State private var pendingDebugAction: DebugProfileAction?
 
     private let unlockTapThreshold = 7
+    private let speedOptions: [Float] = [0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0]
 
     private var versionText: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
         return build.isEmpty ? version : "\(version) (\(build))"
     }
+
+    private func speedLabel(_ speed: Float) -> String {
+        speed == floor(speed) ? "\(Int(speed))x" : String(format: "%.2gx", speed)
+    }
     
     var body: some View {
         NavigationStack {
             List {
                 Section("阅读设置") {
-                    // 语速选择
-                    Menu {
-                        ForEach([0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0], id: \.self) { speed in
-                            Button {
-                                viewModel.readingSpeed = Float(speed)
-                            } label: {
-                                if abs(viewModel.readingSpeed - Float(speed)) < 0.01 {
-                                    Label(String(format: "%.1fx", speed), systemImage: "checkmark")
-                                } else {
-                                    Text(String(format: "%.1fx", speed))
-                                }
-                            }
+                    Picker(selection: $viewModel.readingSpeed) {
+                        ForEach(speedOptions, id: \.self) { speed in
+                            Text(speedLabel(speed)).tag(speed)
                         }
                     } label: {
-                        HStack {
-                            Label("语速", systemImage: "speedometer")
-                            Spacer()
-                            Text(String(format: "%.1fx", viewModel.readingSpeed))
-                                .foregroundStyle(.secondary)
-                        }
+                        Label("语速", systemImage: "speedometer")
                     }
+                    .pickerStyle(.menu)
                     
-                    // 语音选择
-                    Menu {
+                    Picker(selection: $viewModel.selectedVoiceIdentifier) {
                         ForEach(viewModel.availableVoices, id: \.identifier) { voice in
-                            Button {
-                                viewModel.selectedVoiceIdentifier = voice.identifier
-                            } label: {
-                                if voice.identifier == viewModel.selectedVoiceIdentifier {
-                                    Label(voice.name, systemImage: "checkmark")
-                                } else {
-                                    Text(voice.name)
-                                }
-                            }
+                            Text(voice.name).tag(Optional(voice.identifier))
                         }
                     } label: {
-                        HStack {
-                            Label("语音", systemImage: "waveform")
-                            Spacer()
-                            if let selectedId = viewModel.selectedVoiceIdentifier,
-                               let voice = viewModel.availableVoices.first(where: { $0.identifier == selectedId }) {
-                                Text(voice.name)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
+                        Label("语音", systemImage: "waveform")
                     }
+                    .pickerStyle(.navigationLink)
                 }
                 
                 Section("外观") {
-                    // 强调色选择
-                    Menu {
-                        ForEach(AccentColorTheme.presets) { theme in
-                            Button {
-                                viewModel.accentColorThemeId = theme.id
-                            } label: {
-                                HStack {
-                                    Text(theme.name)
-                                    if viewModel.accentColorThemeId == theme.id {
-                                        Image(systemName: "checkmark")
-                                    }
-                                }
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Label("强调色", systemImage: "paintpalette")
-                            Spacer()
-                            Circle()
-                                .fill(viewModel.currentAccentColor)
-                                .frame(width: 20, height: 20)
-                            if let theme = AccentColorTheme.presets.first(where: { $0.id == viewModel.accentColorThemeId }) {
-                                Text(theme.name)
-                                    .foregroundStyle(.secondary)
-                            }
+                    Picker("外观", selection: $viewModel.appearanceMode) {
+                        ForEach(AppearanceMode.allCases) { mode in
+                            Text(mode.displayName).tag(mode)
                         }
                     }
+                    .pickerStyle(.segmented)
                     
-                    // 夜间模式切换
-                    Toggle(isOn: $viewModel.darkModeEnabled) {
-                        Label("夜间模式", systemImage: viewModel.darkModeEnabled ? "moon.fill" : "sun.max.fill")
+                    VStack(alignment: .leading, spacing: 12) {
+                        Label("强调色", systemImage: "paintpalette")
+                            .font(.body)
+                        
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 5), spacing: 12) {
+                            ForEach(AccentColorTheme.presets) { theme in
+                                Button {
+                                    viewModel.accentColorThemeId = theme.id
+                                } label: {
+                                    ZStack {
+                                        Circle()
+                                            .fill(theme.dynamicColor)
+                                            .frame(width: 36, height: 36)
+                                        
+                                        if viewModel.accentColorThemeId == theme.id {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 15, weight: .bold))
+                                                .foregroundStyle(.white)
+                                                .shadow(color: .black.opacity(0.35), radius: 2)
+                                        }
+                                    }
+                                    .frame(width: 44, height: 44)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel(theme.name)
+                                .accessibilityAddTraits(viewModel.accentColorThemeId == theme.id ? [.isButton, .isSelected] : .isButton)
+                            }
+                        }
+                        .padding(.vertical, 4)
                     }
-                    .tint(viewModel.currentAccentColor)
                 }
 
                 Section("关于") {
-                    HStack {
-                        Label("版本", systemImage: "info.circle")
-                        Spacer()
+                    LabeledContent {
                         Text(versionText)
                             .foregroundStyle(.secondary)
+                    } label: {
+                        Label("版本", systemImage: "info.circle")
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -133,11 +113,11 @@ struct SettingsView: View {
 
                 if advancedDebugUnlocked {
                     Section {
-                        HStack {
-                            Label("当前状态", systemImage: "switch.2")
-                            Spacer()
+                        LabeledContent {
                             Text(session.activeProfile.displayName)
                                 .foregroundStyle(.secondary)
+                        } label: {
+                            Label("当前状态", systemImage: "switch.2")
                         }
 
                         Button {
@@ -168,14 +148,42 @@ struct SettingsView: View {
                 }
             }
         }
-        .alert(item: $pendingDebugAction) { action in
-            debugAlert(for: action)
+        .alert(
+            debugAlertTitle(for: pendingDebugAction),
+            isPresented: Binding(
+                get: { pendingDebugAction != nil },
+                set: { if !$0 { pendingDebugAction = nil } }
+            ),
+            presenting: pendingDebugAction
+        ) { action in
+            switch action {
+            case .switchProfile(let profile):
+                Button(profile == .reviewSample ? "切换" : "切回") {
+                    session.switchProfile(to: profile)
+                    closeSettings()
+                }
+                Button("取消", role: .cancel) {}
+            case .resetReviewSample:
+                Button("重置", role: .destructive) {
+                    session.resetReviewSampleProfile()
+                    closeSettings()
+                }
+                Button("取消", role: .cancel) {}
+            }
+        } message: { action in
+            switch action {
+            case .switchProfile(let profile):
+                Text(profile == .reviewSample
+                     ? "App 会立即切到独立的审核样例数据空间。你的日常书架、阅读记录和偏好不会被修改。"
+                     : "App 会立即恢复日常数据空间，审核样例状态的数据会保留，之后仍可切回。")
+            case .resetReviewSample:
+                Text("这会删除审核样例状态里的导入书籍、阅读记录、缓存、模板和偏好，并恢复为仅包含示例文本。日常状态不会受影响。")
+            }
         }
         .onDisappear {
             lockAdvancedDebug()
         }
         .tint(viewModel.currentAccentColor)
-        .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
     }
 
     private var targetProfileForSwitch: AppDataProfile {
@@ -200,35 +208,13 @@ struct SettingsView: View {
         }
     }
 
-    private func debugAlert(for action: DebugProfileAction) -> Alert {
-        let primaryButton: Alert.Button
-
+    private func debugAlertTitle(for action: DebugProfileAction?) -> String {
+        guard let action else { return "" }
         switch action {
         case .switchProfile(let profile):
-            primaryButton = .default(Text(profile == .reviewSample ? "切换" : "切回")) {
-                session.switchProfile(to: profile)
-                closeSettings()
-            }
-            return Alert(
-                title: Text(profile == .reviewSample ? "切换到审核样例状态？" : "切回日常状态？"),
-                message: Text(profile == .reviewSample
-                              ? "App 会立即切到独立的审核样例数据空间。你的日常书架、阅读记录和偏好不会被修改。"
-                              : "App 会立即恢复日常数据空间，审核样例状态的数据会保留，之后仍可切回。"),
-                primaryButton: primaryButton,
-                secondaryButton: .cancel(Text("取消"))
-            )
-
+            return profile == .reviewSample ? "切换到审核样例状态？" : "切回日常状态？"
         case .resetReviewSample:
-            primaryButton = .destructive(Text("重置")) {
-                session.resetReviewSampleProfile()
-                closeSettings()
-            }
-            return Alert(
-                title: Text("重置审核样例状态？"),
-                message: Text("这会删除审核样例状态里的导入书籍、阅读记录、缓存、模板和偏好，并恢复为仅包含示例文本。日常状态不会受影响。"),
-                primaryButton: primaryButton,
-                secondaryButton: .cancel(Text("取消"))
-            )
+            return "重置审核样例状态？"
         }
     }
 

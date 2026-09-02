@@ -7,116 +7,113 @@ struct WiFiTransferView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Spacer()
-
+            Group {
                 if viewModel.isServerRunning {
-                    Image(systemName: "wifi")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .foregroundStyle(viewModel.currentAccentColor)
-                    Text("传输已就绪")
-                        .font(.title2)
-                        .padding(.bottom, 10)
-
-                    if let p = viewModel.wifiUploadProgress {
-                        VStack(spacing: 8) {
-                            Text("正在接收：\(viewModel.wifiUploadFilename ?? "文件")")
-                                .font(.subheadline)
-                            ProgressView(value: p)
-                            Text("\(Int(p * 100))%")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .padding(.horizontal)
-                    }
-                    if let err = viewModel.wifiUploadError {
-                        Text(err)
-                            .foregroundStyle(.red)
-                            .font(.footnote)
-                            .padding(.horizontal)
-                    }
-
-                    if let address = viewModel.serverAddress {
-                        Text("确保电脑与手机在同一 WiFi 下，在浏览器打开：")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-
-                        HStack {
-                            Text(address)
-                                .font(.system(.body, design: .monospaced))
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .padding(.leading)
-
-                            Spacer()
-
-                            Button {
-                                UIPasteboard.general.string = address
-                                isCopied = true
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                                    isCopied = false
-                                }
-                            } label: {
-                                Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
-                                    .foregroundStyle(isCopied ? .green : viewModel.currentAccentColor)
-                                    .frame(width: 22, height: 22)
+                    List {
+                        Section {
+                            HStack {
+                                Label("传输服务", systemImage: "wifi")
+                                    .foregroundStyle(viewModel.currentAccentColor)
+                                Spacer()
+                                Text("运行中")
+                                    .foregroundStyle(.secondary)
                             }
-                            .buttonStyle(.plain)
-                            .padding(.trailing)
                         }
-                        .padding(.vertical, 8)
-                        .background(Color(.secondarySystemBackground))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .padding(.horizontal)
 
-                    } else {
-                        Text("正在准备…")
-                            .foregroundStyle(.secondary)
-                            .padding(.vertical)
+                        Section {
+                            if let address = viewModel.serverAddress {
+                                HStack {
+                                    Text(address)
+                                        .font(.system(.body, design: .monospaced))
+                                        .textSelection(.enabled)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    
+                                    Spacer()
+                                    
+                                    Button {
+                                        UIPasteboard.general.string = address
+                                        isCopied = true
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                            isCopied = false
+                                        }
+                                    } label: {
+                                        Image(systemName: isCopied ? "checkmark" : "doc.on.doc")
+                                            .foregroundStyle(isCopied ? .green : viewModel.currentAccentColor)
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .buttonStyle(.plain)
+                                    .accessibilityLabel("拷贝地址")
+                                    .sensoryFeedback(.success, trigger: isCopied) { _, new in new }
+                                }
+                            } else {
+                                HStack {
+                                    ProgressView()
+                                        .padding(.trailing, 8)
+                                    Text("正在准备服务地址…")
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        } header: {
+                            Text("在电脑浏览器中打开")
+                        } footer: {
+                            Text("确保手机与电脑连接到同一 Wi‑Fi 网络。")
+                        }
+
+                        if let p = viewModel.wifiUploadProgress {
+                            Section("正在接收") {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text(viewModel.wifiUploadFilename ?? "文件")
+                                        .font(.subheadline)
+                                        .lineLimit(1)
+                                    ProgressView(value: p)
+                                    HStack {
+                                        Spacer()
+                                        Text("\(Int(p * 100))%")
+                                            .font(.caption)
+                                            .monospacedDigit()
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+
+                        if let err = viewModel.wifiUploadError {
+                            Section {
+                                Label(err, systemImage: "exclamationmark.triangle.fill")
+                                    .font(.footnote)
+                                    .foregroundStyle(.red)
+                            }
+                        }
+
+                        Section {
+                            Button(role: .destructive) {
+                                viewModel.toggleWiFiTransfer()
+                            } label: {
+                                HStack {
+                                    Spacer()
+                                    Text("停止传输")
+                                    Spacer()
+                                }
+                            }
+                        }
                     }
-
-                    Button("停止传输") {
-                        viewModel.toggleWiFiTransfer()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.red)
-                    .padding(.top)
-
                 } else {
-                     Image(systemName: "wifi.slash")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 80, height: 80)
-                        .foregroundStyle(.gray)
-                    Text("WiFi 传书")
-                        .font(.title2)
-                        .padding(.bottom, 10)
-                    Text("在电脑浏览器中打开地址，即可传入 TXT 文件")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal)
-
-                    Button("开始传输") {
-                        viewModel.toggleWiFiTransfer()
+                    ContentUnavailableView {
+                        Label("Wi‑Fi 传书", systemImage: "wifi")
+                    } description: {
+                        Text("在同一局域网下的电脑浏览器中打开指定地址，即可直接传入 TXT 文件。")
+                    } actions: {
+                        Button("开始传输") {
+                            viewModel.toggleWiFiTransfer()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(viewModel.currentAccentColor)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(viewModel.currentAccentColor)
-                    .padding(.top)
                 }
-
-                Spacer()
-                Spacer()
             }
-            .padding()
-            .navigationTitle("WiFi 传输")
+            .navigationTitle("Wi‑Fi 传输")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {

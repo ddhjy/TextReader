@@ -4,23 +4,31 @@ struct SearchView: View {
     @ObservedObject var viewModel: ContentViewModel
     @State private var searchText = ""
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         List {
             if searchText.isEmpty {
-                ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
-                    resultCell(page: idx, preview: preview, shouldHighlight: false)
+                if !viewModel.pageSummaries.isEmpty {
+                    Section("页面速览") {
+                        ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
+                            resultCell(page: idx, preview: preview, shouldHighlight: false)
+                        }
+                    }
                 }
             } else if viewModel.searchResults.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
-                ForEach(viewModel.searchResults, id: \.0) { idx, preview in
-                    resultCell(page: idx, preview: preview, shouldHighlight: true)
+                Section("\(viewModel.searchResults.count) 个结果") {
+                    ForEach(viewModel.searchResults, id: \.0) { idx, preview in
+                        resultCell(page: idx, preview: preview, shouldHighlight: true)
+                    }
                 }
             }
         }
         .scrollDismissesKeyboard(.interactively)
         .searchable(text: $searchText, prompt: "搜索内容")
+        .searchFocused($isSearchFocused)
         .onChange(of: searchText) { _, _ in
             viewModel.searchContent(searchText)
         }
@@ -29,6 +37,20 @@ struct SearchView: View {
         }
         .navigationTitle("搜索")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .close) {
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("关闭")
+            }
+        }
+        .onAppear {
+            isSearchFocused = true
+        }
     }
     
     @ViewBuilder
@@ -38,6 +60,11 @@ struct SearchView: View {
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
+                Text("第 \(idx + 1) 页")
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(viewModel.currentAccentColor)
+                
                 if shouldHighlight && !searchText.isEmpty {
                     highlightedText(preview: preview, searchQuery: searchText)
                         .font(.subheadline)
@@ -45,71 +72,28 @@ struct SearchView: View {
                 } else {
                     Text(preview)
                         .font(.subheadline)
+                        .foregroundStyle(.primary)
                         .lineLimit(2)
                 }
             }
+            .padding(.vertical, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
     }
     
-    @ViewBuilder
-    private func highlightedText(preview: String, searchQuery: String) -> some View {
-        let attributedString = createHighlightedAttributedString(
-            text: preview,
-            searchQuery: searchQuery
-        )
-        
-        if let attributedString = attributedString {
-            Text(AttributedString(attributedString))
-        } else {
-            Text(preview)
-        }
-    }
-    
-    private func createHighlightedAttributedString(text: String, searchQuery: String) -> NSAttributedString? {
-        guard !searchQuery.isEmpty else { return nil }
-        
-        let attributedString = NSMutableAttributedString(string: text)
-        
-        let ranges = text.ranges(of: searchQuery, options: [.caseInsensitive])
-        
-        guard !ranges.isEmpty else { return nil }
-        
-        for range in ranges {
-            let nsRange = NSRange(range, in: text)
-            
-            attributedString.addAttribute(
-                .backgroundColor,
-                value: UIColor(viewModel.currentAccentColor).withAlphaComponent(0.2),
-                range: nsRange
-            )
-            
-            attributedString.addAttribute(
-                .font,
-                value: UIFont.boldSystemFont(ofSize: UIFont.systemFontSize),
-                range: nsRange
-            )
-        }
-        
-        return attributedString
-    }
-}
+    private func highlightedText(preview: String, searchQuery: String) -> Text {
+        var attributed = AttributedString(preview)
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return Text(attributed) }
 
-extension String {
-    func ranges(of searchString: String, options: String.CompareOptions = []) -> [Range<String.Index>] {
-        var ranges: [Range<String.Index>] = []
-        var searchStartIndex = self.startIndex
-        
-        while searchStartIndex < self.endIndex {
-            if let range = self.range(of: searchString, options: options, range: searchStartIndex..<self.endIndex) {
-                ranges.append(range)
-                searchStartIndex = range.upperBound
-            } else {
-                break
-            }
+        var searchRange = attributed.startIndex..<attributed.endIndex
+        while let range = attributed[searchRange].range(of: query, options: .caseInsensitive) {
+            attributed[range].backgroundColor = viewModel.currentAccentColor.opacity(0.25)
+            attributed[range].font = .subheadline.weight(.semibold)
+            searchRange = range.upperBound..<attributed.endIndex
         }
-        
-        return ranges
+
+        return Text(attributed)
     }
 }

@@ -8,30 +8,32 @@ struct SleepTimerPicker: View {
     let accentColor: Color
     
     var body: some View {
-        ZStack {
-            ForEach(options, id: \.self) { minutes in
-                let isHovered = hoveredMinutes == minutes
-                
-                VStack(spacing: 2) {
-                    Text("\(minutes)")
-                        .font(.title3)
-                        .fontWeight(isHovered ? .semibold : .medium)
-                        .monospacedDigit()
-                    Text("分钟")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
+        GlassEffectContainer {
+            ZStack {
+                ForEach(options, id: \.self) { minutes in
+                    let isHovered = hoveredMinutes == minutes
+                    
+                    VStack(spacing: 2) {
+                        Text("\(minutes)")
+                            .font(.title3)
+                            .fontWeight(isHovered ? .semibold : .medium)
+                            .monospacedDigit()
+                        Text("分钟")
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(isHovered ? Color.white.opacity(0.9) : .secondary)
+                    }
+                    .frame(width: 56, height: 56)
+                    .foregroundStyle(isHovered ? Color.white : accentColor)
+                    .background(
+                        Circle()
+                            .fill(isHovered ? accentColor : .clear)
+                    )
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .shadow(color: accentColor.opacity(isHovered ? 0.35 : 0.0), radius: 10)
+                    .scaleEffect(isHovered ? 1.12 : 1.0)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
+                    .offset(SleepTimerPicker.offset(forOption: minutes))
                 }
-                .frame(width: 56, height: 56)
-                .foregroundStyle(isHovered ? Color.white : accentColor)
-                .background(
-                    Circle()
-                        .fill(isHovered ? accentColor : Color(.systemBackground).opacity(0.001))
-                )
-                .glassEffect(.regular.interactive(), in: .circle)
-                .shadow(color: accentColor.opacity(isHovered ? 0.35 : 0.0), radius: 10)
-                .scaleEffect(isHovered ? 1.12 : 1.0)
-                .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
-                .offset(SleepTimerPicker.offset(forOption: minutes))
             }
         }
         .frame(width: 280, height: 220)

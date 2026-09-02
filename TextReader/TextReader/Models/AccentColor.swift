@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct AccentColorTheme: Identifiable, Codable {
     let id: String
@@ -10,6 +11,14 @@ struct AccentColorTheme: Identifiable, Codable {
         let hex = colorScheme == .dark ? darkColor : lightColor
         return Color(hex: hex) ?? .accentColor
     }
+
+    var dynamicColor: Color {
+        let light = Color(hex: lightColor) ?? .blue
+        let dark = Color(hex: darkColor) ?? .blue
+        return Color(uiColor: UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        })
+    }
     
     static let presets: [AccentColorTheme] = [
         AccentColorTheme(id: "blue", name: "默认蓝", lightColor: "#007AFF", darkColor: "#0A84FF"),
@@ -20,7 +29,7 @@ struct AccentColorTheme: Identifiable, Codable {
         AccentColorTheme(id: "teal", name: "清新青", lightColor: "#5AC8FA", darkColor: "#64D2FF"),
         AccentColorTheme(id: "sky-blue", name: "天蓝色", lightColor: "#4C8CE6", darkColor: "#4C8CE6"),
         AccentColorTheme(id: "obsidian", name: "Obsidian", lightColor: "#705dcf", darkColor: "#705dcf"),
-        AccentColorTheme(id: "black", name: "经典黑", lightColor: "#1C1C1E", darkColor: "#000000")
+        AccentColorTheme(id: "black", name: "经典黑", lightColor: "#1C1C1E", darkColor: "#F2F2F7")
     ]
 }
 

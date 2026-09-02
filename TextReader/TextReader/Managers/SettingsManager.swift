@@ -14,6 +14,7 @@ class SettingsManager {
         static let selectedVoiceIdentifier = "selectedVoiceIdentifier"
         static let lastOpenedBookId = "currentBookID"
         static let isDarkMode = "isDarkMode"
+        static let appearanceMode = "appearanceMode"
         static let accentColorThemeId = "accentColorThemeId"
         static let lastPageContent = "lastPageContent"
         static let lastPageIndex = "lastPageIndex"
@@ -32,6 +33,7 @@ class SettingsManager {
 
         static let sharedAppearance = [
             isDarkMode,
+            appearanceMode,
             accentColorThemeId
         ]
     }
@@ -68,12 +70,28 @@ class SettingsManager {
         return defaults.string(forKey: key(Keys.lastOpenedBookId))
     }
     
+    func saveAppearanceMode(_ mode: AppearanceMode) {
+        defaults.set(mode.rawValue, forKey: key(Keys.appearanceMode))
+        defaults.set(mode == .dark, forKey: key(Keys.isDarkMode))
+    }
+
+    func getAppearanceMode() -> AppearanceMode {
+        if let raw = defaults.string(forKey: key(Keys.appearanceMode)),
+           let mode = AppearanceMode(rawValue: raw) {
+            return mode
+        }
+        if defaults.object(forKey: key(Keys.isDarkMode)) != nil {
+            return defaults.bool(forKey: key(Keys.isDarkMode)) ? .dark : .light
+        }
+        return .system
+    }
+
     func saveDarkMode(_ enabled: Bool) {
-        defaults.set(enabled, forKey: key(Keys.isDarkMode))
+        saveAppearanceMode(enabled ? .dark : .light)
     }
     
     func getDarkMode() -> Bool {
-        return defaults.bool(forKey: key(Keys.isDarkMode))
+        return getAppearanceMode() == .dark
     }
     
     func saveAccentColorThemeId(_ id: String) {

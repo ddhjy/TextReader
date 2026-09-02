@@ -9,7 +9,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                (viewModel.darkModeEnabled ? Color.black : Color(UIColor.systemBackground))
+                Color(.systemBackground)
                     .ignoresSafeArea()
                 
                 ContentDisplay(viewModel: viewModel)
@@ -35,14 +35,12 @@ struct ContentView: View {
             .navigationTitle(viewModel.currentBookTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(viewModel.currentBookTitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
-                }
+            .preferredColorScheme(viewModel.appearanceMode.colorScheme)
+        }
+        .onChange(of: viewModel.sharedImportBannerMessage) { _, message in
+            if let message {
+                AccessibilityNotification.Announcement(message).post()
             }
-            .preferredColorScheme(viewModel.darkModeEnabled ? .dark : .light)
         }
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
