@@ -5,14 +5,14 @@ import Testing
 struct WiFiUploadRequestParserTests {
     @Test
     func parsesHeadersWithoutDecodingPartialUTF8Body() throws {
-        let header = """
-        POST /upload HTTP/1.1\r
-        Host: 127.0.0.1:8080\r
-        Content-Type: multipart/form-data; boundary=test-boundary\r
-        Content-Length: 3\r
-        \r
-        """
-        var request = Data(header.utf8)
+        var request = makeHTTPRequest(
+            requestLine: "POST /upload HTTP/1.1",
+            headers: [
+                "Host: 127.0.0.1:8080",
+                "Content-Type: multipart/form-data; boundary=test-boundary",
+                "Content-Length: 3"
+            ]
+        )
         request.append(contentsOf: [0xE8, 0xA2])
 
         #expect(String(data: request, encoding: .utf8) == nil)
@@ -89,14 +89,22 @@ struct WiFiUploadRequestParserTests {
         body.append(Data("\r\n--\(boundary)--\r\n".utf8))
 
         let boundaryValue = quoteBoundary ? "\"\(boundary)\"" : boundary
-        let header = """
-        POST /upload HTTP/1.1\r
-        Host: 127.0.0.1:8080\r
-        Content-Type: multipart/form-data; boundary=\(boundaryValue)\r
-        Content-Length: \(body.count)\r
-        \r
-        """
-        var request = Data(header.utf8)
+        return makeHTTPRequest(
+            requestLine: "POST /upload HTTP/1.1",
+            headers: [
+                "Host: 127.0.0.1:8080",
+                "Content-Type: multipart/form-data; boundary=\(boundaryValue)",
+                "Content-Length: \(body.count)"
+            ],
+            body: body
+        )
+    }
+
+    /// 用显式 CRLF 拼请求头。Swift 多行字符串会丢掉收尾 `"""` 前的换行，
+    /// 写成 `"...\r\n\r"` 而不是 HTTP 要求的 `"\r\n\r\n"`，解析器会误把
+    /// multipart 段头里的空行当成请求头结束。
+    private func makeHTTPRequest(requestLine: String, headers: [String], body: Data = Data()) -> Data {
+        var request = Data((([requestLine] + headers).joined(separator: "\r\n") + "\r\n\r\n").utf8)
         request.append(body)
         return request
     }

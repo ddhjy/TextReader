@@ -263,7 +263,8 @@ struct SharedImportFlowTests {
         let viewModel = ContentViewModel(
             libraryManager: LibraryManager(
                 fileManager: .default,
-                documentsDirectoryProvider: { tempDocuments }
+                documentsDirectoryProvider: { tempDocuments },
+                builtInBooks: []
             ),
             speechManager: speechManager,
             wiFiTransferService: WiFiTransferService(),
@@ -317,7 +318,8 @@ struct SharedImportFlowTests {
         let viewModel = ContentViewModel(
             libraryManager: LibraryManager(
                 fileManager: .default,
-                documentsDirectoryProvider: { tempDocuments }
+                documentsDirectoryProvider: { tempDocuments },
+                builtInBooks: []
             ),
             speechManager: speechManager,
             wiFiTransferService: WiFiTransferService(),
