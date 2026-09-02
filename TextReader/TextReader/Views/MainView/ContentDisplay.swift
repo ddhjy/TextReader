@@ -21,6 +21,17 @@ struct ContentDisplay: View {
     /// 聚焦蒙层能正确计算之后，避免出现「首屏整页全清晰、翻几页才有蒙层」。
     @State private var awaitingReveal = false
 
+    /// 阅读区滚动位置。用状态而不是一次性 `scrollTo` 命令，回前台后的首次布局
+    /// 会按当前页自动落位，避免后台听书推进页码后画面停在离开前的页。
+    @State private var scrollPosition: ScrollPosition
+
+    init(viewModel: ContentViewModel) {
+        self.viewModel = viewModel
+        _scrollPosition = State(
+            initialValue: ScrollPosition(id: viewModel.currentPageIndex, anchor: .center)
+        )
+    }
+
     var body: some View {
         GeometryReader { geometry in
             content(geometry: geometry)
@@ -45,114 +56,116 @@ struct ContentDisplay: View {
     }
 
     private func scrollingContent(geometry: GeometryProxy) -> some View {
-        ScrollViewReader { proxy in
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    Color.clear
-                        .frame(height: geometry.size.height * 0.5)
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 0) {
+                Color.clear
+                    .frame(height: geometry.size.height * 0.5)
 
-                    LazyVStack(alignment: .leading, spacing: segmentSpacing) {
-                        ForEach(viewModel.pages.indices, id: \.self) { idx in
-                            Text(viewModel.pages[idx])
-                                .font(.system(size: fontSize))
-                                .kerning(kerning)
-                                .lineSpacing(lineSpacing)
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                                .id(idx)
-                                .accessibilityHidden(idx != viewModel.currentPageIndex)
-                                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                                    if pageHeights[idx] != height {
-                                        pageHeights[idx] = height
-                                    }
-                                    // 当前页几何回传后，聚焦蒙层已可正确计算，此时方可淡入。
-                                    if idx == viewModel.currentPageIndex {
-                                        revealIfCurrentPageMeasured()
-                                    }
+                LazyVStack(alignment: .leading, spacing: segmentSpacing) {
+                    ForEach(viewModel.pages.indices, id: \.self) { idx in
+                        Text(viewModel.pages[idx])
+                            .font(.system(size: fontSize))
+                            .kerning(kerning)
+                            .lineSpacing(lineSpacing)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .id(idx)
+                            .accessibilityHidden(idx != viewModel.currentPageIndex)
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
+                                if pageHeights[idx] != height {
+                                    pageHeights[idx] = height
                                 }
-                        }
+                                // 当前页几何回传后，聚焦蒙层已可正确计算，此时方可淡入。
+                                if idx == viewModel.currentPageIndex {
+                                    revealIfCurrentPageMeasured()
+                                }
+                            }
                     }
-                    .padding(.horizontal)
+                }
+                .scrollTargetLayout()
+                .padding(.horizontal)
 
-                    Color.clear
-                        .frame(height: geometry.size.height * 0.5)
+                Color.clear
+                    .frame(height: geometry.size.height * 0.5)
+            }
+        }
+        .scrollPosition($scrollPosition, anchor: .center)
+        .scrollDisabled(true)
+        .mask(focusGradient(containerHeight: geometry.size.height))
+        .contentShape(Rectangle())
+        .opacity(contentRevealed ? 1 : 0)
+        .gesture(
+            LongPressGesture(minimumDuration: 0.3)
+                .onEnded { _ in
+                    viewModel.triggerBigBang()
+                }
+        )
+        .simultaneousGesture(
+            SpatialTapGesture()
+                .onEnded { value in
+                    handleTapGesture(at: value.location, containerHeight: geometry.size.height)
+                }
+        )
+        .onAppear {
+            // 清除「静默翻页」残留标志：init / 缓存恢复阶段若把页码从 0 改到上次停留的
+            // 非首页，会置位该标志；但首屏定位由下方 positionAndPrepareReveal 无动画完成、
+            // 并不依赖它，且首屏 currentPageIndex 的基线已是目标页，不会触发 onChange 去
+            // 消费它。若不在此清除，它会残留到用户「第一次手动翻页」时才被消费，导致首次
+            // 翻页被误判为静默而丢失动画，要翻到第二页才恢复。
+            _ = viewModel.consumePendingSilentPageScroll()
+            positionAndPrepareReveal()
+            // 兜底：极端情况下当前页几何始终未回传，超时后也强制定位并显示，避免永久留白。
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                forceReveal()
+            }
+        }
+        .onChange(of: viewModel.isContentSettled) { _, settled in
+            if settled {
+                positionAndPrepareReveal()
+            } else {
+                // 切换书籍等场景回到占位预览：先淡出，待新内容就位后再淡入。
+                awaitingReveal = false
+                withAnimation(.easeOut(duration: 0.18)) {
+                    contentRevealed = false
                 }
             }
-            .scrollDisabled(true)
-            .mask(focusGradient(containerHeight: geometry.size.height))
-            .contentShape(Rectangle())
-            .opacity(contentRevealed ? 1 : 0)
-            .gesture(
-                LongPressGesture(minimumDuration: 0.3)
-                    .onEnded { _ in
-                        viewModel.triggerBigBang()
-                    }
-            )
-            .simultaneousGesture(
-                SpatialTapGesture()
-                    .onEnded { value in
-                        handleTapGesture(at: value.location, containerHeight: geometry.size.height)
-                    }
-            )
-            .onAppear {
-                // 清除「静默翻页」残留标志：init / 缓存恢复阶段若把页码从 0 改到上次停留的
-                // 非首页，会置位该标志；但首屏定位由下方 positionAndPrepareReveal 无动画完成、
-                // 并不依赖它，且首屏 currentPageIndex 的基线已是目标页，不会触发 onChange 去
-                // 消费它。若不在此清除，它会残留到用户「第一次手动翻页」时才被消费，导致首次
-                // 翻页被误判为静默而丢失动画，要翻到第二页才恢复。
-                _ = viewModel.consumePendingSilentPageScroll()
-                positionAndPrepareReveal(using: proxy)
-                // 兜底：极端情况下当前页几何始终未回传，超时后也强制定位并显示，避免永久留白。
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                    forceReveal(using: proxy)
-                }
+        }
+        .onChange(of: viewModel.currentPageIndex) { _, _ in
+            // 切换书籍、加载/恢复内容、删除、搜索跳转等"非阅读语境"会通过
+            // ViewModel 设置一次性标志；后台听书续页也会标静默。再叠加 scenePhase，
+            // 避免回前台时把累计翻页补成一段滚动动画。
+            let silent = viewModel.consumePendingSilentPageScroll()
+            scrollToCurrentPage(animated: !silent && scenePhase == .active)
+        }
+        .onChange(of: viewModel.contentScrollRevision) { _, _ in
+            scrollToCurrentPage(animated: false)
+        }
+        .onChange(of: viewModel.pages.count) { _, _ in
+            scrollToCurrentPage(animated: false)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // 回到前台：若滚动状态仍停在离开前的页，而无动画地对齐到当前朗读页。
+            // 同时丢掉后台「前进又后退」净变化为零时残留的静默标志，避免下次手动翻页丢动画。
+            guard newPhase == .active else { return }
+            _ = viewModel.consumePendingSilentPageScroll()
+            if scrollPosition.viewID(type: Int.self) != viewModel.currentPageIndex {
+                scrollToCurrentPage(animated: false)
             }
-            .onChange(of: viewModel.isContentSettled) { _, settled in
-                if settled {
-                    positionAndPrepareReveal(using: proxy)
-                } else {
-                    // 切换书籍等场景回到占位预览：先淡出，待新内容就位后再淡入。
-                    awaitingReveal = false
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        contentRevealed = false
-                    }
-                }
+        }
+    }
+
+    /// 把阅读区定位到当前页（居中）。滚动位置是视图状态，回前台后的首次布局会自动按它落位。
+    private func scrollToCurrentPage(animated: Bool) {
+        let target = viewModel.currentPageIndex
+        if animated {
+            withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
+                scrollPosition.scrollTo(id: target, anchor: .center)
             }
-            .onChange(of: viewModel.currentPageIndex) { _, newIndex in
-                // 切换书籍、加载/恢复内容、删除、搜索跳转等"非阅读语境"会通过
-                // ViewModel 设置一次性标志，这里据此跳过动画，让目标内容直接呈现，
-                // 只有用户阅读/朗读自动续页时才看到翻页动画。
-                if viewModel.consumePendingSilentPageScroll() {
-                    proxy.scrollTo(newIndex, anchor: .center)
-                } else {
-                    withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
-                        proxy.scrollTo(newIndex, anchor: .center)
-                    }
-                }
-            }
-            .onChange(of: viewModel.contentScrollRevision) { _, _ in
-                DispatchQueue.main.async {
-                    proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
-                }
-            }
-            .onChange(of: viewModel.pages.count) { _, _ in
-                DispatchQueue.main.async {
-                    proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
-                }
-            }
-            .onChange(of: scenePhase) { _, newPhase in
-                // 回到前台：后台朗读自动续页 / 远程翻页期间，ScrollView 并未真正滚动，
-                // 而 currentPageIndex 已推进多页。此处在恢复前台的第一时间无动画地直接
-                // 定位到当前朗读页，消除"打开后才补一段滚动"的突兀效果，并兜底覆盖
-                // 后台滚动未生效（页面停在离开前位置）的情况。
-                guard newPhase == .active else { return }
-                DispatchQueue.main.async {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
-                    }
-                }
+        } else {
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                scrollPosition.scrollTo(id: target, anchor: .center)
             }
         }
     }
@@ -160,11 +173,11 @@ struct ContentDisplay: View {
     /// 内容进入「最终分页」后：先在隐藏状态下静默居中定位，随后等待当前页几何回传、
     /// 聚焦蒙层可正确计算时再淡入（见 `revealIfCurrentPageMeasured`），既消除首屏抖动，
     /// 又避免「整页全清晰、翻几页后蒙层才生效」。
-    private func positionAndPrepareReveal(using proxy: ScrollViewProxy) {
+    private func positionAndPrepareReveal() {
         guard viewModel.isContentSettled, !contentRevealed else { return }
         awaitingReveal = true
         DispatchQueue.main.async {
-            proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
+            scrollToCurrentPage(animated: false)
             // 当前页若已测得高度则立即淡入，否则等待其 onGeometryChange 回传后触发。
             revealIfCurrentPageMeasured()
         }
@@ -181,11 +194,11 @@ struct ContentDisplay: View {
     }
 
     /// 兜底淡入：当前页几何迟迟未回传时也确保内容显示，避免永久留白。
-    private func forceReveal(using proxy: ScrollViewProxy) {
+    private func forceReveal() {
         guard !contentRevealed else { return }
         awaitingReveal = false
         DispatchQueue.main.async {
-            proxy.scrollTo(viewModel.currentPageIndex, anchor: .center)
+            scrollToCurrentPage(animated: false)
             DispatchQueue.main.async {
                 guard !contentRevealed else { return }
                 withAnimation(.easeOut(duration: 0.22)) {
