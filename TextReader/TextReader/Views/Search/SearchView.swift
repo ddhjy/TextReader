@@ -4,31 +4,23 @@ struct SearchView: View {
     @ObservedObject var viewModel: ContentViewModel
     @State private var searchText = ""
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         List {
             if searchText.isEmpty {
-                if !viewModel.pageSummaries.isEmpty {
-                    Section("页面速览") {
-                        ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
-                            resultCell(page: idx, preview: preview, shouldHighlight: false)
-                        }
-                    }
+                ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
+                    resultCell(page: idx, preview: preview, shouldHighlight: false)
                 }
             } else if viewModel.searchResults.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
-                Section("\(viewModel.searchResults.count) 个结果") {
-                    ForEach(viewModel.searchResults, id: \.0) { idx, preview in
-                        resultCell(page: idx, preview: preview, shouldHighlight: true)
-                    }
+                ForEach(viewModel.searchResults, id: \.0) { idx, preview in
+                    resultCell(page: idx, preview: preview, shouldHighlight: true)
                 }
             }
         }
         .scrollDismissesKeyboard(.interactively)
         .searchable(text: $searchText, prompt: "搜索内容")
-        .searchFocused($isSearchFocused)
         .onChange(of: searchText) { _, _ in
             viewModel.searchContent(searchText)
         }
@@ -48,9 +40,6 @@ struct SearchView: View {
                 .accessibilityLabel("关闭")
             }
         }
-        .onAppear {
-            isSearchFocused = true
-        }
     }
     
     @ViewBuilder
@@ -60,11 +49,6 @@ struct SearchView: View {
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
-                Text("第 \(idx + 1) 页")
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .foregroundStyle(viewModel.currentAccentColor)
-                
                 if shouldHighlight && !searchText.isEmpty {
                     highlightedText(preview: preview, searchQuery: searchText)
                         .font(.subheadline)
@@ -72,11 +56,9 @@ struct SearchView: View {
                 } else {
                     Text(preview)
                         .font(.subheadline)
-                        .foregroundStyle(.primary)
                         .lineLimit(2)
                 }
             }
-            .padding(.vertical, 2)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .buttonStyle(.plain)
