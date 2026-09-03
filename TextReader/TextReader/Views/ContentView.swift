@@ -37,11 +37,6 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .preferredColorScheme(viewModel.appearanceMode.colorScheme)
         }
-        .onChange(of: viewModel.sharedImportBannerMessage) { _, message in
-            if let message {
-                AccessibilityNotification.Announcement(message).post()
-            }
-        }
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
                 BookListView(viewModel: viewModel)
@@ -71,13 +66,19 @@ struct ContentView: View {
                     .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
                     .padding(.top, 12)
                     .transition(.move(edge: .top).combined(with: .opacity))
+                    .accessibilityAddTraits(.updatesFrequently)
             }
         }
         .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.sharedImportBannerMessage)
+        .onChange(of: viewModel.sharedImportBannerMessage) { _, newValue in
+            if let newValue {
+                AccessibilityNotification.Announcement(newValue).post()
+            }
+        }
         .tint(viewModel.currentAccentColor)
     }
 } 
 
 #Preview {
     ContentView(viewModel: ContentViewModel(), session: AppSessionController())
-} 
+}

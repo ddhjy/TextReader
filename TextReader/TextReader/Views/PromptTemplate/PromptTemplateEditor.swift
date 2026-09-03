@@ -2,12 +2,12 @@ import SwiftUI
 
 struct PromptTemplateEditor: View {
     @Environment(\.dismiss) private var dismiss
-    @State var template: PromptTemplate
+    @State private var template: PromptTemplate
     @State private var showingDiscardConfirmation = false
-    let original: PromptTemplate
     let viewModel: ContentViewModel
     let onSave: (PromptTemplate) -> Void
     let onAdd: (PromptTemplate) -> Void
+    private let original: PromptTemplate
     
     private let emptyUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
     
@@ -32,7 +32,7 @@ struct PromptTemplateEditor: View {
                 Section("名称") {
                     TextField("如：翻译、总结、解释", text: $template.name)
                 }
-                
+
                 Section {
                     TextEditor(text: $template.content)
                         .frame(minHeight: 180)
@@ -48,11 +48,7 @@ struct PromptTemplateEditor: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
-                        if hasChanges {
-                            showingDiscardConfirmation = true
-                        } else {
-                            dismiss()
-                        }
+                        attemptDismiss()
                     }
                 }
                 
@@ -66,8 +62,8 @@ struct PromptTemplateEditor: View {
                         dismiss()
                     }
                     .disabled(
-                        template.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ||
-                        template.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        template.name.trimmingCharacters(in: .whitespaces).isEmpty ||
+                        template.content.trimmingCharacters(in: .whitespaces).isEmpty
                     )
                 }
             }
@@ -77,9 +73,17 @@ struct PromptTemplateEditor: View {
                 }
                 Button("继续编辑", role: .cancel) {}
             } message: {
-                Text("未保存的修改将会丢失。")
+                Text("你所做的修改将不会被保存。")
             }
         }
         .tint(viewModel.currentAccentColor)
+    }
+
+    private func attemptDismiss() {
+        if hasChanges {
+            showingDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
     }
 }

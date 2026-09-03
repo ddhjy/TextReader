@@ -1,9 +1,9 @@
 import SwiftUI
 
 enum AppearanceMode: String, CaseIterable, Identifiable, Codable {
-    case system = "system"
-    case light = "light"
-    case dark = "dark"
+    case system
+    case light
+    case dark
 
     var id: String { rawValue }
 

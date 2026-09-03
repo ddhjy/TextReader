@@ -10,10 +10,6 @@ struct BookListView: View {
     @State private var selectedBookIDs = Set<String>()
     @State private var searchText = ""
 
-    private var isEditing: Bool {
-        editMode.isEditing
-    }
-
     private var filteredBooks: [Book] {
         if searchText.isEmpty {
             return viewModel.books
@@ -25,6 +21,10 @@ struct BookListView: View {
 
     private var deletableFilteredBooks: [Book] {
         filteredBooks.filter { !$0.isBuiltIn }
+    }
+
+    private var isEditing: Bool {
+        editMode.isEditing
     }
 
     var body: some View {
@@ -41,7 +41,7 @@ struct BookListView: View {
                             } label: {
                                 Label("删除", systemImage: "trash")
                             }
-                            
+
                             if !book.isBuiltIn {
                                 Button {
                                     viewModel.bookToEdit = book
@@ -59,89 +59,85 @@ struct BookListView: View {
         .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
-        .searchable(text: $searchText, prompt: "搜索书名")
+        .searchable(
+            text: $searchText,
+            placement: .navigationBarDrawer(displayMode: .automatic),
+            prompt: "搜索书名"
+        )
         .onChange(of: searchText) { _, _ in
-            selectedBookIDs = selectedBookIDs.intersection(Set(deletableFilteredBooks.map { $0.id }))
+            selectedBookIDs = selectedBookIDs.intersection(Set(deletableFilteredBooks.map(\.id)))
+        }
+        .onChange(of: editMode) { _, newMode in
+            if !newMode.isEditing {
+                selectedBookIDs.removeAll()
+            }
         }
         .overlay {
-            if viewModel.books.isEmpty {
-                ContentUnavailableView {
-                    Label("书架为空", systemImage: "books.vertical")
-                } description: {
-                    Text("从右上角加号导入 TXT 文件开始阅读。")
-                }
-            } else if filteredBooks.isEmpty && !searchText.isEmpty {
+            if filteredBooks.isEmpty && !searchText.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             }
         }
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button(isEditing ? "完成" : "编辑") {
-                    withAnimation {
-                        if isEditing {
-                            editMode = .inactive
-                            selectedBookIDs.removeAll()
-                        } else {
-                            editMode = .active
-                        }
+                    if isEditing {
+                        editMode = .inactive
+                        selectedBookIDs.removeAll()
+                    } else {
+                        editMode = .active
                     }
-                }
-                .disabled(viewModel.books.isEmpty)
-            }
-            
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if !isEditing {
-                    Menu {
-                        Button {
-                            viewModel.showingDocumentPicker = true
-                        } label: {
-                            Label("从文件导入", systemImage: "doc")
-                        }
-
-                        Button {
-                            showingPasteImport = true
-                        } label: {
-                            Label("粘贴文本", systemImage: "doc.on.clipboard")
-                        }
-                        
-                        Button {
-                            viewModel.showingWiFiTransferView = true
-                        } label: {
-                            Label("Wi‑Fi 传输", systemImage: "wifi")
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .accessibilityLabel("导入书籍")
-
-                    Button(role: .close) {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
-                    }
-                    .accessibilityLabel("关闭")
                 }
             }
 
-            ToolbarItemGroup(placement: .bottomBar) {
-                if isEditing {
-                    let allSelected = !deletableFilteredBooks.isEmpty && selectedBookIDs.count >= deletableFilteredBooks.count
-                    Button(allSelected ? "取消全选" : "全选") {
-                        if allSelected {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        viewModel.showingDocumentPicker = true
+                    } label: {
+                        Label("从文件导入", systemImage: "doc")
+                    }
+
+                    Button {
+                        showingPasteImport = true
+                    } label: {
+                        Label("粘贴文本", systemImage: "doc.on.clipboard")
+                    }
+
+                    Button {
+                        viewModel.showingWiFiTransferView = true
+                    } label: {
+                        Label("Wi‑Fi 传输", systemImage: "wifi")
+                    }
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .accessibilityLabel("导入")
+            }
+
+            ToolbarSpacer(.fixed, placement: .topBarTrailing)
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(role: .close) {
+                    dismiss()
+                }
+                .accessibilityLabel("关闭")
+            }
+
+            if isEditing {
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button(allDeletableSelected ? "取消全选" : "全选") {
+                        if allDeletableSelected {
                             selectedBookIDs.removeAll()
                         } else {
-                            selectedBookIDs = Set(deletableFilteredBooks.map { $0.id })
+                            selectedBookIDs = Set(deletableFilteredBooks.map(\.id))
                         }
                     }
                     .disabled(deletableFilteredBooks.isEmpty)
 
                     Spacer()
 
-                    Button(role: .destructive) {
+                    Button("删除", role: .destructive) {
                         showingDeleteAlert = true
-                    } label: {
-                        Text(selectedBookIDs.isEmpty ? "删除" : "删除 (\(selectedBookIDs.count))")
                     }
                     .disabled(selectedBookIDs.isEmpty)
                 }
@@ -161,7 +157,7 @@ struct BookListView: View {
                 BookEditView(viewModel: viewModel, book: book)
             }
         }
-        .alert(isEditing ? "删除所选书籍？" : "删除「\(bookToDelete?.title ?? "此书")」？", isPresented: $showingDeleteAlert) {
+        .alert(isEditing ? "删除所选书籍？" : deleteSingleTitle, isPresented: $showingDeleteAlert) {
             Button("取消", role: .cancel) {}
             Button("删除", role: .destructive) {
                 if isEditing {
@@ -171,7 +167,6 @@ struct BookListView: View {
                     editMode = .inactive
                 } else if let book = bookToDelete {
                     viewModel.deleteBook(book)
-                    bookToDelete = nil
                 }
             }
         } message: {
@@ -179,10 +174,21 @@ struct BookListView: View {
         }
     }
 
+    private var allDeletableSelected: Bool {
+        !deletableFilteredBooks.isEmpty && selectedBookIDs == Set(deletableFilteredBooks.map(\.id))
+    }
+
+    private var deleteSingleTitle: String {
+        if let book = bookToDelete {
+            return "删除「\(book.title)」？"
+        }
+        return "删除这本书？"
+    }
+
     @ViewBuilder
     private func bookRow(_ book: Book) -> some View {
         if isEditing {
-            bookContent(book)
+            bookRowContent(book)
         } else {
             Button {
                 if viewModel.currentBookId != book.id {
@@ -193,21 +199,20 @@ struct BookListView: View {
                     dismiss()
                 }
             } label: {
-                bookContent(book)
+                bookRowContent(book)
             }
-            .buttonStyle(.plain)
         }
     }
 
-    private func bookContent(_ book: Book) -> some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+    private func bookRowContent(_ book: Book) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(book.title)
-                    .font(.body)
                     .foregroundStyle(.primary)
+                    .font(.body)
                     .lineLimit(1)
-                
-                if viewModel.currentBookId == book.id {
+
+                if book.id == viewModel.currentBookId {
                     Text("正在阅读")
                         .font(.subheadline)
                         .foregroundStyle(viewModel.currentAccentColor)
@@ -217,17 +222,16 @@ struct BookListView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            
+
             Spacer()
-            
+
             if let progressText = viewModel.getBookProgressDisplay(book: book) {
                 Text(progressText)
-                    .font(.callout)
+                    .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
-                    .monospacedDigit()
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 2)
+        .contentShape(Rectangle())
     }
 }

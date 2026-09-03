@@ -29,14 +29,19 @@ struct DocumentPicker: UIViewControllerRepresentable {
 
         func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
             guard let url = urls.first else {
+                print("[DocumentPicker][Error] No URL selected or provided by picker.")
                 parent.dismiss()
                 return
             }
+            print("[DocumentPicker] Picked URL: \(url.absoluteString)")
+            print("[DocumentPicker] Is File URL: \(url.isFileURL)")
+
             parent.viewModel.importBookFromURL(url)
             parent.dismiss()
         }
 
         func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+            print("[DocumentPicker] Picker was cancelled by user.")
             parent.dismiss()
         }
     }

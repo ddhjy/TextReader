@@ -3,16 +3,16 @@ import SwiftUI
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = 19
-    private var effectiveFontSize: CGFloat {
-        min(max(scaledFontSize, 15), 24)
-    }
+
+    private var fontSize: CGFloat { min(scaledFontSize, 24) }
     private let kerning: CGFloat = 0.3
     private let lineSpacing: CGFloat = 8
     private let segmentSpacing: CGFloat = 22
     private let pageTurnAnimationDuration: TimeInterval = 0.25
+    private let readableColumnWidth: CGFloat = 680
 
     /// 各页实际渲染高度（按页索引缓存）。用于让聚焦遮罩的清晰窗口动态匹配当前页高度。
     @State private var pageHeights: [Int: CGFloat] = [:]
@@ -56,13 +56,11 @@ struct ContentDisplay: View {
         ContentUnavailableView {
             Label("开始阅读", systemImage: "books.vertical")
         } description: {
-            Text("轻触书架选择书籍，或导入新的文本。")
+            Text("从书架选择一本书，或导入文本开始阅读。")
         } actions: {
             Button("打开书架") {
                 viewModel.showingBookList = true
             }
-            .buttonStyle(.borderedProminent)
-            .tint(viewModel.currentAccentColor)
         }
         .frame(width: width, height: height)
     }
@@ -75,31 +73,40 @@ struct ContentDisplay: View {
 
                 LazyVStack(alignment: .leading, spacing: segmentSpacing) {
                     ForEach(viewModel.pages.indices, id: \.self) { idx in
-                        PageTextView(
-                            index: idx,
-                            text: viewModel.pages[idx],
-                            fontSize: effectiveFontSize,
-                            kerning: kerning,
-                            lineSpacing: lineSpacing,
-                            isCurrentPage: idx == viewModel.currentPageIndex,
-                            totalPages: viewModel.pages.count,
-                            onPrevious: { viewModel.previousPage() },
-                            onNext: { viewModel.nextPage() },
-                            onBigBang: { viewModel.triggerBigBang() },
-                            onHeightChange: { height in
+                        Text(viewModel.pages[idx])
+                            .font(.system(size: fontSize))
+                            .kerning(kerning)
+                            .lineSpacing(lineSpacing)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .topLeading)
+                            .id(idx)
+                            .accessibilityHidden(idx != viewModel.currentPageIndex)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(viewModel.pages[idx])
+                            .accessibilityValue("第 \(idx + 1) 页，共 \(viewModel.pages.count) 页")
+                            .accessibilityAction(named: "上一页") {
+                                viewModel.previousPage()
+                            }
+                            .accessibilityAction(named: "下一页") {
+                                viewModel.nextPage()
+                            }
+                            .accessibilityAction(named: "选词") {
+                                viewModel.triggerBigBang()
+                            }
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
                                 if pageHeights[idx] != height {
                                     pageHeights[idx] = height
                                 }
+                                // 当前页几何回传后，聚焦蒙层已可正确计算，此时方可淡入。
                                 if idx == viewModel.currentPageIndex {
                                     revealIfCurrentPageMeasured()
                                 }
                             }
-                        )
                     }
                 }
                 .scrollTargetLayout()
-                .padding(.horizontal, 24)
-                .frame(maxWidth: 680)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: readableColumnWidth)
                 .frame(maxWidth: .infinity)
 
                 Color.clear
@@ -300,38 +307,5 @@ struct ContentDisplay: View {
         } else {
             viewModel.nextPage()
         }
-    }
-}
-
-private struct PageTextView: View {
-    let index: Int
-    let text: String
-    let fontSize: CGFloat
-    let kerning: CGFloat
-    let lineSpacing: CGFloat
-    let isCurrentPage: Bool
-    let totalPages: Int
-    let onPrevious: () -> Void
-    let onNext: () -> Void
-    let onBigBang: () -> Void
-    let onHeightChange: (CGFloat) -> Void
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: fontSize))
-            .kerning(kerning)
-            .lineSpacing(lineSpacing)
-            .multilineTextAlignment(.leading)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .id(index)
-            .accessibilityHidden(!isCurrentPage)
-            .accessibilityLabel("书籍正文")
-            .accessibilityValue("第 \(index + 1) 页，共 \(max(1, totalPages)) 页")
-            .accessibilityAction(named: "上一页", onPrevious)
-            .accessibilityAction(named: "下一页", onNext)
-            .accessibilityAction(named: "分词与模板", onBigBang)
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                onHeightChange(height)
-            }
     }
 }

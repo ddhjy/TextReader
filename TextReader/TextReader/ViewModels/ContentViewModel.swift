@@ -43,7 +43,6 @@ class ContentViewModel: ObservableObject {
     @Published var showingPasteImport = false
     @Published var bookProgressText: String?
     @Published var appearanceMode: AppearanceMode = .system
-    @Published var darkModeEnabled: Bool = false
     @Published var accentColorThemeId: String = "blue"
     @Published var showingBigBang = false
     @Published var tokens: [Token] = []
@@ -145,7 +144,7 @@ class ContentViewModel: ObservableObject {
         self.settingsManager = settingsManager
         self.sharedImportStore = sharedImportStore
         self.templateManager = templateManager
-        self.darkModeEnabled = settingsManager.getDarkMode()
+        self.appearanceMode = settingsManager.getAppearanceMode()
 
         loadInitialData()
         
@@ -201,7 +200,6 @@ class ContentViewModel: ObservableObject {
         self.selectedVoiceIdentifier = settingsManager.getSelectedVoiceIdentifier() ?? availableVoices.first?.identifier
         self.accentColorThemeId = settingsManager.getAccentColorThemeId()
         self.appearanceMode = settingsManager.getAppearanceMode()
-        self.darkModeEnabled = (appearanceMode == .dark)
         
         self.books = self.libraryManager.loadBooks()
         self.sortBooks()
@@ -284,21 +282,7 @@ class ContentViewModel: ObservableObject {
             
         $appearanceMode
             .dropFirst()
-            .sink { [weak self] mode in
-                self?.settingsManager.saveAppearanceMode(mode)
-                self?.darkModeEnabled = (mode == .dark)
-            }
-            .store(in: &cancellables)
-
-        $darkModeEnabled
-            .dropFirst()
-            .sink { [weak self] enabled in
-                guard let self = self else { return }
-                let target: AppearanceMode = enabled ? .dark : .light
-                if self.appearanceMode != target && (self.appearanceMode != .system || enabled) {
-                    self.appearanceMode = target
-                }
-            }
+            .sink { [weak self] mode in self?.settingsManager.saveAppearanceMode(mode) }
             .store(in: &cancellables)
             
         $accentColorThemeId

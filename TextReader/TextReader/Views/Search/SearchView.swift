@@ -3,24 +3,33 @@ import SwiftUI
 struct SearchView: View {
     @ObservedObject var viewModel: ContentViewModel
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
             if searchText.isEmpty {
-                ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
-                    resultCell(page: idx, preview: preview, shouldHighlight: false)
+                Section("页面速览") {
+                    ForEach(viewModel.pageSummaries, id: \.0) { idx, preview in
+                        resultCell(page: idx, preview: preview, shouldHighlight: false)
+                    }
                 }
             } else if viewModel.searchResults.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
-                ForEach(viewModel.searchResults, id: \.0) { idx, preview in
-                    resultCell(page: idx, preview: preview, shouldHighlight: true)
+                Section("\(viewModel.searchResults.count) 个结果") {
+                    ForEach(viewModel.searchResults, id: \.0) { idx, preview in
+                        resultCell(page: idx, preview: preview, shouldHighlight: true)
+                    }
                 }
             }
         }
         .scrollDismissesKeyboard(.interactively)
         .searchable(text: $searchText, prompt: "搜索内容")
+        .searchFocused($isSearchFocused)
+        .onAppear {
+            isSearchFocused = true
+        }
         .onChange(of: searchText) { _, _ in
             viewModel.searchContent(searchText)
         }
@@ -33,9 +42,6 @@ struct SearchView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .close) {
                     dismiss()
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
                 }
                 .accessibilityLabel("关闭")
             }
@@ -49,8 +55,12 @@ struct SearchView: View {
             dismiss()
         } label: {
             VStack(alignment: .leading, spacing: 4) {
+                Text("第 \(idx + 1) 页")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 if shouldHighlight && !searchText.isEmpty {
-                    highlightedText(preview: preview, searchQuery: searchText)
+                    Text(highlightedAttributedString(preview: preview, searchQuery: searchText))
                         .font(.subheadline)
                         .lineLimit(2)
                 } else {
@@ -64,18 +74,17 @@ struct SearchView: View {
         .buttonStyle(.plain)
     }
     
-    private func highlightedText(preview: String, searchQuery: String) -> Text {
+    private func highlightedAttributedString(preview: String, searchQuery: String) -> AttributedString {
         var attributed = AttributedString(preview)
-        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return Text(attributed) }
+        var searchStart = attributed.startIndex
 
-        var searchRange = attributed.startIndex..<attributed.endIndex
-        while let range = attributed[searchRange].range(of: query, options: .caseInsensitive) {
+        while searchStart < attributed.endIndex,
+              let range = attributed[searchStart...].range(of: searchQuery, options: [.caseInsensitive]) {
+            attributed[range].font = Font.subheadline.weight(.semibold)
             attributed[range].backgroundColor = viewModel.currentAccentColor.opacity(0.25)
-            attributed[range].font = .subheadline.weight(.semibold)
-            searchRange = range.upperBound..<attributed.endIndex
+            searchStart = range.upperBound
         }
 
-        return Text(attributed)
+        return attributed
     }
 }

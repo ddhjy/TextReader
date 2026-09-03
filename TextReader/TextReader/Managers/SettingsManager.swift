@@ -72,26 +72,15 @@ class SettingsManager {
     
     func saveAppearanceMode(_ mode: AppearanceMode) {
         defaults.set(mode.rawValue, forKey: key(Keys.appearanceMode))
-        defaults.set(mode == .dark, forKey: key(Keys.isDarkMode))
     }
 
     func getAppearanceMode() -> AppearanceMode {
-        if let raw = defaults.string(forKey: key(Keys.appearanceMode)),
-           let mode = AppearanceMode(rawValue: raw) {
+        if let rawValue = defaults.string(forKey: key(Keys.appearanceMode)),
+           let mode = AppearanceMode(rawValue: rawValue) {
             return mode
         }
-        if defaults.object(forKey: key(Keys.isDarkMode)) != nil {
-            return defaults.bool(forKey: key(Keys.isDarkMode)) ? .dark : .light
-        }
-        return .system
-    }
 
-    func saveDarkMode(_ enabled: Bool) {
-        saveAppearanceMode(enabled ? .dark : .light)
-    }
-    
-    func getDarkMode() -> Bool {
-        return getAppearanceMode() == .dark
+        return defaults.bool(forKey: key(Keys.isDarkMode)) ? .dark : .system
     }
     
     func saveAccentColorThemeId(_ id: String) {

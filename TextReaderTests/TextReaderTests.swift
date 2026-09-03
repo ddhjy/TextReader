@@ -20,7 +20,7 @@ struct TextReaderTests {
 
         personalSettings.saveLastBookTitle("真实书籍")
         personalSettings.saveReadingSpeed(1.25)
-        personalSettings.saveDarkMode(true)
+        personalSettings.saveAppearanceMode(.dark)
         personalSettings.saveAccentColorThemeId("green")
         reviewSettings.saveLastBookTitle("审核样例")
         reviewSettings.saveReadingSpeed(2.0)
@@ -29,28 +29,14 @@ struct TextReaderTests {
         #expect(personalSettings.getReadingSpeed() == 1.25)
         #expect(reviewSettings.getLastBookTitle() == "审核样例")
         #expect(reviewSettings.getReadingSpeed() == 2.0)
-        #expect(reviewSettings.getDarkMode())
         #expect(reviewSettings.getAppearanceMode() == .dark)
         #expect(reviewSettings.getAccentColorThemeId() == "green")
 
-        reviewSettings.saveDarkMode(false)
+        reviewSettings.saveAppearanceMode(.light)
         reviewSettings.saveAccentColorThemeId("red")
 
-        #expect(!personalSettings.getDarkMode())
         #expect(personalSettings.getAppearanceMode() == .light)
         #expect(personalSettings.getAccentColorThemeId() == "red")
-
-        personalSettings.saveAppearanceMode(.system)
-        #expect(reviewSettings.getAppearanceMode() == .system)
-        #expect(!reviewSettings.getDarkMode())
-
-        reviewSettings.saveAppearanceMode(.dark)
-        #expect(personalSettings.getAppearanceMode() == .dark)
-        #expect(personalSettings.getDarkMode())
-
-        reviewSettings.saveAppearanceMode(.light)
-        #expect(personalSettings.getAppearanceMode() == .light)
-        #expect(!personalSettings.getDarkMode())
 
         reviewSettings.removeAllManagedValues()
 
@@ -58,7 +44,7 @@ struct TextReaderTests {
         #expect(personalSettings.getReadingSpeed() == 1.25)
         #expect(reviewSettings.getLastBookTitle() == nil)
         #expect(reviewSettings.getReadingSpeed() == 1.0)
-        #expect(!reviewSettings.getDarkMode())
+        #expect(reviewSettings.getAppearanceMode() == .light)
         #expect(reviewSettings.getAccentColorThemeId() == "red")
     }
 

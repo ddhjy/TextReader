@@ -7,7 +7,7 @@ class ShareViewController: SLComposeServiceViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "导入到「读书」"
+        title = "导入到读书"
         placeholder = "标题（可选）"
     }
 
@@ -27,7 +27,7 @@ class ShareViewController: SLComposeServiceViewController {
                     } else {
                         let failureAlert = UIAlertController(
                             title: "导入失败",
-                            message: "仅支持分享纯文本或 .txt / .md 文件",
+                            message: "仅支持分享纯文本或 `.txt` / `.md` 文件",
                             preferredStyle: .alert
                         )
                         failureAlert.addAction(UIAlertAction(title: "好", style: .default) { _ in

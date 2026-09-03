@@ -13,10 +13,9 @@ struct AccentColorTheme: Identifiable, Codable {
     }
 
     var dynamicColor: Color {
-        let light = Color(hex: lightColor) ?? .blue
-        let dark = Color(hex: darkColor) ?? .blue
-        return Color(uiColor: UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+        Color(uiColor: UIColor { traits in
+            let hex = traits.userInterfaceStyle == .dark ? darkColor : lightColor
+            return UIColor(Color(hex: hex) ?? .accentColor)
         })
     }
     

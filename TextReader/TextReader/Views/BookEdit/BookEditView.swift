@@ -7,7 +7,7 @@ struct BookEditView: View {
     let book: Book
     @State private var editedTitle: String
     @State private var editedContent: String
-    @State private var initialLoadedContent: String = ""
+    @State private var originalContent: String = ""
     @State private var isLoading = true
     @State private var saveError: String?
     @State private var showingDiscardConfirmation = false
@@ -20,8 +20,8 @@ struct BookEditView: View {
     }
 
     private var hasChanges: Bool {
-        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines) != book.title ||
-        (!isLoading && editedContent != initialLoadedContent)
+        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines) != book.title
+            || (!isLoading && editedContent != originalContent)
     }
     
     var body: some View {
@@ -50,28 +50,23 @@ struct BookEditView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
-                        if hasChanges {
-                            showingDiscardConfirmation = true
-                        } else {
-                            dismiss()
-                        }
+                        attemptDismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         saveChanges()
                     }
-                    .disabled(
-                        isLoading ||
-                        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
+                    .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 }
             }
             .confirmationDialog("放弃更改？", isPresented: $showingDiscardConfirmation, titleVisibility: .visible) {
-                Button("放弃更改", role: .destructive) { dismiss() }
+                Button("放弃更改", role: .destructive) {
+                    dismiss()
+                }
                 Button("继续编辑", role: .cancel) {}
             } message: {
-                Text("未保存的修改将会丢失。")
+                Text("你所做的修改将不会被保存。")
             }
             .alert("保存失败", isPresented: .init(
                 get: { saveError != nil },
@@ -87,6 +82,14 @@ struct BookEditView: View {
             loadBookContent()
         }
     }
+
+    private func attemptDismiss() {
+        if hasChanges {
+            showingDiscardConfirmation = true
+        } else {
+            dismiss()
+        }
+    }
     
     private func loadBookContent() {
         viewModel.libraryManager.loadBookContent(book: book) { result in
@@ -94,11 +97,11 @@ struct BookEditView: View {
                 switch result {
                 case .success(let content):
                     self.editedContent = content
-                    self.initialLoadedContent = content
+                    self.originalContent = content
                     self.isLoading = false
                 case .failure:
                     self.editedContent = "内容加载失败，请返回重试"
-                    self.initialLoadedContent = self.editedContent
+                    self.originalContent = self.editedContent
                     self.isLoading = false
                 }
             }
@@ -110,7 +113,7 @@ struct BookEditView: View {
         guard !trimmedTitle.isEmpty else { return }
         
         let titleChanged = trimmedTitle != book.title
-        let contentChanged = editedContent != initialLoadedContent
+        let contentChanged = editedContent != originalContent
         
         if titleChanged {
             viewModel.updateBookTitle(book: book, newTitle: trimmedTitle)
