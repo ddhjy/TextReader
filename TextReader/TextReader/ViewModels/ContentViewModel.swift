@@ -1193,7 +1193,12 @@ class ContentViewModel: ObservableObject {
         stopReading()
         // 搜索面板会立刻关闭，跨度通常较大；用户视线刚从搜索弹层切回主界面，
         // 这里直接静默定位，避免一段长距离的滚动动画造成视觉打扰。
-        setCurrentPageIndex(pageIndex, silent: true)
+        // 点回当前页时页码不变，仍要刷新滚动，否则 sheet/键盘收起后的失位不会被纠正。
+        if pageIndex == currentPageIndex {
+            requestContentScrollRefresh()
+        } else {
+            setCurrentPageIndex(pageIndex, silent: true)
+        }
         showingSearchView = false
     }
     

@@ -14,6 +14,7 @@ struct ContentView: View {
                 
                 ContentDisplay(viewModel: viewModel)
                     .padding(.bottom, 100)
+                    .ignoresSafeArea(.keyboard)
                 
                 if showProgressSlider {
                     Color.clear
@@ -36,6 +37,7 @@ struct ContentView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
             .preferredColorScheme(viewModel.appearanceMode.colorScheme)
+            .ignoresSafeArea(.keyboard)
         }
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {

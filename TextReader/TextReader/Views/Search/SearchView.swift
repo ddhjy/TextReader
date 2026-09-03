@@ -30,6 +30,9 @@ struct SearchView: View {
         .onAppear {
             isSearchFocused = true
         }
+        .onDisappear {
+            isSearchFocused = false
+        }
         .onChange(of: searchText) { _, _ in
             viewModel.searchContent(searchText)
         }
@@ -41,6 +44,7 @@ struct SearchView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(role: .close) {
+                    isSearchFocused = false
                     dismiss()
                 }
                 .accessibilityLabel("关闭")
@@ -51,6 +55,7 @@ struct SearchView: View {
     @ViewBuilder
     private func resultCell(page idx: Int, preview: String, shouldHighlight: Bool) -> some View {
         Button {
+            isSearchFocused = false
             viewModel.jumpToSearchResult(pageIndex: idx)
             dismiss()
         } label: {

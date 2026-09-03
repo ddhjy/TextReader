@@ -29,6 +29,11 @@ struct ContentDisplay: View {
     /// 会按当前页自动落位，避免后台听书推进页码后画面停在离开前的页。
     @State private var scrollPosition: ScrollPosition
 
+    /// 用于计算上下留白的稳定视口高度。搜索 sheet / 键盘进出时 GeometryReader
+    /// 会短暂给出缩小后的高度；若直接写进 spacer，当前页会整体偏移，等滚动状态
+    /// 再次对齐后才跳回。忽略这类瞬时抖动，只在旋转等真实尺寸变化时更新。
+    @State private var settledViewportHeight: CGFloat = 0
+
     init(viewModel: ContentViewModel) {
         self.viewModel = viewModel
         _scrollPosition = State(
@@ -40,7 +45,39 @@ struct ContentDisplay: View {
         GeometryReader { geometry in
             content(geometry: geometry)
                 .frame(width: geometry.size.width, height: geometry.size.height)
+                .onAppear {
+                    adoptViewportHeight(geometry.size.height)
+                }
+                .onChange(of: geometry.size.height) { _, newHeight in
+                    adoptViewportHeight(newHeight)
+                }
         }
+        .ignoresSafeArea(.keyboard)
+    }
+
+    private var isReaderCoveredBySheet: Bool {
+        viewModel.showingSearchView
+            || viewModel.showingBookList
+            || viewModel.showingSettings
+            || viewModel.showingBigBang
+    }
+
+    private func viewportHeight(from proposed: CGFloat) -> CGFloat {
+        settledViewportHeight > 1 ? settledViewportHeight : proposed
+    }
+
+    private func adoptViewportHeight(_ proposed: CGFloat) {
+        guard proposed > 1 else { return }
+        if settledViewportHeight <= 1 {
+            settledViewportHeight = proposed
+            return
+        }
+        // 搜索 sheet 转场时高度常抖十几到几十点。小于 8% 视为瞬时抖动并忽略；
+        // 旋转 / 分屏会明显超过这个比例，再更新并重新居中。
+        let delta = abs(proposed - settledViewportHeight)
+        guard delta / settledViewportHeight > 0.08 else { return }
+        settledViewportHeight = proposed
+        recenterCurrentPage()
     }
 
     @ViewBuilder
@@ -66,10 +103,11 @@ struct ContentDisplay: View {
     }
 
     private func scrollingContent(geometry: GeometryProxy) -> some View {
-        ScrollView(.vertical, showsIndicators: false) {
+        let containerHeight = viewportHeight(from: geometry.size.height)
+        return ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear
-                    .frame(height: geometry.size.height * 0.5)
+                    .frame(height: containerHeight * 0.5)
 
                 LazyVStack(alignment: .leading, spacing: segmentSpacing) {
                     ForEach(viewModel.pages.indices, id: \.self) { idx in
@@ -110,12 +148,12 @@ struct ContentDisplay: View {
                 .frame(maxWidth: .infinity)
 
                 Color.clear
-                    .frame(height: geometry.size.height * 0.5)
+                    .frame(height: containerHeight * 0.5)
             }
         }
         .scrollPosition($scrollPosition, anchor: .center)
         .scrollDisabled(true)
-        .mask(focusGradient(containerHeight: geometry.size.height))
+        .mask(focusGradient(containerHeight: containerHeight))
         .contentShape(Rectangle())
         .opacity(contentRevealed ? 1 : 0)
         .gesture(
@@ -127,7 +165,7 @@ struct ContentDisplay: View {
         .simultaneousGesture(
             SpatialTapGesture()
                 .onEnded { value in
-                    handleTapGesture(at: value.location, containerHeight: geometry.size.height)
+                    handleTapGesture(at: value.location, containerHeight: containerHeight)
                 }
         )
         .onAppear {
@@ -166,10 +204,17 @@ struct ContentDisplay: View {
             scrollToCurrentPage(animated: !silent && scenePhase == .active)
         }
         .onChange(of: viewModel.contentScrollRevision) { _, _ in
-            scrollToCurrentPage(animated: false)
+            recenterCurrentPage()
         }
         .onChange(of: viewModel.pages.count) { _, _ in
-            scrollToCurrentPage(animated: false)
+            recenterCurrentPage()
+        }
+        .onChange(of: isReaderCoveredBySheet) { _, covered in
+            // 搜索等 sheet 关掉后，键盘与 sheet 转场会让滚动容器短暂失位。
+            // 立刻无动画对齐到当前页，避免正文先整体偏移再慢慢跳回。
+            if !covered {
+                recenterCurrentPage()
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             // 回到前台：若滚动状态仍停在离开前的页，而无动画地对齐到当前朗读页。
@@ -179,6 +224,14 @@ struct ContentDisplay: View {
             if scrollPosition.viewID(type: Int.self) != viewModel.currentPageIndex {
                 scrollToCurrentPage(animated: false)
             }
+        }
+    }
+
+    /// 覆盖层关闭或视口抖动后，连续两帧无动画居中，避开转场中途的中间尺寸。
+    private func recenterCurrentPage() {
+        scrollToCurrentPage(animated: false)
+        DispatchQueue.main.async {
+            scrollToCurrentPage(animated: false)
         }
     }
 
