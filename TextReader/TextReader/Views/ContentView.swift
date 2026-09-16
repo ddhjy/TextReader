@@ -38,7 +38,11 @@ struct ContentView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .preferredColorScheme(viewModel.appearanceMode.colorScheme)
             .ignoresSafeArea(.keyboard)
+            .background {
+                ReaderKeyboardIsolation()
+            }
         }
+        .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
                 BookListView(viewModel: viewModel)

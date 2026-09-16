@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
@@ -14,8 +15,26 @@ struct ContentDisplay: View {
     private let pageTurnAnimationDuration: TimeInterval = 0.25
     private let readableColumnWidth: CGFloat = 680
 
-    /// 各页实际渲染高度（按页索引缓存）。用于让聚焦遮罩的清晰窗口动态匹配当前页高度。
-    @State private var pageHeights: [Int: CGFloat] = [:]
+    /// 阅读区顶部与导航栏安全区之间保留的间隙。
+    ///
+    /// ScrollView 一旦与容器安全区相接，SwiftUI 就会把背后的 UIScrollView 向上扩进导航栏，
+    /// 并依赖 UIKit 的自动内容缩进把内容顶回来；而 `ReaderKeyboardIsolation` 为隔离键盘关掉了
+    /// 自动缩进，补偿随之消失——UIKit 实际帧比 SwiftUI 布局帧（蒙层、居中锚点所在）高出整个
+    /// 安全区，当前页被「居中」到偏上半个安全区的位置，聚焦蒙层却仍按布局帧计算，于是当前页
+    /// 首段被压暗、下一页开头反而清晰。留出 1pt 不相接，UIScrollView 便与布局帧完全一致。
+    private let safeAreaClearance: CGFloat = 1
+
+    /// 各页在阅读区坐标系中的实测帧。静止时蒙层用当前页帧保证朗读内容不被压暗；
+    /// 翻页动画期间不用它直接驱动蒙层，否则清晰窗口会先跳到下一页的当前位置再跟着上移。
+    @State private var pageFrames: [Int: CGRect] = [:]
+
+    /// 蒙层清晰窗口在阅读区中的位置。与页码解耦，由翻页动画单独插值：高度上下同时收放，
+    /// 窗口本身留在视口中央，正文滑入后再与实测帧对齐。
+    @State private var focusMinY: CGFloat = 0
+    @State private var focusMaxY: CGFloat = 0
+    @State private var hasFocusWindow = false
+    @State private var pageTurnInProgress = false
+    @State private var pageTurnGeneration = 0
 
     /// 阅读区是否已揭示。首屏 / 切书时，内容会先经历「占位预览 → 最终分页 + 居中定位」，
     /// 这些过程全部就绪前保持隐藏，就绪后再淡入，避免用户看到错位与跳动。
@@ -33,6 +52,11 @@ struct ContentDisplay: View {
     /// 会短暂给出缩小后的高度；若直接写进 spacer，当前页会整体偏移，等滚动状态
     /// 再次对齐后才跳回。忽略这类瞬时抖动，只在旋转等真实尺寸变化时更新。
     @State private var settledViewportHeight: CGFloat = 0
+    @State private var settledViewportWidth: CGFloat = 0
+    @State private var settledSafeAreaTop: CGFloat = 0
+    @State private var latestProposedHeight: CGFloat = 0
+    @State private var latestProposedWidth: CGFloat = 0
+    @State private var latestProposedSafeAreaTop: CGFloat = 0
 
     init(viewModel: ContentViewModel) {
         self.viewModel = viewModel
@@ -44,15 +68,35 @@ struct ContentDisplay: View {
     var body: some View {
         GeometryReader { geometry in
             content(geometry: geometry)
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                .frame(
+                    width: geometry.size.width,
+                    height: viewportHeight(from: geometry.size.height),
+                    alignment: .top
+                )
                 .onAppear {
+                    rememberProposedGeometry(geometry)
                     adoptViewportHeight(geometry.size.height)
                 }
-                .onChange(of: geometry.size.height) { _, newHeight in
-                    adoptViewportHeight(newHeight)
+                .onChange(of: geometry.size) { _, _ in
+                    rememberProposedGeometry(geometry)
+                    adoptViewportHeight(geometry.size.height)
+                }
+                .onChange(of: geometry.safeAreaInsets) { _, _ in
+                    rememberProposedGeometry(geometry)
+                    adoptViewportHeight(geometry.size.height)
                 }
         }
         .ignoresSafeArea(.keyboard)
+        .background {
+            ReaderKeyboardIsolation()
+        }
+        .transaction { transaction in
+            // sheet / 键盘进出时禁止阅读区跟系统弹簧一起做动画。
+            if isReaderCoveredBySheet {
+                transaction.disablesAnimations = true
+                transaction.animation = nil
+            }
+        }
     }
 
     private var isReaderCoveredBySheet: Bool {
@@ -66,17 +110,60 @@ struct ContentDisplay: View {
         settledViewportHeight > 1 ? settledViewportHeight : proposed
     }
 
+    private func rememberProposedGeometry(_ geometry: GeometryProxy) {
+        latestProposedWidth = geometry.size.width
+        latestProposedHeight = geometry.size.height
+        latestProposedSafeAreaTop = geometry.safeAreaInsets.top
+    }
+
+    private func settleViewport(height: CGFloat) {
+        settledViewportHeight = height
+        if latestProposedWidth > 1 {
+            settledViewportWidth = latestProposedWidth
+        }
+        settledSafeAreaTop = latestProposedSafeAreaTop
+    }
+
     private func adoptViewportHeight(_ proposed: CGFloat) {
         guard proposed > 1 else { return }
-        if settledViewportHeight <= 1 {
-            settledViewportHeight = proposed
+
+        // sheet 盖住阅读区时只记下最新提议高度，不改 spacer / 居中基准。
+        if isReaderCoveredBySheet {
+            if settledViewportHeight <= 1 {
+                settleViewport(height: proposed)
+            }
             return
         }
+
+        if settledViewportHeight <= 1 {
+            settleViewport(height: proposed)
+            return
+        }
+
+        // 顶部安全区（导航栏）变化引起的高度变化是真实布局变化：键盘只影响底部，
+        // 而启动过渡期导航栏会从过渡高度收敛到最终高度。此时必须跟随，
+        // 否则阅读区会被永久锁在首帧的过渡尺寸上（比实际可用区域矮几十点）。
+        let safeAreaTopChanged = abs(latestProposedSafeAreaTop - settledSafeAreaTop) > 0.5
+        if safeAreaTopChanged {
+            settleViewport(height: proposed)
+            recenterCurrentPage()
+            return
+        }
+
+        // 宽度没变时的高度变化来自键盘，不是旋转 / 分屏。
+        if latestProposedWidth > 1, settledViewportWidth > 1,
+           abs(latestProposedWidth - settledViewportWidth) < 1 {
+            return
+        }
+
         // 搜索 sheet 转场时高度常抖十几到几十点。小于 8% 视为瞬时抖动并忽略；
         // 旋转 / 分屏会明显超过这个比例，再更新并重新居中。
-        let delta = abs(proposed - settledViewportHeight)
-        guard delta / settledViewportHeight > 0.08 else { return }
-        settledViewportHeight = proposed
+        let heightDelta = abs(proposed - settledViewportHeight)
+        let widthDelta = (latestProposedWidth > 1 && settledViewportWidth > 1)
+            ? abs(latestProposedWidth - settledViewportWidth) / settledViewportWidth
+            : 0
+        guard heightDelta / settledViewportHeight > 0.08 || widthDelta > 0.08 else { return }
+        settleViewport(height: proposed)
         recenterCurrentPage()
     }
 
@@ -103,7 +190,7 @@ struct ContentDisplay: View {
     }
 
     private func scrollingContent(geometry: GeometryProxy) -> some View {
-        let containerHeight = viewportHeight(from: geometry.size.height)
+        let containerHeight = viewportHeight(from: geometry.size.height) - safeAreaClearance
         return ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 Color.clear
@@ -111,35 +198,7 @@ struct ContentDisplay: View {
 
                 LazyVStack(alignment: .leading, spacing: segmentSpacing) {
                     ForEach(viewModel.pages.indices, id: \.self) { idx in
-                        Text(viewModel.pages[idx])
-                            .font(.system(size: fontSize))
-                            .kerning(kerning)
-                            .lineSpacing(lineSpacing)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                            .id(idx)
-                            .accessibilityHidden(idx != viewModel.currentPageIndex)
-                            .accessibilityElement(children: .ignore)
-                            .accessibilityLabel(viewModel.pages[idx])
-                            .accessibilityValue("第 \(idx + 1) 页，共 \(viewModel.pages.count) 页")
-                            .accessibilityAction(named: "上一页") {
-                                viewModel.previousPage()
-                            }
-                            .accessibilityAction(named: "下一页") {
-                                viewModel.nextPage()
-                            }
-                            .accessibilityAction(named: "选词") {
-                                viewModel.triggerBigBang()
-                            }
-                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { height in
-                                if pageHeights[idx] != height {
-                                    pageHeights[idx] = height
-                                }
-                                // 当前页几何回传后，聚焦蒙层已可正确计算，此时方可淡入。
-                                if idx == viewModel.currentPageIndex {
-                                    revealIfCurrentPageMeasured()
-                                }
-                            }
+                        pageRow(idx: idx)
                     }
                 }
                 .scrollTargetLayout()
@@ -210,10 +269,10 @@ struct ContentDisplay: View {
             recenterCurrentPage()
         }
         .onChange(of: isReaderCoveredBySheet) { _, covered in
-            // 搜索等 sheet 关掉后，键盘与 sheet 转场会让滚动容器短暂失位。
-            // 立刻无动画对齐到当前页，避免正文先整体偏移再慢慢跳回。
+            // 揭开时只吸收旋转等真实尺寸变化。不要在这里 scrollTo：
+            // 该时机常与键盘收起弹簧同一帧，scrollTo 会跟着整段滑下去。
             if !covered {
-                recenterCurrentPage()
+                adoptViewportHeight(latestProposedHeight)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -225,6 +284,48 @@ struct ContentDisplay: View {
                 scrollToCurrentPage(animated: false)
             }
         }
+        // 见 `safeAreaClearance`：让 ScrollView 不与顶部安全区相接。
+        .padding(.top, safeAreaClearance)
+    }
+
+    private func pageRow(idx: Int) -> some View {
+        Text(viewModel.pages[idx])
+            .font(.system(size: fontSize))
+            .kerning(kerning)
+            .lineSpacing(lineSpacing)
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .id(idx)
+            .accessibilityHidden(idx != viewModel.currentPageIndex)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(viewModel.pages[idx])
+            .accessibilityValue("第 \(idx + 1) 页，共 \(viewModel.pages.count) 页")
+            .accessibilityAction(named: "上一页") {
+                viewModel.previousPage()
+            }
+            .accessibilityAction(named: "下一页") {
+                viewModel.nextPage()
+            }
+            .accessibilityAction(named: "选词") {
+                viewModel.triggerBigBang()
+            }
+            // 记录该页在阅读区中的实测帧。静止时用来校正蒙层；翻页动画期间只更新缓存，
+            // 不把清晰窗口拽到正在移动的那一页上。
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { frame in
+                if pageFrames[idx] != frame {
+                    pageFrames[idx] = frame
+                }
+                if idx == viewModel.currentPageIndex {
+                    if !pageTurnInProgress {
+                        adoptSettledFocusWindow(from: frame)
+                    }
+                    revealIfCurrentPageMeasured()
+                }
+            }
+            // 懒加载回收后帧已失效，及时清掉，避免远距离跳页时蒙层短暂套用陈旧位置。
+            .onDisappear {
+                pageFrames[idx] = nil
+            }
     }
 
     /// 覆盖层关闭或视口抖动后，连续两帧无动画居中，避开转场中途的中间尺寸。
@@ -236,19 +337,80 @@ struct ContentDisplay: View {
     }
 
     /// 把阅读区定位到当前页（居中）。滚动位置是视图状态，回前台后的首次布局会自动按它落位。
+    ///
+    /// 有动画时：清晰窗口留在视口中央，只插值高度（上下同时收放），正文滑进这个窗口。
+    /// 不能让蒙层跟着下一页的当前位置走，否则会先「标出高亮」再整块上移，闪一下。
     private func scrollToCurrentPage(animated: Bool) {
         let target = viewModel.currentPageIndex
-        if animated && !reduceMotion {
-            withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
-                scrollPosition.scrollTo(id: target, anchor: .center)
-            }
-        } else {
-            var transaction = Transaction()
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                scrollPosition.scrollTo(id: target, anchor: .center)
-            }
+        let readerHeight = max(0, settledViewportHeight - safeAreaClearance)
+        let applyScroll = {
+            scrollPosition.scrollTo(id: target, anchor: .center)
         }
+
+        if animated && !reduceMotion {
+            pageTurnInProgress = true
+            pageTurnGeneration += 1
+            let generation = pageTurnGeneration
+            withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
+                applyCenteredFocusWindow(for: target, containerHeight: readerHeight)
+                applyScroll()
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + pageTurnAnimationDuration + 0.05) {
+                guard generation == pageTurnGeneration else { return }
+                pageTurnInProgress = false
+                if let frame = pageFrames[target], frame.height > 1 {
+                    adoptSettledFocusWindow(from: frame)
+                }
+            }
+            return
+        }
+
+        pageTurnInProgress = false
+        pageTurnGeneration += 1
+        if let frame = pageFrames[target], frame.height > 1 {
+            adoptSettledFocusWindow(from: frame)
+        } else {
+            applyCenteredFocusWindow(for: target, containerHeight: readerHeight)
+        }
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        UIView.performWithoutAnimation {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            withTransaction(transaction, applyScroll)
+            CATransaction.commit()
+        }
+    }
+
+    /// 翻页动画的目标窗口：始终以阅读区中线为轴，高度取目标页实测值（没有则沿用当前窗口）。
+    private func applyCenteredFocusWindow(for pageIndex: Int, containerHeight: CGFloat) {
+        guard containerHeight > 1 else { return }
+        let height = resolvedPageHeight(for: pageIndex)
+        guard height > 1 else { return }
+        let mid = containerHeight / 2
+        let half = height / 2
+        focusMinY = mid - half
+        focusMaxY = mid + half
+        hasFocusWindow = true
+    }
+
+    /// 静止后把清晰窗口锁到当前页实测帧，避免朗读内容被压到半透明带里。
+    private func adoptSettledFocusWindow(from frame: CGRect) {
+        guard frame.height > 1 else { return }
+        focusMinY = frame.minY
+        focusMaxY = frame.maxY
+        hasFocusWindow = true
+    }
+
+    private func resolvedPageHeight(for pageIndex: Int) -> CGFloat {
+        if let height = pageFrames[pageIndex]?.height, height > 1 {
+            return height
+        }
+        if hasFocusWindow {
+            return max(1, focusMaxY - focusMinY)
+        }
+        return representativePageHeight() ?? 0
     }
 
     /// 内容进入「最终分页」后：先在隐藏状态下静默居中定位，随后等待当前页几何回传、
@@ -264,10 +426,10 @@ struct ContentDisplay: View {
         }
     }
 
-    /// 当前页高度就绪后执行淡入（此刻聚焦蒙层才能正确罩住当前页）。
+    /// 当前页帧就绪后执行淡入（此刻聚焦蒙层才能正确罩住当前页）。
     private func revealIfCurrentPageMeasured() {
         guard awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
-        guard let height = pageHeights[viewModel.currentPageIndex], height > 1 else { return }
+        guard let frame = pageFrames[viewModel.currentPageIndex], frame.height > 1 else { return }
         awaitingReveal = false
         if reduceMotion {
             contentRevealed = true
@@ -297,58 +459,68 @@ struct ContentDisplay: View {
         }
     }
 
-    /// 聚焦遮罩：让「完全清晰」的窗口在垂直方向上动态等于当前页的实际高度
-    /// （当前页通过 `scrollTo(anchor: .center)` 居中显示），当前页之外的上一页 /
-    /// 下一页保持半透明，并在阅读区边缘自然淡出。
-    ///
-    /// 这样无论分页大小如何变化，清晰区都恰好罩住当前页：既保留聚焦渐隐效果，
-    /// 又不会像固定百分比窗口那样把当前页自身的首尾行压暗。
+    /// 聚焦遮罩：清晰窗口取自独立的 `focusMinY...focusMaxY`（首尾各留少量余量）。
+    /// 翻页时这个窗口在视口中央插值高度，正文滑入其中；静止后再与当前页实测帧对齐。
     private func focusGradient(containerHeight: CGFloat) -> LinearGradient {
-        // 当前页高度优先用实测值；尚未测得时（刚启动 / 切书后的个别帧）退化到已测页的
-        // 参考高度，保证聚焦蒙层即时生效，避免出现「整页全清晰、翻几页后才有蒙层」。
-        let measuredHeight = pageHeights[viewModel.currentPageIndex] ?? 0
-        let pageHeight = measuredHeight > 1 ? measuredHeight : (representativePageHeight() ?? 0)
-
-        // 连参考高度都没有时才退化为整屏清晰（随即会被测量结果修正）。
-        guard containerHeight > 1, pageHeight > 1 else {
+        guard containerHeight > 1 else {
             return LinearGradient(colors: [.black], startPoint: .top, endPoint: .bottom)
         }
 
-        let dimmed: CGFloat = 0.30        // 相邻页的半透明程度
-        let clearPadding: CGFloat = 0.02  // 让当前页首尾行也完全清晰的额外余量
-        let fade: CGFloat = 0.10          // 清晰 ↔ 半透明 的过渡带
-        let edgeFade: CGFloat = 0.08      // 半透明 → 透明 的阅读区边缘渐隐
+        let clearPadding: CGFloat = 6  // 让当前页首尾行的字形完全落在清晰区内的余量
 
-        let pageHalf = min(0.5, (pageHeight / containerHeight) / 2)
-        let clearHalf = min(0.5, pageHalf + clearPadding)
+        let clearRange: ClosedRange<CGFloat>
+        if hasFocusWindow, focusMaxY > focusMinY {
+            clearRange = (focusMinY - clearPadding)...(focusMaxY + clearPadding)
+        } else if let pageHeight = representativePageHeight() {
+            let clearHalf = pageHeight / 2 + clearPadding
+            clearRange = (containerHeight / 2 - clearHalf)...(containerHeight / 2 + clearHalf)
+        } else {
+            return LinearGradient(colors: [.black], startPoint: .top, endPoint: .bottom)
+        }
 
-        let clearTop = 0.5 - clearHalf
-        let clearBottom = 0.5 + clearHalf
-        let dimTop = max(0, clearTop - fade)
-        let dimBottom = min(1, clearBottom + fade)
-        let edgeTop = max(0, dimTop - edgeFade)
-        let edgeBottom = min(1, dimBottom + edgeFade)
-
-        return LinearGradient(
-            stops: [
-                .init(color: Color.black.opacity(0.0),    location: 0.0),
-                .init(color: Color.black.opacity(dimmed), location: edgeTop),
-                .init(color: Color.black.opacity(dimmed), location: dimTop),
-                .init(color: Color.black,                 location: clearTop),
-                .init(color: Color.black,                 location: clearBottom),
-                .init(color: Color.black.opacity(dimmed), location: dimBottom),
-                .init(color: Color.black.opacity(dimmed), location: edgeBottom),
-                .init(color: Color.black.opacity(0.0),    location: 1.0)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        return focusGradient(clearRange: clearRange, containerHeight: containerHeight)
     }
 
-    /// 当前页高度尚未测得时的参考高度：取已测各页高度的中位数作为「典型页高」，
+    /// 依据以点为单位的清晰区间构造渐变。清晰区内恒为完全不透明（当前页优先于边缘渐隐，
+    /// 即便页面高到贴近阅读区边缘也不会把首尾行压暗）；清晰区外先在 `fade` 内过渡到
+    /// 半透明，再在阅读区上下边缘 `edgeFade` 内淡出为透明。
+    private func focusGradient(clearRange: ClosedRange<CGFloat>, containerHeight: CGFloat) -> LinearGradient {
+        let dimmed: CGFloat = 0.30   // 相邻页的半透明程度
+        let fade: CGFloat = 36       // 清晰 ↔ 半透明 的过渡带
+        let edgeFade: CGFloat = 48   // 半透明 → 透明 的阅读区边缘渐隐
+
+        func opacity(at y: CGFloat) -> CGFloat {
+            if clearRange.contains(y) { return 1 }
+            let distance = y < clearRange.lowerBound
+                ? clearRange.lowerBound - y
+                : y - clearRange.upperBound
+            let focus = dimmed + (1 - dimmed) * max(0, 1 - distance / fade)
+            let edge = min(1, y / edgeFade, (containerHeight - y) / edgeFade)
+            return focus * max(0, edge)
+        }
+
+        // 只需在各折点处采样：不透明度在折点之间近似线性，交给渐变插值。
+        let breakpoints: [CGFloat] = [
+            0,
+            edgeFade,
+            clearRange.lowerBound - fade,
+            clearRange.lowerBound,
+            clearRange.upperBound,
+            clearRange.upperBound + fade,
+            containerHeight - edgeFade,
+            containerHeight
+        ]
+        let locations = Set(breakpoints.map { min(max($0, 0), containerHeight) }).sorted()
+        let stops = locations.map { y in
+            Gradient.Stop(color: Color.black.opacity(opacity(at: y)), location: y / containerHeight)
+        }
+        return LinearGradient(stops: stops, startPoint: .top, endPoint: .bottom)
+    }
+
+    /// 当前页帧尚未测得时的参考高度：取已渲染各页高度的中位数作为「典型页高」，
     /// 让蒙层在当前页几何回传前也能给出接近正确的清晰窗口。
     private func representativePageHeight() -> CGFloat? {
-        let measured = pageHeights.values.filter { $0 > 1 }.sorted()
+        let measured = pageFrames.values.map(\.height).filter { $0 > 1 }.sorted()
         guard !measured.isEmpty else { return nil }
         return measured[measured.count / 2]
     }

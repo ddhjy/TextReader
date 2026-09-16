@@ -9,6 +9,7 @@ struct BookListView: View {
     @State private var editMode: EditMode = .inactive
     @State private var selectedBookIDs = Set<String>()
     @State private var searchText = ""
+    @FocusState private var isSearchFocused: Bool
 
     private var filteredBooks: [Book] {
         if searchText.isEmpty {
@@ -59,11 +60,24 @@ struct BookListView: View {
         .navigationTitle("书架")
         .navigationBarTitleDisplayMode(.inline)
         .scrollDismissesKeyboard(.interactively)
+        .onScrollPhaseChange { _, newPhase, context in
+            guard newPhase == .interacting, isSearchFocused else { return }
+            let geometry = context.geometry
+            if geometry.contentOffset.y + geometry.contentInsets.top <= 1 {
+                isSearchFocused = false
+            }
+        }
         .searchable(
             text: $searchText,
             placement: .navigationBarDrawer(displayMode: .automatic),
             prompt: "搜索书名"
         )
+        .searchFocused($isSearchFocused)
+        .background {
+            SheetDismissKeyboardObserver {
+                isSearchFocused = false
+            }
+        }
         .onChange(of: searchText) { _, _ in
             selectedBookIDs = selectedBookIDs.intersection(Set(deletableFilteredBooks.map(\.id)))
         }

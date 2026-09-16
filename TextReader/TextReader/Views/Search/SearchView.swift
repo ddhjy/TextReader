@@ -25,8 +25,22 @@ struct SearchView: View {
             }
         }
         .scrollDismissesKeyboard(.interactively)
+        .onScrollPhaseChange { _, newPhase, context in
+            // 列表顶部开始下拉（含交互式关 sheet）时先收起键盘，
+            // 避免 sheet 消失后键盘动画再带动后方阅读区。
+            guard newPhase == .interacting, isSearchFocused else { return }
+            let geometry = context.geometry
+            if geometry.contentOffset.y + geometry.contentInsets.top <= 1 {
+                isSearchFocused = false
+            }
+        }
         .searchable(text: $searchText, prompt: "搜索内容")
         .searchFocused($isSearchFocused)
+        .background {
+            SheetDismissKeyboardObserver {
+                isSearchFocused = false
+            }
+        }
         .onAppear {
             isSearchFocused = true
         }
