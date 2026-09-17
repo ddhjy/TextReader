@@ -30,10 +30,10 @@ class LibraryManager {
         )
 
         static let reviewSample = BuiltInBook(
-            title: "读书派示例文本",
+            title: "随心读示例文本",
             fileName: "__builtin_review_sample__",
             content: """
-            读书派是一款面向中文阅读和朗读场景的轻量阅读工具。
+            随心读是一款面向中文阅读和朗读场景的轻量阅读工具。
 
             你可以导入 txt 或 md 文本，把长文、资料、笔记和电子书放进书架中管理。打开一本书后，App 会自动分页，记录阅读进度，并支持翻页、搜索和语音朗读。
 
