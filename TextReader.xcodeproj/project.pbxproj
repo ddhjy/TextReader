@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0C0260CD2DCA490C00257087 /* TextReaderExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 0C0260C32DCA490C00257087 /* TextReaderExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		0C7C10012F00100000257087 /* LookinServer in Frameworks */ = {isa = PBXBuildFile; productRef = 0C7C10022F00100000257087 /* LookinServer */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +120,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0C7C10012F00100000257087 /* LookinServer in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -208,6 +210,7 @@
 			);
 			name = TextReader;
 			packageProductDependencies = (
+				0C7C10022F00100000257087 /* LookinServer */,
 			);
 			productName = TextReader;
 			productReference = 0C9E2ACE2CA01AEF00302914 /* TextReader.app */;
@@ -297,6 +300,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				0C0E84D22CD7CD16007F0EA7 /* XCRemoteSwiftPackageReference "CocoaAsyncSocket" */,
+				0C7C10032F00100000257087 /* XCRemoteSwiftPackageReference "LookinServer" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0C9E2ACF2CA01AEF00302914 /* Products */;
@@ -764,7 +768,23 @@
 				minimumVersion = 7.6.5;
 			};
 		};
+		0C7C10032F00100000257087 /* XCRemoteSwiftPackageReference "LookinServer" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/QMUI/LookinServer";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.8;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0C7C10022F00100000257087 /* LookinServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0C7C10032F00100000257087 /* XCRemoteSwiftPackageReference "LookinServer" */;
+			productName = LookinServer;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0C9E2AC62CA01AEF00302914 /* Project object */;
 }
