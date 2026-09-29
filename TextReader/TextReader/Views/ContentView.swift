@@ -36,7 +36,6 @@ struct ContentView: View {
             .navigationTitle(viewModel.currentBookTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
-            .preferredColorScheme(viewModel.appearanceMode.colorScheme)
             .ignoresSafeArea(.keyboard)
             .background {
                 ReaderKeyboardIsolation()
@@ -82,6 +81,12 @@ struct ContentView: View {
             }
         }
         .tint(viewModel.currentAccentColor)
+        .onAppear {
+            viewModel.appearanceMode.applyToWindows()
+        }
+        .onChange(of: viewModel.appearanceMode) { _, newValue in
+            newValue.applyToWindows()
+        }
     }
 } 
 

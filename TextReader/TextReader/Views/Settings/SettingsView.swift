@@ -26,9 +26,7 @@ struct SettingsView: View {
     private let speedOptions: [Double] = [0.8, 1.0, 1.25, 1.5, 1.75, 2.0, 3.0]
 
     private var versionText: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""
-        return build.isEmpty ? version : "\(version) (\(build))"
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
     
     var body: some View {
@@ -43,6 +41,8 @@ struct SettingsView: View {
                     } label: {
                         Label("语速", systemImage: "speedometer")
                     }
+                    // 菜单样式的 Picker 不会随 tint 变化刷新，强调色变化时重建
+                    .id(viewModel.accentColorThemeId)
 
                     Picker(selection: $viewModel.selectedVoiceIdentifier) {
                         ForEach(viewModel.availableVoices, id: \.identifier) { voice in

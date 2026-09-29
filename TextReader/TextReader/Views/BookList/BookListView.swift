@@ -222,18 +222,18 @@ struct BookListView: View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
                 Text(book.title)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.primary)
                     .font(.body)
                     .lineLimit(1)
 
                 if book.id == viewModel.currentBookId {
                     Text("正在阅读")
                         .font(.subheadline)
-                        .foregroundStyle(viewModel.currentAccentColor)
+                        .foregroundStyle(Color.secondary)
                 } else if let lastAccessed = viewModel.getLastAccessedTimeDisplay(book: book) {
                     Text(lastAccessed)
                         .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color.secondary)
                 }
             }
 
@@ -242,7 +242,7 @@ struct BookListView: View {
             if let progressText = viewModel.getBookProgressDisplay(book: book) {
                 Text(progressText)
                     .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.secondary)
                     .lineLimit(1)
             }
         }

@@ -152,27 +152,26 @@ struct ControlPanel: View {
         } label: {
             ZStack {
                 Circle()
-                    .stroke(viewModel.currentAccentColor.opacity(0.2), lineWidth: compactProgressLineWidth)
+                    .stroke(Color.primary.opacity(0.15), lineWidth: compactProgressLineWidth)
                     .frame(width: compactProgressRingSize, height: compactProgressRingSize)
-                
+
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(
-                        viewModel.currentAccentColor,
+                        Color.primary,
                         style: StrokeStyle(lineWidth: compactProgressLineWidth, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .frame(width: compactProgressRingSize, height: compactProgressRingSize)
-                
+
                 Text("\(progressPercent)")
                     .font(.caption2.weight(.semibold).monospacedDigit())
-                    .foregroundStyle(viewModel.currentAccentColor)
+                    .foregroundStyle(Color.primary)
             }
             .frame(width: 44, height: 44)
             .glassEffect(.regular.interactive(), in: .circle)
         }
         .buttonStyle(.plain)
-        .tint(viewModel.currentAccentColor)
         .accessibilityLabel("阅读进度 \(progressPercent)%")
         .accessibilityValue(pageCountAccessibilityValue)
         .opacity(sleepPickerActive ? 0 : 1)
