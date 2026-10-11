@@ -10,15 +10,21 @@ struct ControlPanel: View {
     
     /// 是否处于「定时选择」状态：长按播放按钮后弹出，松手后退出。
     @State private var sleepPickerActive: Bool = false
+    /// 手指按下即为 true：选项在长按判定期间就开始展开，判定完成时已基本到位，避免「等一下才弹出」的迟滞感。
+    /// 所有展开相关的视觉变化都由它驱动、在同一时刻开始；
+    /// 若等 `sleepPickerActive` 再改动玻璃容器内的视图，会把进行中的展开动画卡住一拍。
+    @State private var sleepPickerRevealing: Bool = false
     /// 当前手指悬停命中的定时分钟数。
     @State private var sleepHoveredOption: Int? = nil
     /// 长按激活定时器选择浮层的延迟任务，松手时需取消。
     @State private var sleepActivationWorkItem: DispatchWorkItem? = nil
     
     private let playButtonSize: CGFloat = 44
+    private let controlRowHeight: CGFloat = 56
+    private let controlRowBottomPadding: CGFloat = 8
     private let compactProgressRingSize: CGFloat = 28
     private let compactProgressLineWidth: CGFloat = 2
-    private let longPressActivationDelay: TimeInterval = 0.35
+    private let longPressActivationDelay: TimeInterval = 0.22
     private let pickerHaptic = UIImpactFeedbackGenerator(style: .medium)
     private let selectionHaptic = UISelectionFeedbackGenerator()
     
@@ -118,11 +124,25 @@ struct ControlPanel: View {
                             }
                     }
                 }
-                .frame(height: 56)
+                .frame(height: controlRowHeight)
                 .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: sleepPickerActive)
+                .padding(.bottom, controlRowBottomPadding)
+                .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: sleepPickerRevealing)
             }
+        }
+        // 定时选项浮层（仅展示，不参与命中测试）。
+        // 必须挂在 GlassEffectContainer 之外：容器内的玻璃视图不会逐帧响应外层的 offset/scale/opacity 动画，
+        // 弹出时会先停顿再跳到终点。这里按控制行的布局常量对齐到播放按钮中心。
+        .overlay(alignment: .bottom) {
+            SleepTimerPicker(
+                options: sortedSleepOptions,
+                // 减弱动态效果时没有渐进展开，等长按判定完成后再直接显示。
+                isPresented: reduceMotion ? sleepPickerActive : sleepPickerRevealing,
+                hoveredMinutes: sleepHoveredOption,
+                accentColor: viewModel.currentAccentColor
+            )
+            .frame(width: 0, height: 0)
+            .offset(y: -(controlRowBottomPadding + controlRowHeight / 2))
         }
         .onAppear {
             pickerHaptic.prepare()
@@ -143,7 +163,7 @@ struct ControlPanel: View {
         .buttonStyle(.plain)
         .tint(viewModel.currentAccentColor)
         .accessibilityLabel(accessibilityLabel)
-        .opacity(sleepPickerActive ? 0 : 1)
+        .opacity(sleepPickerRevealing ? 0 : 1)
     }
     
     private var progressButton: some View {
@@ -174,7 +194,7 @@ struct ControlPanel: View {
         .buttonStyle(.plain)
         .accessibilityLabel("阅读进度 \(progressPercent)%")
         .accessibilityValue(pageCountAccessibilityValue)
-        .opacity(sleepPickerActive ? 0 : 1)
+        .opacity(sleepPickerRevealing ? 0 : 1)
     }
     
     // MARK: - Play Button
@@ -207,18 +227,8 @@ struct ControlPanel: View {
         .frame(width: playButtonSize, height: playButtonSize)
         .glassEffect(.regular.interactive(), in: .circle)
         .tint(viewModel.currentAccentColor)
-        .scaleEffect(sleepPickerActive ? 1.08 : 1.0)
-        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: sleepPickerActive)
-        // 选项浮层（仅展示，不参与命中测试）
-        .overlay(alignment: .center) {
-            if sleepPickerActive {
-                SleepTimerPicker(
-                    options: sortedSleepOptions,
-                    hoveredMinutes: sleepHoveredOption,
-                    accentColor: viewModel.currentAccentColor
-                )
-            }
-        }
+        .scaleEffect(sleepPickerRevealing ? 1.08 : 1.0)
+        .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.7), value: sleepPickerRevealing)
         .contentShape(Rectangle())
         .gesture(voiceOverEnabled ? nil : playButtonGesture)
         .accessibilityElement(children: .ignore)
@@ -249,8 +259,8 @@ struct ControlPanel: View {
     
     // MARK: - Gesture
     
-    /// 单一手势：触按 → 计时 0.35s → 弹出定时选项；其后跟踪手指位置。
-    /// 0.35s 内松手视作短按，直接走 `handlePlayButtonTap`，避免长按/短按手势冲突导致的浮层卡死。
+    /// 单一手势：触按即开始展开定时选项 → 计时 `longPressActivationDelay` 后生效；其后跟踪手指位置。
+    /// 延迟内松手视作短按，直接走 `handlePlayButtonTap`，避免长按/短按手势冲突导致的浮层卡死。
     private var playButtonGesture: some Gesture {
         DragGesture(minimumDistance: 0, coordinateSpace: .local)
             .onChanged { value in
@@ -259,6 +269,7 @@ struct ControlPanel: View {
                         activatePickerIfNeeded()
                     }
                     sleepActivationWorkItem = work
+                    sleepPickerRevealing = true
                     DispatchQueue.main.asyncAfter(
                         deadline: .now() + longPressActivationDelay,
                         execute: work
@@ -272,6 +283,7 @@ struct ControlPanel: View {
                 let activation = sleepActivationWorkItem
                 sleepActivationWorkItem = nil
                 activation?.cancel()
+                sleepPickerRevealing = false
                 
                 if sleepPickerActive {
                     let offset = offsetFromPlayCenter(value.location)

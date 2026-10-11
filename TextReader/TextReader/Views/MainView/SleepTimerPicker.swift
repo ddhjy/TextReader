@@ -2,10 +2,16 @@ import SwiftUI
 
 /// 长按播放按钮触发的「定时播放」选项浮层。
 /// 三个选项以扇形排布于播放按钮上方；调用方根据手指拖动位置传入 `hoveredMinutes` 高亮当前命中的选项。
+///
+/// 浮层常驻视图树，由 `isPresented` 驱动各选项从播放按钮中心展开/收回。
+/// 需挂在 `GlassEffectContainer` 之外，否则展开动画不会逐帧插值。
 struct SleepTimerPicker: View {
     let options: [Int]
+    let isPresented: Bool
     let hoveredMinutes: Int?
     let accentColor: Color
+    
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     var body: some View {
         ZStack {
@@ -27,16 +33,24 @@ struct SleepTimerPicker: View {
                     Circle()
                         .fill(isHovered ? accentColor : Color.clear)
                 )
-                .glassEffect(.regular.interactive(), in: .circle)
+                .glassEffect(isPresented ? .regular.interactive() : .identity, in: .circle)
                 .shadow(color: accentColor.opacity(isHovered ? 0.35 : 0.0), radius: 10)
                 .scaleEffect(isHovered ? 1.12 : 1.0)
                 .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isHovered)
-                .offset(SleepTimerPicker.offset(forOption: minutes))
+                .scaleEffect(isPresented ? 1.0 : 0.6)
+                .opacity(isPresented ? 1 : 0)
+                .offset(isPresented ? SleepTimerPicker.offset(forOption: minutes) : .zero)
             }
         }
         .frame(width: 280, height: 220)
         .allowsHitTesting(false)
-        .transition(.scale(scale: 0.6).combined(with: .opacity))
+        .animation(reduceMotion ? nil : presentationAnimation, value: isPresented)
+    }
+    
+    /// 调用方在手指按下时就置 `isPresented`，展开前留一小段延迟，普通轻点不会看到选项闪现。
+    private var presentationAnimation: Animation {
+        let spring = Animation.spring(response: 0.2, dampingFraction: 0.85)
+        return isPresented ? spring.delay(0.08) : spring
     }
     
     // MARK: - Layout helpers
