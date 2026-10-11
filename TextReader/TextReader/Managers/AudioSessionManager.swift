@@ -6,6 +6,13 @@ class AudioSessionManager: NSObject {
     private var isAudioSessionActive = false
     private var isSystemPlaybackActive = false
 
+    private let appDisplayName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "随心读"
+    /// 锁屏/控制中心封面，使用 app icon。
+    private let nowPlayingArtwork: MPMediaItemArtwork? = {
+        guard let image = UIImage(named: "NowPlayingArtwork") else { return nil }
+        return MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+    }()
+
     override init() {
         super.init()
         setupNotifications()
@@ -132,8 +139,11 @@ class AudioSessionManager: NSObject {
                 }
                 
                 var nowPlayingInfo: [String: Any] = [:]
-                nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? "TextReader"
-                nowPlayingInfo[MPMediaItemPropertyArtist] = "TextReader App"
+                nowPlayingInfo[MPMediaItemPropertyTitle] = title ?? self.appDisplayName
+                nowPlayingInfo[MPMediaItemPropertyArtist] = self.appDisplayName
+                if let artwork = self.nowPlayingArtwork {
+                    nowPlayingInfo[MPMediaItemPropertyArtwork] = artwork
+                }
                 nowPlayingInfo[MPMediaItemPropertyMediaType] = MPMediaType.audioBook.rawValue
                 nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = 1.0
                 nowPlayingInfo[MPNowPlayingInfoPropertyDefaultPlaybackRate] = 1.0
