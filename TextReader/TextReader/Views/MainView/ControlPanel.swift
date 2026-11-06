@@ -48,8 +48,12 @@ struct ControlPanel: View {
         return Double(viewModel.currentPageIndex + 1) / Double(viewModel.pages.count)
     }
 
+    /// 显示用百分比：有内容时从 1 开始，仅最后一页显示 100，避免开头显示 0、结尾前提前到 100。
     private var progressPercent: Int {
-        Int((progress * 100).rounded())
+        let count = viewModel.pages.count
+        guard count > 0 else { return 0 }
+        if viewModel.currentPageIndex >= count - 1 { return 100 }
+        return min(99, max(1, Int((progress * 100).rounded())))
     }
 
     private var pageCountLabel: String {
