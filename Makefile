@@ -9,7 +9,7 @@ DERIVED_DATA_PATH ?= .build/DerivedData
 APP_NAME ?= $(SCHEME)
 APP_PATH ?= $(DERIVED_DATA_PATH)/Build/Products/$(CONFIGURATION)-iphoneos/$(APP_NAME).app
 SIMULATOR_APP_PATH ?= $(DERIVED_DATA_PATH)/Build/Products/$(CONFIGURATION)-iphonesimulator/$(APP_NAME).app
-DEVICE_FILTER ?= connectionProperties.pairingState == 'paired'
+DEVICE_FILTER ?= connectionProperties.pairingState == 'paired' AND hardwareProperties.reality == 'physical'
 TEST_DESTINATION ?= platform=iOS Simulator,name=iPhone 17
 XCODEBUILD_FLAGS ?= -allowProvisioningUpdates -allowProvisioningDeviceRegistration
 
