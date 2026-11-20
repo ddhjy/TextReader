@@ -44,6 +44,12 @@ struct ContentDisplay: View {
     /// 聚焦蒙层能正确计算之后，避免出现「首屏整页全清晰、翻几页才有蒙层」。
     @State private var awaitingReveal = false
 
+    /// 揭示前「布局是否已稳定」的检查轮次。静默定位后 LazyVStack 还会把相邻页从估算行高
+    /// 修正为实测行高，只看当前页已测得就淡入，上一页会在淡入过程中整体挪动几点。
+    @State private var revealCheckGeneration = 0
+    private let revealSettleInterval: TimeInterval = 1.0 / 30
+    private let maxRevealSettleChecks = 6
+
     /// 阅读区滚动位置。用状态而不是一次性 `scrollTo` 命令，回前台后的首次布局
     /// 会按当前页自动落位，避免后台听书推进页码后画面停在离开前的页。
     @State private var scrollPosition: ScrollPosition
@@ -214,7 +220,9 @@ struct ContentDisplay: View {
         .scrollDisabled(true)
         .mask(focusGradient(containerHeight: containerHeight))
         .contentShape(Rectangle())
-        .opacity(contentRevealed ? 1 : 0)
+        .animation(revealAnimation) { content in
+            content.opacity(contentRevealed ? 1 : 0)
+        }
         .gesture(
             LongPressGesture(minimumDuration: 0.3)
                 .onEnded { _ in
@@ -246,13 +254,7 @@ struct ContentDisplay: View {
             } else {
                 // 切换书籍等场景回到占位预览：先淡出，待新内容就位后再淡入。
                 awaitingReveal = false
-                if reduceMotion {
-                    contentRevealed = false
-                } else {
-                    withAnimation(.easeOut(duration: 0.18)) {
-                        contentRevealed = false
-                    }
-                }
+                contentRevealed = false
             }
         }
         .onChange(of: viewModel.currentPageIndex) { _, _ in
@@ -426,16 +428,32 @@ struct ContentDisplay: View {
         }
     }
 
-    /// 当前页帧就绪后执行淡入（此刻聚焦蒙层才能正确罩住当前页）。
+    /// 淡入 / 淡出只作用于透明度：揭示那一帧若仍有滚动定位或行高修正，不能被带成一段位移。
+    private var revealAnimation: Animation? {
+        guard !reduceMotion else { return nil }
+        return .easeOut(duration: contentRevealed ? 0.22 : 0.18)
+    }
+
+    /// 当前页帧就绪后，等当前页及相邻页的帧连续两次采样一致再淡入
+    /// （此刻聚焦蒙层才能正确罩住当前页，且上一页不会在淡入途中被行高修正挪动）。
     private func revealIfCurrentPageMeasured() {
         guard awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
         guard let frame = pageFrames[viewModel.currentPageIndex], frame.height > 1 else { return }
-        awaitingReveal = false
-        if reduceMotion {
-            contentRevealed = true
-        } else {
-            withAnimation(.easeOut(duration: 0.22)) {
+        revealCheckGeneration += 1
+        revealAfterLayoutSettles(generation: revealCheckGeneration, previous: nil, attempt: 0)
+    }
+
+    private func revealAfterLayoutSettles(generation: Int, previous: [Int: CGRect]?, attempt: Int) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + revealSettleInterval) {
+            guard generation == revealCheckGeneration,
+                  awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
+            let snapshot = pageFrames.filter { abs($0.key - viewModel.currentPageIndex) <= 1 }
+            guard let current = snapshot[viewModel.currentPageIndex], current.height > 1 else { return }
+            if snapshot == previous || attempt >= maxRevealSettleChecks {
+                awaitingReveal = false
                 contentRevealed = true
+            } else {
+                revealAfterLayoutSettles(generation: generation, previous: snapshot, attempt: attempt + 1)
             }
         }
     }
@@ -448,13 +466,7 @@ struct ContentDisplay: View {
             scrollToCurrentPage(animated: false)
             DispatchQueue.main.async {
                 guard !contentRevealed else { return }
-                if reduceMotion {
-                    contentRevealed = true
-                } else {
-                    withAnimation(.easeOut(duration: 0.22)) {
-                        contentRevealed = true
-                    }
-                }
+                contentRevealed = true
             }
         }
     }
