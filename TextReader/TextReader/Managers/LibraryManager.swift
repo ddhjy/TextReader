@@ -3,9 +3,17 @@ import Foundation
 class LibraryManager {
     
     private let bookMetadataFile = "library.json"
+    private let unreadableMetadataBackupFile = "library.unreadable.json"
     private let fileManager: FileManager
     private let documentsDirectoryProvider: () throws -> URL
     private let builtInBooks: [BuiltInBook]
+    /// 元数据会被主线程、进度保存队列、删除队列同时「读出 → 修改 → 写回」。
+    /// 不加锁时后写回的会盖掉先写回的内容（例如刚改好的书名被一次进度保存冲掉）。
+    private let metadataLock = NSLock()
+
+    private static let importableExtensions = ["txt", "md"]
+    /// APFS 文件名上限是 255 个 UTF‑8 字节；留出扩展名和重名后缀的余量。
+    private static let maxBaseNameUTF8Bytes = 180
 
     struct BuiltInBook: Equatable {
         let title: String
@@ -58,6 +66,15 @@ class LibraryManager {
         case deleteError
         case securityAccessError
         case unsupportedEncoding
+        case emptyContent
+    }
+
+    /// 一次导入的结果。
+    struct ImportedBook {
+        let book: Book
+        /// 书架里已经有同名的书时，这次导入会另存为新名字而不是覆盖原书；
+        /// 这里记下原本想用的书名，方便告诉用户「已另存为…」。没有重名时为 nil。
+        let conflictingTitle: String?
     }
 
     private enum ImportConflictPolicy {
@@ -100,19 +117,20 @@ class LibraryManager {
             let documentsURL = try getDocumentsDirectory()
             let fileURLs = try fileManager.contentsOfDirectory(
                 at: documentsURL,
-                includingPropertiesForKeys: nil,
+                includingPropertiesForKeys: [.creationDateKey],
                 options: .skipsHiddenFiles
             )
             
-            let allowedExtensions = ["txt", "md"]
             let importedFiles = fileURLs.filter { url in
-                allowedExtensions.contains(url.pathExtension.lowercased())
+                Self.importableExtensions.contains(url.pathExtension.lowercased())
             }
+            let customTitles = readMetadata().titles ?? [:]
             
             let importedBooks = importedFiles.map { url in
-                let title = url.deletingPathExtension().lastPathComponent
                 let fileName = url.lastPathComponent
-                return Book(title: title, fileName: fileName, isBuiltIn: false)
+                let title = customTitles[fileName] ?? url.deletingPathExtension().lastPathComponent
+                let addedAt = (try? url.resourceValues(forKeys: [.creationDateKey]))?.creationDate
+                return Book(title: title, fileName: fileName, isBuiltIn: false, addedAt: addedAt)
             }
             allBooks.append(contentsOf: importedBooks)
         } catch {
@@ -129,7 +147,9 @@ class LibraryManager {
                 
                 if book.isBuiltIn {
                     guard let builtInBook = self.builtInBooks.first(where: { $0.fileName == book.fileName }) else {
-                        completion(.failure(LibraryError.fileNotFound))
+                        DispatchQueue.main.async {
+                            completion(.failure(LibraryError.fileNotFound))
+                        }
                         return
                     }
 
@@ -144,7 +164,9 @@ class LibraryManager {
                         ?? URL(fileURLWithPath: builtInBook.fileName).deletingPathExtension().lastPathComponent
 
                     guard let bundleURL = Bundle.main.url(forResource: resourceName, withExtension: "txt") else {
-                        completion(.failure(LibraryError.fileNotFound))
+                        DispatchQueue.main.async {
+                            completion(.failure(LibraryError.fileNotFound))
+                        }
                         return
                     }
                     url = bundleURL
@@ -165,23 +187,28 @@ class LibraryManager {
         }
     }
     
+    /// 把一段文本存成书架里的一本书。
+    /// - Parameter overwriteExisting: 默认 `false`：书架里已有同名的书时另存为「书名-2」，
+    ///   绝不悄悄覆盖原书（原书的内容和阅读进度都会保留）。
+    @discardableResult
     func importBook(fileName: String,
                     content: String,
                     suggestedTitle: String? = nil,
-                    overwriteExisting: Bool = true,
-                    completion: @escaping (Result<Book, Error>) -> Void) {
+                    overwriteExisting: Bool = false) throws -> ImportedBook {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw LibraryError.emptyContent
+        }
+
         do {
-            let conflictPolicy: ImportConflictPolicy = overwriteExisting ? .overwriteExisting : .createUniqueCopy
-            let book = try importBookSynchronously(
+            return try importBookSynchronously(
                 fileName: fileName,
                 content: content,
                 suggestedTitle: suggestedTitle,
-                conflictPolicy: conflictPolicy
+                conflictPolicy: overwriteExisting ? .overwriteExisting : .createUniqueCopy
             )
-            completion(.success(book))
         } catch {
             print("[LibraryManager][错误] 保存导入的书籍内容失败 \(fileName): \(error.localizedDescription)")
-            completion(.failure(error))
+            throw error
         }
     }
 
@@ -201,7 +228,7 @@ class LibraryManager {
             content: content,
             suggestedTitle: resolvedTitle,
             conflictPolicy: .createUniqueCopy
-        )
+        ).book
     }
 
     func resolveSharedImportTitle(preferredTitle: String?,
@@ -226,104 +253,56 @@ class LibraryManager {
         return fallbackSharedImportTitle(createdAt: createdAt)
     }
     
-    func importBookFromURL(_ url: URL, suggestedTitle: String? = nil, completion: @escaping (Result<Book, Error>) -> Void) {
+    @discardableResult
+    func importBookFromURL(_ url: URL, suggestedTitle: String? = nil) throws -> ImportedBook {
         print("[LibraryManager] 开始导入URL: \(url.absoluteString)")
-        print("[LibraryManager] URL方案: \(url.scheme ?? "nil"), 是否为文件URL: \(url.isFileURL)")
-        print("[LibraryManager] 建议标题: \(suggestedTitle ?? "无")")
 
         let isInInboxDirectory = url.path.contains("/tmp/") && url.path.contains("-Inbox/")
-        if isInInboxDirectory {
-            print("[LibraryManager] 文件位于应用的Inbox目录中，跳过安全作用域访问")
-        }
 
         var securityAccessGranted = false
         if !isInInboxDirectory {
             securityAccessGranted = url.startAccessingSecurityScopedResource()
-            print("[LibraryManager] 尝试为 \(url.lastPathComponent) 启动安全访问... 成功: \(securityAccessGranted)")
-
-            if !securityAccessGranted {
-                print("[LibraryManager] 无法作为安全作用域资源访问，将尝试直接访问")
-            }
         }
         defer {
             if securityAccessGranted {
                 url.stopAccessingSecurityScopedResource()
-                print("[LibraryManager] 停止访问安全作用域资源: \(url.lastPathComponent)")
             }
         }
 
-        print("[LibraryManager] 尝试从以下位置读取内容: \(url.path)")
-
-        var fileContent: String?
-        var usedEncoding: String.Encoding?
-        let encodingsToTry: [String.Encoding] = [.utf8, .gb_18030_2000]
-
-        for encoding in encodingsToTry {
-            print("[LibraryManager] 尝试编码: \(encoding)")
-            if let content = try? String(contentsOf: url, encoding: encoding) {
-                fileContent = content
-                usedEncoding = encoding
-                print("[LibraryManager] 使用编码成功读取内容: \(encoding)")
-                break
-            } else {
-                print("[LibraryManager] 使用编码读取失败: \(encoding)")
-            }
+        guard let data = (try? Data(contentsOf: url)) ?? readDataByCopyingFirst(url: url) else {
+            print("[LibraryManager][错误] 无法读取 \(url.path)")
+            throw LibraryError.readError(url.lastPathComponent)
         }
 
-        if fileContent == nil {
-            print("[LibraryManager] 所有直接读取尝试都失败。尝试先复制文件...")
-            if let (content, encoding) = tryReadingByCopyingFirst(url: url, encodingsToTry: encodingsToTry) {
-                fileContent = content
-                usedEncoding = encoding
-                print("[LibraryManager] 复制后成功读取内容。编码: \(encoding)")
-            }
-        }
-
-        guard let content = fileContent, let _ = usedEncoding else {
+        guard let content = ImportedTextDecoder.decode(data) else {
             print("[LibraryManager][错误] 无法使用支持的编码从 \(url.path) 读取内容。")
-            completion(.failure(LibraryError.unsupportedEncoding))
-            return
+            throw LibraryError.unsupportedEncoding
         }
 
-        let fileName = generateSafeFileName(from: url, suggestedTitle: suggestedTitle)
-        importBook(
-            fileName: fileName,
+        return try importBook(
+            fileName: generateSafeFileName(from: url, suggestedTitle: suggestedTitle),
             content: content,
-            suggestedTitle: suggestedTitle,
-            overwriteExisting: true,
-            completion: completion
+            suggestedTitle: suggestedTitle
         )
     }
     
     private func generateSafeFileName(from url: URL, suggestedTitle: String?) -> String {
         let baseName = trimmedNonEmpty(suggestedTitle)
             ?? url.deletingPathExtension().lastPathComponent
-        return normalizeImportFileName("\(baseName).txt")
+        return normalizedImportFileName("\(baseName).txt")
     }
     
-    private func tryReadingByCopyingFirst(url: URL, encodingsToTry: [String.Encoding]) -> (String, String.Encoding)? {
-        let tempDir = FileManager.default.temporaryDirectory
-        let tempFile = tempDir.appendingPathComponent(UUID().uuidString + ".txt")
-        
+    private func readDataByCopyingFirst(url: URL) -> Data? {
+        let tempFile = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".txt")
+        defer { try? fileManager.removeItem(at: tempFile) }
+
         do {
-            try FileManager.default.copyItem(at: url, to: tempFile)
-            print("[LibraryManager] 文件已复制到临时位置: \(tempFile.path)")
-        } catch let error {
-            print("[LibraryManager][错误] 复制文件到临时位置失败: \(error.localizedDescription)")
+            try fileManager.copyItem(at: url, to: tempFile)
+            return try Data(contentsOf: tempFile)
+        } catch {
+            print("[LibraryManager][错误] 复制后读取文件失败: \(error.localizedDescription)")
             return nil
         }
-        
-        for encoding in encodingsToTry {
-            if let content = try? String(contentsOf: tempFile, encoding: encoding) {
-                print("[LibraryManager] 复制后成功使用编码读取: \(encoding)")
-                
-                try? FileManager.default.removeItem(at: tempFile)
-                return (content, encoding)
-            }
-        }
-        
-        try? FileManager.default.removeItem(at: tempFile)
-        return nil
     }
     
     func getDocumentsDirectory() throws -> URL {
@@ -351,7 +330,7 @@ class LibraryManager {
                     print("[LibraryManager] 要删除的文件不存在: \(fileURL.path)")
                 }
                 
-                self.removeBookProgress(bookId: book.id)
+                self.removeBookRecords(bookId: book.id)
 
                 DispatchQueue.main.async {
                     completion(.success(()))
@@ -375,20 +354,19 @@ class LibraryManager {
         }
     }
     
-    func updateBookTitle(book: Book, newTitle: String, completion: @escaping (Result<Book, Error>) -> Void) {
-        guard !book.isBuiltIn else {
-            completion(.failure(LibraryError.saveError))
-            return
+    /// 改书名。文件名（也就是书的 id，阅读进度挂在它上面）保持不变，
+    /// 新书名写进元数据，重启后仍然有效。
+    @discardableResult
+    func updateBookTitle(book: Book, newTitle: String) throws -> Book {
+        guard !book.isBuiltIn,
+              let title = trimmedNonEmpty(newTitle),
+              persistTitle(title, forFileName: book.fileName) else {
+            throw LibraryError.saveError
         }
-        
-        DispatchQueue.global(qos: .userInitiated).async {
-            var updatedBook = book
-            updatedBook.title = newTitle
-            
-            DispatchQueue.main.async {
-                completion(.success(updatedBook))
-            }
-        }
+
+        var updatedBook = book
+        updatedBook.title = title
+        return updatedBook
     }
     
     func updateBookContent(book: Book, newContent: String, completion: @escaping (Result<Void, Error>) -> Void) {
@@ -421,66 +399,57 @@ class LibraryManager {
     }
     
     func getBookProgress(bookId: String) -> BookProgress? {
-        let metadata = loadMetadata()
-        return metadata.progress[bookId]
+        readMetadata().progress[bookId]
     }
     
     func updateLastAccessed(bookId: String) {
-        var metadata = loadMetadata()
         let now = Date()
-
-        if var progress = metadata.progress[bookId] {
-            progress.lastAccessed = now
-            metadata.progress[bookId] = progress
-            print("[LibraryManager] 已更新书籍ID: \(bookId) 的最后访问时间为 \(now)")
-        } else {
-            print("[LibraryManager] 为书籍ID: \(bookId) 创建带有最后访问时间的新进度记录")
-            metadata.progress[bookId] = BookProgress(
-                currentPageIndex: 0,
-                totalPages: 0,
-                lastAccessed: now,
-                cachedPages: nil
-            )
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.lastAccessed = now
+                metadata.progress[bookId] = progress
+            } else {
+                metadata.progress[bookId] = BookProgress(
+                    currentPageIndex: 0,
+                    totalPages: 0,
+                    lastAccessed: now,
+                    cachedPages: nil
+                )
+            }
         }
-
-        saveMetadata(metadata)
     }
     
     func saveBookProgress(bookId: String, pageIndex: Int, totalPages: Int) {
-        var metadata = loadMetadata()
-        
-        if var progress = metadata.progress[bookId] {
-            progress.currentPageIndex = pageIndex
-            progress.totalPages = totalPages
-            metadata.progress[bookId] = progress
-        } else {
-            metadata.progress[bookId] = BookProgress(
-                currentPageIndex: pageIndex,
-                totalPages: totalPages,
-                lastAccessed: nil,
-                cachedPages: nil
-            )
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.currentPageIndex = pageIndex
+                progress.totalPages = totalPages
+                metadata.progress[bookId] = progress
+            } else {
+                metadata.progress[bookId] = BookProgress(
+                    currentPageIndex: pageIndex,
+                    totalPages: totalPages,
+                    lastAccessed: nil,
+                    cachedPages: nil
+                )
+            }
         }
-        
-        saveMetadata(metadata)
     }
     
     func saveTotalPages(bookId: String, totalPages: Int) {
-        var metadata = loadMetadata()
-        
-        if var progress = metadata.progress[bookId] {
-            progress.totalPages = totalPages
-            metadata.progress[bookId] = progress
-        } else {
-            metadata.progress[bookId] = BookProgress(
-                currentPageIndex: 0,
-                totalPages: totalPages,
-                lastAccessed: nil,
-                cachedPages: nil
-            )
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.totalPages = totalPages
+                metadata.progress[bookId] = progress
+            } else {
+                metadata.progress[bookId] = BookProgress(
+                    currentPageIndex: 0,
+                    totalPages: totalPages,
+                    lastAccessed: nil,
+                    cachedPages: nil
+                )
+            }
         }
-        
-        saveMetadata(metadata)
     }
     
     func getCachedPages(bookId: String) -> [String]? {
@@ -488,98 +457,123 @@ class LibraryManager {
     }
     
     func saveCachedPages(bookId: String, pages: [String]) {
-        var metadata = loadMetadata()
-        
-        if var progress = metadata.progress[bookId] {
-            progress.cachedPages = pages
-            progress.totalPages = pages.count
-            metadata.progress[bookId] = progress
-            print("[LibraryManager] 已缓存书籍 \(bookId) 的 \(pages.count) 页内容")
-        } else {
-            metadata.progress[bookId] = BookProgress(
-                currentPageIndex: 0,
-                totalPages: pages.count,
-                lastAccessed: Date(),
-                cachedPages: pages
-            )
-            print("[LibraryManager] 为新书籍 \(bookId) 创建缓存，共 \(pages.count) 页")
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.cachedPages = pages
+                progress.totalPages = pages.count
+                metadata.progress[bookId] = progress
+            } else {
+                metadata.progress[bookId] = BookProgress(
+                    currentPageIndex: 0,
+                    totalPages: pages.count,
+                    lastAccessed: Date(),
+                    cachedPages: pages
+                )
+            }
         }
-        
-        saveMetadata(metadata)
     }
     
     func clearCachedPages(bookId: String) {
-        var metadata = loadMetadata()
-        
-        if var progress = metadata.progress[bookId] {
-            progress.cachedPages = nil
-            metadata.progress[bookId] = progress
-            print("[LibraryManager] 已清除书籍 \(bookId) 的页面缓存")
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.cachedPages = nil
+                metadata.progress[bookId] = progress
+            }
         }
-        
-        saveMetadata(metadata)
     }
     
     func saveLastPageContent(bookId: String, content: String) {
-        var metadata = loadMetadata()
-        
-        if var progress = metadata.progress[bookId] {
-            progress.lastPageContent = content
-            metadata.progress[bookId] = progress
-        } else {
-            metadata.progress[bookId] = BookProgress(
-                currentPageIndex: 0,
-                totalPages: 0,
-                lastAccessed: Date(),
-                cachedPages: nil,
-                lastPageContent: content
-            )
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.lastPageContent = content
+                metadata.progress[bookId] = progress
+            } else {
+                metadata.progress[bookId] = BookProgress(
+                    currentPageIndex: 0,
+                    totalPages: 0,
+                    lastAccessed: Date(),
+                    cachedPages: nil,
+                    lastPageContent: content
+                )
+            }
         }
-        
-        saveMetadata(metadata)
+    }
+
+    /// 书的内容被整体替换后，旧内容的单页预览和整本缓存都不再可信。
+    func clearContentCaches(bookId: String) {
+        mutateMetadata { metadata in
+            if var progress = metadata.progress[bookId] {
+                progress.cachedPages = nil
+                progress.lastPageContent = nil
+                metadata.progress[bookId] = progress
+            }
+        }
     }
     
-    private func removeBookProgress(bookId: String) {
-        var metadata = loadMetadata()
-        metadata.progress.removeValue(forKey: bookId)
-        saveMetadata(metadata)
+    private func removeBookRecords(bookId: String) {
+        mutateMetadata { metadata in
+            metadata.progress.removeValue(forKey: bookId)
+            metadata.titles?.removeValue(forKey: bookId)
+        }
+    }
+
+    /// - Returns: 是否成功写入磁盘。
+    @discardableResult
+    private func persistTitle(_ title: String?, forFileName fileName: String) -> Bool {
+        let defaultTitle = URL(fileURLWithPath: fileName).deletingPathExtension().lastPathComponent
+        return mutateMetadata { metadata in
+            var titles = metadata.titles ?? [:]
+            if let title, title != defaultTitle {
+                titles[fileName] = title
+            } else {
+                titles.removeValue(forKey: fileName)
+            }
+            metadata.titles = titles.isEmpty ? nil : titles
+        }
     }
 
     private func importBookSynchronously(fileName: String,
                                          content: String,
                                          suggestedTitle: String?,
-                                         conflictPolicy: ImportConflictPolicy) throws -> Book {
+                                         conflictPolicy: ImportConflictPolicy) throws -> ImportedBook {
         let documentsURL = try getDocumentsDirectory()
-        let destinationURL = try destinationURL(
-            for: fileName,
+        let requestedFileName = normalizedImportFileName(fileName)
+        let requestedBaseName = URL(fileURLWithPath: requestedFileName).deletingPathExtension().lastPathComponent
+        let destinationURL = destinationURL(
+            for: requestedFileName,
             conflictPolicy: conflictPolicy,
             documentsURL: documentsURL
         )
-
-        print("[LibraryManager] 尝试将导入的内容保存到文件: \(destinationURL.lastPathComponent)")
-        print("[LibraryManager] 目标路径: \(destinationURL.path)")
+        let wasRenamed = destinationURL.lastPathComponent != requestedFileName
 
         if conflictPolicy == .overwriteExisting,
            fileManager.fileExists(atPath: destinationURL.path) {
             try fileManager.removeItem(at: destinationURL)
-            print("[LibraryManager] 成功删除目标位置的现有文件。")
         }
 
         try content.write(to: destinationURL, atomically: true, encoding: .utf8)
-        print("[LibraryManager] 成功将内容写入目标。")
 
-        let resolvedTitle = trimmedNonEmpty(suggestedTitle)
-            ?? destinationURL.deletingPathExtension().lastPathComponent
-        let newBook = Book(title: resolvedTitle, fileName: destinationURL.lastPathComponent, isBuiltIn: false)
+        let destinationBaseName = destinationURL.deletingPathExtension().lastPathComponent
+        let requestedTitle = trimmedNonEmpty(suggestedTitle) ?? requestedBaseName
+        // 被改名的副本用「书名-2」做书名：两本同名的书在书架上必须能分清。
+        let resolvedTitle = wasRenamed ? destinationBaseName : requestedTitle
+        persistTitle(resolvedTitle, forFileName: destinationURL.lastPathComponent)
+
+        let addedAt = (try? destinationURL.resourceValues(forKeys: [.creationDateKey]))?.creationDate ?? Date()
+        let newBook = Book(
+            title: resolvedTitle,
+            fileName: destinationURL.lastPathComponent,
+            isBuiltIn: false,
+            addedAt: addedAt
+        )
         print("[LibraryManager] 创建书籍对象: 标题='\(resolvedTitle)', 文件名='\(destinationURL.lastPathComponent)'")
 
-        return newBook
+        return ImportedBook(book: newBook, conflictingTitle: wasRenamed ? requestedTitle : nil)
     }
 
-    private func destinationURL(for fileName: String,
+    private func destinationURL(for normalizedFileName: String,
                                 conflictPolicy: ImportConflictPolicy,
-                                documentsURL: URL) throws -> URL {
-        let normalizedFileName = normalizeImportFileName(fileName)
+                                documentsURL: URL) -> URL {
         let normalizedURL = URL(fileURLWithPath: normalizedFileName)
         let baseName = normalizedURL.deletingPathExtension().lastPathComponent
         let pathExtension = normalizedURL.pathExtension.lowercased()
@@ -598,13 +592,42 @@ class LibraryManager {
         return candidateURL
     }
 
-    private func normalizeImportFileName(_ fileName: String) -> String {
+    /// 导入时实际会用的文件名：去掉不能用的字符、限制长度，扩展名统一成书架认识的 txt / md。
+    func normalizedImportFileName(_ fileName: String) -> String {
         let candidateURL = URL(fileURLWithPath: fileName)
-        let rawExtension = candidateURL.pathExtension.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedExtension = rawExtension.isEmpty ? "txt" : rawExtension.lowercased()
-        let baseName = candidateURL.deletingPathExtension().lastPathComponent
-        let sanitizedBaseName = sanitizedImportedTitle(baseName)
+        let rawExtension = candidateURL.pathExtension
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+
+        let baseName: String
+        let normalizedExtension: String
+        if Self.importableExtensions.contains(rawExtension) {
+            baseName = candidateURL.deletingPathExtension().lastPathComponent
+            normalizedExtension = rawExtension
+        } else {
+            // 「第1.5章」这类名字里的点不是扩展名；存成别的扩展名书架会认不出这本书。
+            baseName = candidateURL.lastPathComponent
+            normalizedExtension = "txt"
+        }
+
+        let sanitizedBaseName = Self.truncated(sanitizedImportedTitle(baseName), maxUTF8Bytes: Self.maxBaseNameUTF8Bytes)
         return "\(sanitizedBaseName).\(normalizedExtension)"
+    }
+
+    private static func truncated(_ text: String, maxUTF8Bytes: Int) -> String {
+        guard text.utf8.count > maxUTF8Bytes else { return text }
+
+        var result = ""
+        var byteCount = 0
+        for character in text {
+            let characterBytes = String(character).utf8.count
+            if byteCount + characterBytes > maxUTF8Bytes { break }
+            result.append(character)
+            byteCount += characterBytes
+        }
+
+        let trimmed = result.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "分享内容" : trimmed
     }
 
     func sanitizedImportedTitle(_ title: String) -> String {
@@ -652,34 +675,91 @@ class LibraryManager {
     
     private struct LibraryMetadata: Codable {
         var progress: [String: BookProgress] = [:]
+        /// 用户改过的书名，键是文件名。必须是可选的：旧版本写的元数据里没有这个字段，
+        /// 非可选会让整份元数据解码失败，所有阅读进度随之丢失。
+        var titles: [String: String]?
+    }
+
+    private func readMetadata() -> LibraryMetadata {
+        metadataLock.lock()
+        defer { metadataLock.unlock() }
+        return loadMetadataUnlocked()
+    }
+
+    /// - Returns: 修改后的元数据是否成功写入磁盘。
+    @discardableResult
+    private func mutateMetadata(_ body: (inout LibraryMetadata) -> Void) -> Bool {
+        metadataLock.lock()
+        defer { metadataLock.unlock() }
+        var metadata = loadMetadataUnlocked()
+        body(&metadata)
+        return saveMetadataUnlocked(metadata)
     }
     
-    private func loadMetadata() -> LibraryMetadata {
+    private func loadMetadataUnlocked() -> LibraryMetadata {
+        let metadataURL: URL
         do {
-            let documentsURL = try getDocumentsDirectory()
-            let metadataURL = documentsURL.appendingPathComponent(bookMetadataFile)
-            
-            guard fileManager.fileExists(atPath: metadataURL.path) else {
-                return LibraryMetadata()
-            }
-            
+            metadataURL = try getDocumentsDirectory().appendingPathComponent(bookMetadataFile)
+        } catch {
+            print("Error locating metadata: \(error). Using empty metadata.")
+            return LibraryMetadata()
+        }
+
+        guard fileManager.fileExists(atPath: metadataURL.path) else {
+            return LibraryMetadata()
+        }
+
+        do {
             let data = try Data(contentsOf: metadataURL)
             return try JSONDecoder().decode(LibraryMetadata.self, from: data)
         } catch {
             print("Error loading metadata: \(error). Using empty metadata.")
+            // 接下来的保存会用空元数据覆盖这个文件；先留一份副本，读不出来的进度至少还能找回。
+            let backupURL = metadataURL.deletingLastPathComponent().appendingPathComponent(unreadableMetadataBackupFile)
+            if !fileManager.fileExists(atPath: backupURL.path) {
+                try? fileManager.copyItem(at: metadataURL, to: backupURL)
+            }
             return LibraryMetadata()
         }
     }
     
-    private func saveMetadata(_ metadata: LibraryMetadata) {
+    private func saveMetadataUnlocked(_ metadata: LibraryMetadata) -> Bool {
         do {
             let documentsURL = try getDocumentsDirectory()
             let metadataURL = documentsURL.appendingPathComponent(bookMetadataFile)
             
             let data = try JSONEncoder().encode(metadata)
             try data.write(to: metadataURL, options: .atomic)
+            return true
         } catch {
             print("Error saving metadata: \(error)")
+            return false
         }
     }
 } 
+
+extension LibraryManager.LibraryError {
+    /// 给用户看的原因，用于界面提示。
+    var userMessage: String {
+        switch self {
+        case .fileNotFound:
+            return "找不到这本书的文件"
+        case .directoryAccessFailed:
+            return "无法访问存储空间"
+        case .saveError:
+            return "保存失败"
+        case .readError(let detail):
+            return detail.isEmpty ? "无法读取文件" : "无法读取「\(detail)」"
+        case .fileImportError(let detail):
+            return detail.isEmpty ? "导入失败" : detail
+        case .deleteError:
+            return "删除失败"
+        case .securityAccessError:
+            return "没有读取这个文件的权限"
+        case .unsupportedEncoding:
+            return "无法识别文件编码，请另存为 UTF‑8 或 GBK 后再试"
+        case .emptyContent:
+            return "文件里没有文字"
+        }
+    }
+}

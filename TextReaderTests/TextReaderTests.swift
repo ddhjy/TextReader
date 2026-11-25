@@ -76,9 +76,9 @@ struct TextReaderTests {
 
         #expect(personalBooks.contains { $0.fileName == personalBook.fileName })
         #expect(!personalBooks.contains { $0.fileName == reviewBook.fileName })
-        #expect(!personalBooks.contains { $0.title == "读书派示例文本" })
+        #expect(!personalBooks.contains { $0.title == "随心读示例文本" })
 
-        #expect(reviewBooks.contains { $0.title == "读书派示例文本" && $0.isBuiltIn })
+        #expect(reviewBooks.contains { $0.title == "随心读示例文本" && $0.isBuiltIn })
         #expect(reviewBooks.contains { $0.fileName == reviewBook.fileName })
         #expect(!reviewBooks.contains { $0.fileName == personalBook.fileName })
 
@@ -126,10 +126,4 @@ struct TextReaderTests {
         #expect(reviewSettings.getLastBookTitle() == nil)
         #expect(reviewSettings.getAccentColorThemeId() == "purple")
     }
-}
-
-private func makeTemporaryDirectory() throws -> URL {
-    let directoryURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-    return directoryURL
 }

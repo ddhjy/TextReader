@@ -76,6 +76,53 @@ struct WiFiUploadRequestParserTests {
         #expect(upload.content == "带 BOM 的正文")
     }
 
+    @Test
+    func acceptsGBKEncodedUploads() throws {
+        let content = "第一回 甄士隐梦幻识通灵\n此开卷第一回也。"
+        let request = makeMultipartRequest(
+            boundary: "gbk-boundary",
+            fileName: "红楼梦.txt",
+            content: try #require(content.data(using: .gb_18030_2000))
+        )
+
+        let head = try #require(WiFiUploadRequestParser.parseHead(from: request))
+        let upload = try WiFiUploadRequestParser.parseUpload(from: request, head: head)
+        #expect(upload.fileName == "红楼梦.txt")
+        #expect(upload.content == content)
+    }
+
+    @Test
+    func rejectsBinaryUploadsWithAReasonTheUserCanActOn() throws {
+        let request = makeMultipartRequest(
+            boundary: "binary-boundary",
+            fileName: "照片.txt",
+            content: Data([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00])
+        )
+
+        let head = try #require(WiFiUploadRequestParser.parseHead(from: request))
+        #expect(throws: WiFiUploadRequestParser.ParserError.unsupportedTextEncoding) {
+            try WiFiUploadRequestParser.parseUpload(from: request, head: head)
+        }
+
+        let message = try #require(WiFiUploadRequestParser.ParserError.unsupportedTextEncoding.errorDescription)
+        #expect(message.contains("UTF‑8"))
+        #expect(message.contains("GBK"))
+    }
+
+    @Test
+    func resultMessagesSurviveTheTripToTheBrowser() throws {
+        let message = "书架里已有《三体》，新传的已另存为《三体-2》"
+        let encoded = WiFiTransferService.headerEncoded(message)
+
+        #expect(encoded.allSatisfy { $0.isASCII })
+        #expect(!encoded.contains(" "))
+        #expect(encoded.removingPercentEncoding == message)
+
+        #expect(WiFiTransferService.htmlEscaped("<script>alert(\"a&b\")</script>'")
+                == "&lt;script&gt;alert(&quot;a&amp;b&quot;)&lt;/script&gt;&#39;")
+        #expect(WiFiTransferService.htmlEscaped("三体 2.txt") == "三体 2.txt")
+    }
+
     private func makeMultipartRequest(
         boundary: String,
         fileName: String,

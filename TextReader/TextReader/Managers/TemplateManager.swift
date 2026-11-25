@@ -23,8 +23,8 @@ final class TemplateManager {
     func load() -> [PromptTemplate] {
         guard let data = try? Data(contentsOf: templateURL()) else {
             let defaults = [
-              PromptTemplate(name: "总结式", content: "请用中文总结以下内容：{selection}"),
-              PromptTemplate(name: "翻译-EN", content: "Translate into English:\n{selection}")
+              PromptTemplate(name: "总结式", content: "请用中文总结以下内容：{selection}", destination: .copyOnly),
+              PromptTemplate(name: "翻译-EN", content: "Translate into English:\n{selection}", destination: .copyOnly)
             ]
             _ = save(defaults)
             return defaults

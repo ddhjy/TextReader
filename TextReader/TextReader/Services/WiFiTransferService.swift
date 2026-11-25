@@ -2,77 +2,173 @@ import Network
 import Foundation
 
 class WiFiTransferService: ObservableObject, @unchecked Sendable {
-    private var listener: NWListener?
-    @Published var isRunning = false
-    @Published var serverAddress: String?
+    enum Status: Equatable {
+        case stopped
+        case starting
+        /// 正在接收；`address` 是要在电脑浏览器里打开的地址。
+        case ready(address: String)
+        /// 已经在监听，但手机没有连上 Wi‑Fi，电脑访问不到。
+        case noWiFi
+        case failed(String)
+    }
+
+    /// 一次传输的结果。传完之后一直留在页面上，直到下次重新进入传书页面。
+    struct TransferRecord: Identifiable, Equatable {
+        let id: UUID
+        let fileName: String
+        let succeeded: Bool
+        let detail: String
+        let date: Date
+    }
+
+    /// 外部保存收到的文件之后返回的结果，决定回给电脑的内容和记在列表里的那一行。
+    enum ReceiveResult {
+        /// `conflictingTitle`：书架里已有同名的书时，原本想用的书名；这时新书已另存为 `title`。
+        case saved(title: String, conflictingTitle: String?)
+        case rejected(reason: String)
+    }
     
     struct UploadState {
         var fileName: String?
         var receivedBytes: Int
         var totalBytes: Int?
         var startedAt: Date
-        var isCompleted: Bool
-        var errorMessage: String?
+    }
+
+    @Published private(set) var status: Status = .stopped
+    @Published private(set) var records: [TransferRecord] = []
+    @Published private(set) var uploadState: UploadState?
+
+    /// 在主线程上同步调用：保存成功与否要立刻回给电脑上的网页。
+    var onFileReceived: ((_ fileName: String, _ content: String) -> ReceiveResult)?
+
+    /// 8080 被别的 App 占用时依次往后试，界面上显示的是实际用上的端口。
+    private static let candidatePorts: [UInt16] = Array(8080...8089)
+
+    private var listener: NWListener?
+    private var listenerIsReady = false
+    private var activePort: UInt16?
+    private var pathMonitor: NWPathMonitor?
+
+    deinit {
+        listener?.cancel()
+        pathMonitor?.cancel()
     }
     
-    @Published var uploadState: UploadState?
-    var onFileReceived: ((String, String) -> Void)?
+    func startServer() {
+        guard listener == nil else { return }
+
+        status = .starting
+        startListening(candidateIndex: 0)
+        startPathMonitorIfNeeded()
+    }
     
-    func startServer() -> Bool {
-        let parameters = NWParameters.tcp
-        guard listener == nil else {
-            return isRunning
+    func stopServer() {
+        pathMonitor?.cancel()
+        pathMonitor = nil
+        listener?.cancel()
+        listener = nil
+        listenerIsReady = false
+        activePort = nil
+        uploadState = nil
+        status = .stopped
+    }
+
+    func clearRecords() {
+        records = []
+    }
+
+    private func startListening(candidateIndex: Int) {
+        guard candidateIndex < Self.candidatePorts.count else {
+            status = .failed("无法开始接收，请稍后重试")
+            return
         }
-        
-        listener = try? NWListener(using: parameters, on: 8080)
-        
-        listener?.stateUpdateHandler = { [weak self] state in
+
+        let port = Self.candidatePorts[candidateIndex]
+        guard let endpointPort = NWEndpoint.Port(rawValue: port),
+              let newListener = try? NWListener(using: .tcp, on: endpointPort) else {
+            startListening(candidateIndex: candidateIndex + 1)
+            return
+        }
+
+        listener = newListener
+        listenerIsReady = false
+        activePort = port
+
+        newListener.stateUpdateHandler = { [weak self, weak newListener] state in
+            // 只理会当前这个监听器的状态；已经被换掉或停掉的监听器晚到的回调一律忽略。
+            guard let self, let newListener, self.listener === newListener else { return }
+
             switch state {
             case .ready:
-                DispatchQueue.main.async {
-                    self?.isRunning = true
-                    if let ipAddress = self?.getLocalIPAddress() {
-                        self?.serverAddress = "http://\(ipAddress):8080"
-                    }
-                }
-            case .failed:
-                DispatchQueue.main.async {
-                    self?.isRunning = false
-                    self?.serverAddress = nil
+                self.listenerIsReady = true
+                self.refreshAddress()
+            case .waiting:
+                self.listenerIsReady = false
+                self.status = .noWiFi
+            case .failed(let error):
+                // 失败的监听器必须清掉，否则之后再点「重试」永远不会重新监听。
+                newListener.cancel()
+                self.listener = nil
+                self.listenerIsReady = false
+                self.activePort = nil
+
+                if Self.isAddressInUse(error) {
+                    self.startListening(candidateIndex: candidateIndex + 1)
+                } else {
+                    self.status = .failed("无法开始接收，请重试")
                 }
             default:
                 break
             }
         }
         
-        listener?.newConnectionHandler = { [weak self] connection in
+        newListener.newConnectionHandler = { [weak self] connection in
             self?.handleConnection(connection)
         }
         
-        listener?.start(queue: .main)
-        
-        if let ipAddress = getLocalIPAddress() {
-            serverAddress = "http://\(ipAddress):8080"
-            return true
-        } else {
-            return false
-        }
+        newListener.start(queue: .main)
     }
-    
-    func stopServer() {
-        listener?.cancel()
-        listener = nil
-        DispatchQueue.main.async {
-            self.isRunning = false
-            self.serverAddress = nil
+
+    private static func isAddressInUse(_ error: NWError) -> Bool {
+        if case .posix(let code) = error {
+            return code == .EADDRINUSE
+        }
+        return false
+    }
+
+    private func startPathMonitorIfNeeded() {
+        guard pathMonitor == nil else { return }
+
+        let monitor = NWPathMonitor()
+        monitor.pathUpdateHandler = { [weak self] _ in
+            // 连上 / 断开 Wi‑Fi、换了网络之后地址会变，页面上显示的要跟着变。
+            self?.refreshAddress()
+        }
+        monitor.start(queue: .main)
+        pathMonitor = monitor
+    }
+
+    private func refreshAddress() {
+        guard listener != nil, listenerIsReady, let port = activePort else { return }
+
+        let newStatus: Status
+        if let ipAddress = getLocalIPAddress() {
+            newStatus = .ready(address: "http://\(ipAddress):\(port)")
+        } else {
+            newStatus = .noWiFi
+        }
+
+        if status != newStatus {
+            status = newStatus
         }
     }
     
     private func handleConnection(_ connection: NWConnection) {
-        connection.stateUpdateHandler = { state in
+        connection.stateUpdateHandler = { [weak self] state in
             switch state {
             case .ready:
-                self.receiveData(on: connection)
+                self?.receiveData(on: connection)
             case .failed, .cancelled:
                 break
             default:
@@ -141,32 +237,12 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
 
         func publishProgress() {
             let receivedBytes = WiFiUploadRequestParser.receivedBodyByteCount(in: buffer, head: head)
-            DispatchQueue.main.async { [weak self] in
-                self?.uploadState = UploadState(
-                    fileName: detectedFileName,
-                    receivedBytes: min(receivedBytes, totalBytes ?? receivedBytes),
-                    totalBytes: totalBytes,
-                    startedAt: startTime,
-                    isCompleted: false,
-                    errorMessage: nil
-                )
-            }
-        }
-
-        func publishConnectionError() {
-            DispatchQueue.main.async { [weak self] in
-                self?.uploadState = UploadState(
-                    fileName: detectedFileName,
-                    receivedBytes: WiFiUploadRequestParser.receivedBodyByteCount(in: buffer, head: head),
-                    totalBytes: totalBytes,
-                    startedAt: startTime,
-                    isCompleted: false,
-                    errorMessage: "接收数据时发生错误"
-                )
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self?.uploadState = nil
-                }
-            }
+            uploadState = UploadState(
+                fileName: detectedFileName,
+                receivedBytes: min(receivedBytes, totalBytes ?? receivedBytes),
+                totalBytes: totalBytes,
+                startedAt: startTime
+            )
         }
 
         @discardableResult
@@ -179,14 +255,23 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             guard let requestData = WiFiUploadRequestParser.completeRequestData(from: buffer, head: head) else {
                 return false
             }
-            self.processReceivedData(buffer: requestData, head: head, connection: connection)
+            self.processReceivedData(
+                buffer: requestData,
+                head: head,
+                connection: connection,
+                fallbackFileName: detectedFileName
+            )
             return true
         }
 
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: 65_536) { data, _, isComplete, error in
                 if error != nil {
-                    publishConnectionError()
+                    self.finishUpload(
+                        fileName: detectedFileName,
+                        succeeded: false,
+                        detail: "接收中断，请在电脑上重新上传"
+                    )
                     connection.cancel()
                     return
                 }
@@ -200,7 +285,9 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 }
 
                 if isComplete {
-                    self.sendErrorResponse(on: connection, message: "文件数据接收不完整")
+                    let message = "文件没有传完，请在电脑上重新上传"
+                    self.finishUpload(fileName: detectedFileName, succeeded: false, detail: message)
+                    self.sendErrorResponse(on: connection, message: message)
                 } else {
                     receive()
                 }
@@ -216,38 +303,75 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
     private func processReceivedData(
         buffer: Data,
         head: WiFiUploadRequestParser.RequestHead,
-        connection: NWConnection
+        connection: NWConnection,
+        fallbackFileName: String?
     ) {
         do {
             let upload = try WiFiUploadRequestParser.parseUpload(from: buffer, head: head)
-            DispatchQueue.main.async { [weak self] in
-                self?.onFileReceived?(upload.fileName, upload.content)
-                if var state = self?.uploadState {
-                    state.fileName = upload.fileName
-                    state.receivedBytes = state.totalBytes ?? state.receivedBytes
-                    state.isCompleted = true
-                    state.errorMessage = nil
-                    self?.uploadState = state
+            let result = onFileReceived?(upload.fileName, upload.content)
+                ?? .rejected(reason: "暂时无法保存，请重试")
+
+            switch result {
+            case .saved(let title, let conflictingTitle):
+                if let conflictingTitle {
+                    finishUpload(
+                        fileName: title,
+                        succeeded: true,
+                        detail: "书架里已有《\(conflictingTitle)》，已另存为这个名字"
+                    )
+                    sendSuccessResponse(
+                        on: connection,
+                        message: "书架里已有《\(conflictingTitle)》，新传的已另存为《\(title)》"
+                    )
+                } else {
+                    finishUpload(fileName: title, succeeded: true, detail: "已加入书架")
+                    sendSuccessResponse(on: connection, message: "《\(title)》已加入书架")
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self?.uploadState = nil
-                }
+            case .rejected(let reason):
+                finishUpload(fileName: upload.fileName, succeeded: false, detail: reason)
+                sendErrorResponse(on: connection, message: reason)
             }
-            sendSuccessResponse(on: connection, filename: upload.fileName)
         } catch {
             let message = (error as? LocalizedError)?.errorDescription ?? "文件格式解析失败"
+            finishUpload(fileName: fallbackFileName, succeeded: false, detail: message)
             sendErrorResponse(on: connection, message: message)
-            DispatchQueue.main.async { [weak self] in
-                if var state = self?.uploadState {
-                    state.errorMessage = message
-                    state.isCompleted = false
-                    self?.uploadState = state
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                    self?.uploadState = nil
-                }
+        }
+    }
+
+    private func finishUpload(fileName: String?, succeeded: Bool, detail: String) {
+        uploadState = nil
+        records.insert(
+            TransferRecord(
+                id: UUID(),
+                fileName: fileName.nilIfEmpty() ?? "未知文件",
+                succeeded: succeeded,
+                detail: detail,
+                date: Date()
+            ),
+            at: 0
+        )
+    }
+
+    /// 网页里的脚本从 `X-Upload-Message` 响应头读结果文字。HTTP 头只能放 ASCII，所以整句做百分号编码。
+    static func headerEncoded(_ text: String) -> String {
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~")
+        return text.addingPercentEncoding(withAllowedCharacters: allowed) ?? ""
+    }
+
+    static func htmlEscaped(_ text: String) -> String {
+        var escaped = ""
+        escaped.reserveCapacity(text.count)
+        for character in text {
+            switch character {
+            case "&": escaped += "&amp;"
+            case "<": escaped += "&lt;"
+            case ">": escaped += "&gt;"
+            case "\"": escaped += "&quot;"
+            case "'": escaped += "&#39;"
+            default: escaped.append(character)
             }
         }
+        return escaped
     }
 
     private func sendOptionsPreflight(on connection: NWConnection) {
@@ -266,6 +390,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         let response = """
         HTTP/1.1 200 OK\r
         Content-Type: text/html; charset=utf-8\r
+        Cache-Control: no-store\r
         Connection: close\r
         \r
         <!DOCTYPE html>
@@ -274,7 +399,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="color-scheme" content="light dark">
-            <title>WiFi 传书 · TextReader</title>
+            <title>Wi‑Fi 传书 · 随心读</title>
             <style>
                 :root {
                     --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E;
@@ -344,7 +469,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     display: flex; justify-content: space-between;
                     margin-top: 6px; font-size: 12px; color: var(--secondary);
                 }
-                .message { margin: 12px 0 0; font-size: 13px; }
+                .message { margin: 12px 0 0; font-size: 13px; overflow-wrap: anywhere; }
                 .message.error { color: var(--red); }
                 .message.success { color: var(--green); font-weight: 500; }
                 .primary {
@@ -366,22 +491,22 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         <body>
             <main>
                 <header>
-                    <h1>WiFi 传书</h1>
-                    <p class="subtitle">将电脑上的 TXT 文件传入手机书架</p>
+                    <h1>Wi‑Fi 传书</h1>
+                    <p class="subtitle">把电脑上的 TXT 或 MD 文件传到手机书架</p>
                 </header>
                 <section class="card">
                     <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
-                        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="拖入或选择 TXT 文件">
+                        <div id="dropzone" class="dropzone" role="button" tabindex="0" aria-label="拖入或选择 TXT、MD 文件">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                 <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path>
                                 <path d="M14 3v5h5"></path>
                                 <path d="M12 17v-5"></path>
                                 <path d="M9.5 14.5 12 12l2.5 2.5"></path>
                             </svg>
-                            <p class="drop-title">拖入 TXT 文件</p>
+                            <p class="drop-title">拖入 TXT 或 MD 文件</p>
                             <p class="drop-hint">或点击从电脑中选择</p>
                         </div>
-                        <input type="file" id="file-input" name="book" accept=".txt,text/plain" hidden>
+                        <input type="file" id="file-input" name="book" accept=".txt,.md,text/plain,text/markdown" hidden>
                         <div id="file-row" class="file-row" hidden>
                             <div class="file-meta">
                                 <span id="file-name" class="file-name"></span>
@@ -400,7 +525,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         <button type="submit" id="submit-btn" class="primary" disabled>上传到书架</button>
                     </form>
                 </section>
-                <p class="footnote">传输时请保持手机停留在「WiFi 传输」页面，且与电脑处于同一 WiFi。</p>
+                <p class="footnote">传输时请保持手机停留在「Wi‑Fi 传书」页面，且与电脑处于同一 Wi‑Fi。</p>
             </main>
             <script>
                 var dropzone = document.getElementById('dropzone');
@@ -428,6 +553,13 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     message.className = 'message ' + type;
                     message.hidden = false;
                 }
+                function serverMessage(xhr) {
+                    try {
+                        return decodeURIComponent(xhr.getResponseHeader('X-Upload-Message') || '');
+                    } catch (err) {
+                        return '';
+                    }
+                }
                 function resetToIdle() {
                     input.value = '';
                     fileRow.hidden = true;
@@ -442,9 +574,10 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                 }
                 function setSelectedFile(file) {
                     if (!file) { resetToIdle(); return; }
-                    if (!file.name.toLowerCase().endsWith('.txt')) {
+                    var lowerName = file.name.toLowerCase();
+                    if (!lowerName.endsWith('.txt') && !lowerName.endsWith('.md')) {
                         resetToIdle();
-                        showMessage('仅支持 .txt 格式的文本文件', 'error');
+                        showMessage('只能传 .txt 或 .md 文本文件', 'error');
                         return;
                     }
                     message.hidden = true;
@@ -491,7 +624,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                     if (uploading) { return; }
                     if (submitBtn.dataset.done === '1') { resetToIdle(); return; }
                     var file = input.files[0];
-                    if (!file) { showMessage('请先选择一个 TXT 文件', 'error'); return; }
+                    if (!file) { showMessage('请先选择一个 TXT 或 MD 文件', 'error'); return; }
 
                     uploading = true;
                     submitBtn.disabled = true;
@@ -520,13 +653,13 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                             bar.style.width = '100%';
                             percent.textContent = '100%';
                             statusText.textContent = '已完成';
-                            showMessage('「' + file.name + '」已加入书架', 'success');
+                            showMessage(serverMessage(xhr) || ('「' + file.name + '」已加入书架'), 'success');
                             submitBtn.dataset.done = '1';
                             submitBtn.textContent = '再传一本';
                             submitBtn.disabled = false;
                         } else {
                             statusText.textContent = '上传失败';
-                            showMessage('上传失败（' + xhr.status + '），请重试', 'error');
+                            showMessage(serverMessage(xhr) || ('上传失败（' + xhr.status + '），请重试'), 'error');
                             submitBtn.textContent = '重试';
                             submitBtn.disabled = false;
                         }
@@ -535,7 +668,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
                         uploading = false;
                         clearBtn.disabled = false;
                         statusText.textContent = '连接中断';
-                        showMessage('网络连接中断，请确认手机仍停留在传输页面后重试', 'error');
+                        showMessage('连接中断了。请确认手机还停在「Wi‑Fi 传书」页面，然后重试', 'error');
                         submitBtn.textContent = '重试';
                         submitBtn.disabled = false;
                     };
@@ -548,10 +681,11 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         sendHTTPResponse(response, on: connection)
     }
     
-    private func sendSuccessResponse(on connection: NWConnection, filename: String) {
+    private func sendSuccessResponse(on connection: NWConnection, message: String) {
         let successResponse = """
         HTTP/1.1 200 OK\r
         Content-Type: text/html; charset=utf-8\r
+        X-Upload-Message: \(Self.headerEncoded(message))\r
         Connection: close\r
         \r
         <!DOCTYPE html>
@@ -560,7 +694,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="color-scheme" content="light dark">
-            <title>上传成功 · WiFi 传书</title>
+            <title>上传成功 · Wi‑Fi 传书</title>
             <style>
                 :root { --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E; --secondary: #6E6E73; --tint: #007AFF; --green: #248A3D; }
                 @media (prefers-color-scheme: dark) {
@@ -589,7 +723,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             <main class="card">
                 <div class="icon" aria-hidden="true">✓</div>
                 <h1>上传成功</h1>
-                <p class="detail">「\(filename)」已加入书架</p>
+                <p class="detail">\(Self.htmlEscaped(message))</p>
                 <a href="/" class="primary">继续传书</a>
             </main>
             <script>setTimeout(function () { window.location.href = '/'; }, 2000);</script>
@@ -603,6 +737,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         let errorResponse = """
         HTTP/1.1 400 Bad Request\r
         Content-Type: text/html; charset=utf-8\r
+        X-Upload-Message: \(Self.headerEncoded(message))\r
         Connection: close\r
         \r
         <!DOCTYPE html>
@@ -611,7 +746,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1">
             <meta name="color-scheme" content="light dark">
-            <title>上传失败 · WiFi 传书</title>
+            <title>上传失败 · Wi‑Fi 传书</title>
             <style>
                 :root { --bg: #F2F2F7; --card: #FFFFFF; --label: #1C1C1E; --secondary: #6E6E73; --tint: #007AFF; --red: #D70015; }
                 @media (prefers-color-scheme: dark) {
@@ -640,7 +775,7 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
             <main class="card">
                 <div class="icon" aria-hidden="true">✕</div>
                 <h1>上传失败</h1>
-                <p class="detail">\(message)</p>
+                <p class="detail">\(Self.htmlEscaped(message))</p>
                 <a href="/" class="primary">返回重试</a>
             </main>
         </body>
@@ -677,36 +812,54 @@ class WiFiTransferService: ObservableObject, @unchecked Sendable {
         )
     }
     
+    /// 电脑能访问到的本机地址：优先 Wi‑Fi（en0），其次是手机开热点时的桥接口，最后是其他有线 / 无线网口。
     func getLocalIPAddress() -> String? {
-        var address: String?
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         
         guard getifaddrs(&ifaddr) == 0 else {
             return nil
         }
         defer { freeifaddrs(ifaddr) }
+
+        var wifiAddress: String?
+        var hotspotAddress: String?
+        var otherAddress: String?
         
         var ptr = ifaddr
-        while ptr != nil {
-            let interface = ptr!.pointee
-            let addrFamily = interface.ifa_addr.pointee.sa_family
-            
-            if addrFamily == UInt8(AF_INET) {
-                let name = String(cString: interface.ifa_name)
-                if name == "en0" {
-                    var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-                    getnameinfo(interface.ifa_addr,
-                                socklen_t(interface.ifa_addr.pointee.sa_len),
-                                &hostname,
-                                socklen_t(hostname.count),
-                                nil,
-                                0,
-                                NI_NUMERICHOST)
-                    address = String(cString: hostname)
-                }
-            }
+        while let current = ptr {
+            let interface = current.pointee
             ptr = interface.ifa_next
+
+            guard let socketAddress = interface.ifa_addr,
+                  socketAddress.pointee.sa_family == UInt8(AF_INET) else {
+                continue
+            }
+
+            let name = String(cString: interface.ifa_name)
+            var hostname = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(socketAddress,
+                              socklen_t(socketAddress.pointee.sa_len),
+                              &hostname,
+                              socklen_t(hostname.count),
+                              nil,
+                              0,
+                              NI_NUMERICHOST) == 0 else {
+                continue
+            }
+
+            let address = String(cString: hostname)
+            // 169.254.x.x 是没拿到路由器分配地址时的自动地址，电脑通常访问不到。
+            guard !address.isEmpty, !address.hasPrefix("169.254.") else { continue }
+
+            if name == "en0" {
+                wifiAddress = address
+            } else if name.hasPrefix("bridge") {
+                hotspotAddress = hotspotAddress ?? address
+            } else if name.hasPrefix("en") {
+                otherAddress = otherAddress ?? address
+            }
         }
-        return address
+
+        return wifiAddress ?? hotspotAddress ?? otherAddress
     }
 } 

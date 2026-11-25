@@ -5,16 +5,40 @@ struct ContentView: View {
     @ObservedObject var session: AppSessionController
     
     @State private var showProgressSlider = false
+    @State private var importMethod: ImportMethod?
+
+    /// 阅读区底边、控制栏底边各自离屏幕下沿（安全区）多远。
+    private let readerBottomInset: CGFloat = 100
+    private let controlPanelBottomInset: CGFloat = 20
+
+    /// 控制栏上方那排浮动按钮伸进阅读区多高，外加一点空隙。很高的页会让开这一段，免得最后一行被按钮挡住。
+    private var readerBottomReserve: CGFloat {
+        max(0, ControlPanel.accessoryRowTop + controlPanelBottomInset - readerBottomInset) + 4
+    }
+
+    private var isCoveredBySheet: Bool {
+        viewModel.showingBookList
+            || viewModel.showingSearchView
+            || viewModel.showingSettings
+            || viewModel.showingBigBang
+            || importMethod != nil
+    }
 
     var body: some View {
         NavigationStack {
+            // 直接放在这一层的自定义视图 / 修饰器不要再自己观察 viewModel，需要的值由这里读出来传进去。
+            // 原因见 NoticeBanner.swift：否则点「书架」「设置」会偶尔没反应。
             ZStack {
                 Color(.systemBackground)
                     .ignoresSafeArea()
                 
-                ContentDisplay(viewModel: viewModel)
-                    .padding(.bottom, 100)
-                    .ignoresSafeArea(.keyboard)
+                ContentDisplay(
+                    viewModel: viewModel,
+                    isCoveredByImportSheet: importMethod != nil,
+                    bottomReserve: readerBottomReserve
+                )
+                .padding(.bottom, readerBottomInset)
+                .ignoresSafeArea(.keyboard)
                 
                 if showProgressSlider {
                     Color.clear
@@ -25,14 +49,25 @@ struct ContentView: View {
                                 showProgressSlider = false
                             }
                         }
+                        .accessibilityHidden(true)
                 }
                 
                 VStack {
                     Spacer()
-                    ControlPanel(viewModel: viewModel, showProgressSlider: $showProgressSlider)
-                        .padding(.bottom, 20)
+                    ControlPanel(
+                        viewModel: viewModel,
+                        showProgressSlider: $showProgressSlider,
+                        onImport: { importMethod = $0 }
+                    )
+                    .padding(.bottom, controlPanelBottomInset)
                 }
             }
+            .noticeBanner(
+                viewModel.notice,
+                isCovered: isCoveredBySheet,
+                onShown: viewModel.noticeDidAppear,
+                onDismiss: viewModel.dismissNotice
+            )
             .navigationTitle(viewModel.currentBookTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.hidden, for: .navigationBar)
@@ -44,7 +79,7 @@ struct ContentView: View {
         .ignoresSafeArea(.keyboard)
         .sheet(isPresented: $viewModel.showingBookList) {
             NavigationStack {
-                BookListView(viewModel: viewModel)
+                BookListView(viewModel: viewModel, session: session)
             }
         }
         .sheet(isPresented: $viewModel.showingSearchView) {
@@ -52,34 +87,13 @@ struct ContentView: View {
                 SearchView(viewModel: viewModel)
             }
         }
-        .sheet(isPresented: $viewModel.showingDocumentPicker) {
-            DocumentPicker(viewModel: viewModel)
-        }
         .sheet(isPresented: $viewModel.showingBigBang) {
             BigBangView(vm: viewModel)
         }
         .sheet(isPresented: $viewModel.showingSettings) {
             SettingsView(viewModel: viewModel, session: session)
         }
-        .overlay(alignment: .top) {
-            if let bannerMessage = viewModel.sharedImportBannerMessage {
-                Text(bannerMessage)
-                    .font(.subheadline.weight(.medium))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
-                    .padding(.top, 12)
-                    .transition(.move(edge: .top).combined(with: .opacity))
-                    .accessibilityAddTraits(.updatesFrequently)
-            }
-        }
-        .animation(.spring(response: 0.32, dampingFraction: 0.85), value: viewModel.sharedImportBannerMessage)
-        .onChange(of: viewModel.sharedImportBannerMessage) { _, newValue in
-            if let newValue {
-                AccessibilityNotification.Announcement(newValue).post()
-            }
-        }
+        .importSheet($importMethod, viewModel: viewModel)
         .tint(viewModel.currentAccentColor)
         .onAppear {
             viewModel.appearanceMode.applyToWindows()

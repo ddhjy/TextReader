@@ -35,7 +35,7 @@ struct WiFiUploadRequestParser {
             case .missingFileName:
                 return "文件名解析失败"
             case .unsupportedTextEncoding:
-                return "不支持的文件编码格式"
+                return "无法识别文件编码，请把文件另存为 UTF‑8 或 GBK 后再传"
             }
         }
     }
@@ -156,11 +156,8 @@ struct WiFiUploadRequestParser {
             throw ParserError.invalidMultipartBody
         }
 
-        var fileData = body.subdata(in: fileContentStart..<closingRange.lowerBound)
-        if fileData.starts(with: [0xEF, 0xBB, 0xBF]) {
-            fileData.removeFirst(3)
-        }
-        guard let content = String(data: fileData, encoding: .utf8) else {
+        let fileData = body.subdata(in: fileContentStart..<closingRange.lowerBound)
+        guard let content = ImportedTextDecoder.decode(fileData) else {
             throw ParserError.unsupportedTextEncoding
         }
 

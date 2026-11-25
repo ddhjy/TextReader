@@ -13,35 +13,46 @@ struct PasteImportView: View {
             || !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var hasText: Bool {
+        !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("标题（可选）", text: $title)
-                } header: {
-                    Text("标题")
-                } footer: {
-                    Text("留空时自动取正文前 10 个字")
-                }
-
-                Section("正文") {
-                    TextEditor(text: $text)
-                        .frame(minHeight: 200)
-                        .onChange(of: text) { _, newText in
-                            if title.isEmpty && !newText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                                let cleanedText = newText.replacingOccurrences(of: "\n", with: " ")
-                                title = String(cleanedText.prefix(10))
-                            }
-                        }
-
                     PasteButton(payloadType: String.self) { pasted in
                         if let pastedText = pasted.first {
                             text = pastedText
                         }
                     }
                     .buttonBorderShape(.capsule)
+
+                    TextEditor(text: $text)
+                        .frame(minHeight: 200)
+                        .accessibilityLabel("正文")
+                } header: {
+                    Text("正文")
+                } footer: {
+                    Text("点「粘贴」放入剪贴板里的文字，也可以直接在下面输入。")
+                }
+
+                Section {
+                    // 书名不会随正文自动填：自动填进去的往往只是正文开头的一两个字母。
+                    TextField("可不填", text: $title)
+                        .accessibilityLabel("书名")
+                } header: {
+                    Text("书名")
+                } footer: {
+                    Text("不填时用正文的第一行做书名。")
                 }
             }
+            .noticeBanner(
+                viewModel.notice,
+                errorsOnly: true,
+                onShown: viewModel.noticeDidAppear,
+                onDismiss: viewModel.dismissNotice
+            )
             .navigationTitle("粘贴文本")
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled(hasChanges)
@@ -53,10 +64,12 @@ struct PasteImportView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("导入") {
-                        viewModel.importPastedText(text, title: title)
-                        dismiss()
+                        // 失败时留在这一页，输入的内容不丢，原因显示在顶部。
+                        if viewModel.importPastedText(text, title: title) {
+                            dismiss()
+                        }
                     }
-                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .disabled(!hasText)
                 }
             }
             .confirmationDialog("放弃更改？", isPresented: $showingDiscardConfirmation, titleVisibility: .visible) {

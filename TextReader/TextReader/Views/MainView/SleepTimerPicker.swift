@@ -10,8 +10,13 @@ struct SleepTimerPicker: View {
     let isPresented: Bool
     let hoveredMinutes: Int?
     let accentColor: Color
+    /// 选项被强调色填满（手指悬停）时，上面文字用的颜色。
+    let onAccentColor: Color
     
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// 以播放按钮中心为圆心的「没挪开」范围：手指在这里面松开，等同于没选任何选项。
+    private static let deadZoneRadius: CGFloat = 28
     
     var body: some View {
         ZStack {
@@ -25,10 +30,10 @@ struct SleepTimerPicker: View {
                         .monospacedDigit()
                     Text("分钟")
                         .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .opacity(0.75)
                 }
                 .frame(width: 56, height: 56)
-                .foregroundStyle(isHovered ? Color.white : accentColor)
+                .foregroundStyle(isHovered ? onAccentColor : accentColor)
                 .background(
                     Circle()
                         .fill(isHovered ? accentColor : Color.clear)
@@ -44,6 +49,9 @@ struct SleepTimerPicker: View {
         }
         .frame(width: 280, height: 220)
         .allowsHitTesting(false)
+        // 浮层常驻视图树，收起时只是透明。旁白用播放按钮上的自定义操作来定时，
+        // 这三个看不见的「5 分钟 / 15 分钟 / 25 分钟」不该被读到。
+        .accessibilityHidden(true)
         .animation(reduceMotion ? nil : presentationAnimation, value: isPresented)
     }
     
@@ -76,12 +84,16 @@ struct SleepTimerPicker: View {
         ContentViewModel.sleepTimerOptions.sorted()
     }
     
+    /// 手指是否还停在播放按钮附近（没有挪开）。
+    static func isInDeadZone(offsetFromCenter offset: CGSize) -> Bool {
+        hypot(offset.width, offset.height) <= deadZoneRadius
+    }
+
     /// 给定手指相对播放按钮中心的偏移，返回命中的选项分钟数；未命中返回 nil。
     /// 命中策略：先用距离做激活判定（避免一动就选中），再按角度落入哪个扇形决定命中项。
     static func hitTest(offsetFromCenter offset: CGSize, options: [Int]) -> Int? {
-        let distanceFromCenter = hypot(offset.width, offset.height)
         // 死区：距离播放按钮太近视为未选中。
-        guard distanceFromCenter > 28 else { return nil }
+        guard !isInDeadZone(offsetFromCenter: offset) else { return nil }
         // 仅当手指处于上半区域时才命中（避免向下滑误选）。
         guard offset.height < 0 else { return nil }
         

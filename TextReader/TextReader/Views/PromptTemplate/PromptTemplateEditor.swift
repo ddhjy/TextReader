@@ -9,7 +9,12 @@ struct PromptTemplateEditor: View {
     let onAdd: (PromptTemplate) -> Void
     private let original: PromptTemplate
     
-    private let emptyUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+    private static let emptyUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
+    /// 「新建模板」用的空白草稿。去向默认「仅复制」：最不会出意外的一种。
+    static func newTemplateDraft() -> PromptTemplate {
+        PromptTemplate(id: emptyUUID, name: "", content: "", destination: .copyOnly)
+    }
     
     init(viewModel: ContentViewModel,
          original: PromptTemplate,
@@ -22,8 +27,22 @@ struct PromptTemplateEditor: View {
         self.onAdd = onAdd
     }
 
+    private var isNewTemplate: Bool {
+        template.id == Self.emptyUUID
+    }
+
     private var hasChanges: Bool {
-        template.name != original.name || template.content != original.content
+        template.name != original.name
+            || template.content != original.content
+            || template.destination != original.destination
+    }
+
+    private var trimmedName: String {
+        template.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedContent: String {
+        template.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     var body: some View {
@@ -36,13 +55,27 @@ struct PromptTemplateEditor: View {
                 Section {
                     TextEditor(text: $template.content)
                         .frame(minHeight: 180)
+                        .accessibilityLabel("内容")
                 } header: {
                     Text("内容")
                 } footer: {
-                    Text("可用变量：{selection} 选中文本 · {page} 当前页 · {book} 书名")
+                    Text("可以写这三个变量，用的时候会被换掉：\n{selection} 选中的文字\n{page} 当前页，加上它的前一页和后一页\n{book} 书名")
+                }
+
+                Section {
+                    Picker("用完之后", selection: $template.destination) {
+                        if original.destination == nil {
+                            Text("第一次用时再选").tag(PromptTemplate.Destination?.none)
+                        }
+                        ForEach(PromptTemplate.Destination.allCases) { destination in
+                            Text(destination.displayName).tag(PromptTemplate.Destination?.some(destination))
+                        }
+                    }
+                } footer: {
+                    Text("提示词每次都会先复制好。对应的 App 没有安装、打不开时会提示，这时可以自己粘贴。")
                 }
             }
-            .navigationTitle(template.id == emptyUUID ? "新建模板" : "编辑模板")
+            .navigationTitle(isNewTemplate ? "新建模板" : "编辑模板")
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled(hasChanges)
             .toolbar {
@@ -54,17 +87,21 @@ struct PromptTemplateEditor: View {
                 
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
-                        if template.id == emptyUUID {
-                            onAdd(PromptTemplate(name: template.name, content: template.content))
+                        if isNewTemplate {
+                            onAdd(PromptTemplate(
+                                name: trimmedName,
+                                content: trimmedContent,
+                                destination: template.destination
+                            ))
                         } else {
-                            onSave(template)
+                            var saved = template
+                            saved.name = trimmedName
+                            saved.content = trimmedContent
+                            onSave(saved)
                         }
                         dismiss()
                     }
-                    .disabled(
-                        template.name.trimmingCharacters(in: .whitespaces).isEmpty ||
-                        template.content.trimmingCharacters(in: .whitespaces).isEmpty
-                    )
+                    .disabled(trimmedName.isEmpty || trimmedContent.isEmpty)
                 }
             }
             .confirmationDialog("放弃更改？", isPresented: $showingDiscardConfirmation, titleVisibility: .visible) {

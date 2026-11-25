@@ -131,6 +131,7 @@ final class AppSessionController: ObservableObject {
             viewModel.prepareForDataProfileSwitch()
         }
 
+        var resetFailed = false
         do {
             try AppDataProfile.reviewSample.clearPersistedData(
                 baseDocumentsDirectory: documentsRootProvider(),
@@ -138,15 +139,21 @@ final class AppSessionController: ObservableObject {
             )
         } catch {
             print("[AppSessionController] 重置审核样例状态失败: \(error)")
+            resetFailed = true
         }
 
-        guard activeProfile == .reviewSample else { return }
-        viewModel = Self.makeViewModel(
-            for: .reviewSample,
-            fileManager: fileManager,
-            documentsRootProvider: documentsRootProvider
-        )
-        sessionID = UUID()
+        if activeProfile == .reviewSample {
+            viewModel = Self.makeViewModel(
+                for: .reviewSample,
+                fileManager: fileManager,
+                documentsRootProvider: documentsRootProvider
+            )
+            sessionID = UUID()
+        }
+
+        if resetFailed {
+            viewModel.showNotice("审核样例状态没能重置，请再试一次", kind: .error)
+        }
     }
 
     private static func makeViewModel(for profile: AppDataProfile,

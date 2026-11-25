@@ -9,6 +9,9 @@ struct BookEditView: View {
     @State private var editedContent: String
     @State private var originalContent: String = ""
     @State private var isLoading = true
+    /// 正文没读出来。这时编辑框里没有原文，绝不能把它存回去盖掉原书。
+    @State private var contentLoadFailed = false
+    @State private var isSaving = false
     @State private var saveError: String?
     @State private var showingDiscardConfirmation = false
     
@@ -19,9 +22,28 @@ struct BookEditView: View {
         self._editedContent = State(initialValue: "")
     }
 
+    private var trimmedTitle: String {
+        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isContentEditable: Bool {
+        !isLoading && !contentLoadFailed
+    }
+
+    private var contentChanged: Bool {
+        isContentEditable && editedContent != originalContent
+    }
+
+    private var isContentBlank: Bool {
+        isContentEditable && editedContent.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     private var hasChanges: Bool {
-        editedTitle.trimmingCharacters(in: .whitespacesAndNewlines) != book.title
-            || (!isLoading && editedContent != originalContent)
+        trimmedTitle != book.title || contentChanged
+    }
+
+    private var canSave: Bool {
+        !trimmedTitle.isEmpty && !isLoading && !isSaving && !isContentBlank
     }
     
     var body: some View {
@@ -31,33 +53,58 @@ struct BookEditView: View {
                     TextField("书名", text: $editedTitle)
                 }
                 
-                Section("内容") {
+                Section {
                     if isLoading {
                         HStack {
                             Spacer()
                             ProgressView("正在加载…")
                             Spacer()
                         }
+                    } else if contentLoadFailed {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("正文没能读出来。现在可以只改书名，原来的正文不会被改动。")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+
+                            Button("重新读取正文") {
+                                loadBookContent()
+                            }
+                        }
+                        .padding(.vertical, 4)
                     } else {
                         TextEditor(text: $editedContent)
                             .frame(minHeight: 300)
+                            .accessibilityLabel("正文")
+                    }
+                } header: {
+                    Text("正文")
+                } footer: {
+                    if isContentBlank {
+                        Text("正文不能为空。不想要这本书的话，回到书架左滑删除。")
                     }
                 }
             }
+            .disabled(isSaving)
             .navigationTitle("编辑书籍")
             .navigationBarTitleDisplayMode(.inline)
-            .interactiveDismissDisabled(hasChanges)
+            .interactiveDismissDisabled(hasChanges || isSaving)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("取消") {
                         attemptDismiss()
                     }
+                    .disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") {
-                        saveChanges()
+                    if isSaving {
+                        ProgressView()
+                            .accessibilityLabel("正在保存")
+                    } else {
+                        Button("保存") {
+                            saveChanges()
+                        }
+                        .disabled(!canSave)
                     }
-                    .disabled(editedTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isLoading)
                 }
             }
             .confirmationDialog("放弃更改？", isPresented: $showingDiscardConfirmation, titleVisibility: .visible) {
@@ -92,43 +139,51 @@ struct BookEditView: View {
     }
     
     private func loadBookContent() {
+        isLoading = true
+        contentLoadFailed = false
+
         viewModel.libraryManager.loadBookContent(book: book) { result in
             DispatchQueue.main.async {
                 switch result {
                 case .success(let content):
                     self.editedContent = content
                     self.originalContent = content
-                    self.isLoading = false
+                    self.contentLoadFailed = false
                 case .failure:
-                    self.editedContent = "内容加载失败，请返回重试"
-                    self.originalContent = self.editedContent
-                    self.isLoading = false
+                    self.editedContent = ""
+                    self.originalContent = ""
+                    self.contentLoadFailed = true
                 }
+                self.isLoading = false
             }
         }
     }
     
     private func saveChanges() {
-        let trimmedTitle = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else { return }
-        
-        let titleChanged = trimmedTitle != book.title
-        let contentChanged = editedContent != originalContent
-        
-        if titleChanged {
-            viewModel.updateBookTitle(book: book, newTitle: trimmedTitle)
+        guard canSave else { return }
+
+        var currentBook = book
+        if trimmedTitle != book.title {
+            guard viewModel.updateBookTitle(book: book, newTitle: trimmedTitle) else {
+                saveError = "书名未能保存，请稍后重试"
+                return
+            }
+            currentBook.title = trimmedTitle
         }
         
-        if contentChanged {
-            viewModel.updateBookContent(book: book, newContent: editedContent) { success in
-                if success {
-                    self.dismiss()
-                } else {
-                    self.saveError = "内容未能保存，请稍后重试"
-                }
-            }
-        } else {
+        guard contentChanged else {
             dismiss()
+            return
+        }
+
+        isSaving = true
+        viewModel.updateBookContent(book: currentBook, newContent: editedContent) { success in
+            self.isSaving = false
+            if success {
+                self.dismiss()
+            } else {
+                self.saveError = "正文未能保存，请稍后重试"
+            }
         }
     }
 }

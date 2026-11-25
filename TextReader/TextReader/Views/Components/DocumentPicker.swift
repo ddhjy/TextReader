@@ -36,7 +36,7 @@ struct DocumentPicker: UIViewControllerRepresentable {
             print("[DocumentPicker] Picked URL: \(url.absoluteString)")
             print("[DocumentPicker] Is File URL: \(url.isFileURL)")
 
-            parent.viewModel.importBookFromURL(url)
+            parent.viewModel.importBookFromURL(url, source: .filePicker)
             parent.dismiss()
         }
 

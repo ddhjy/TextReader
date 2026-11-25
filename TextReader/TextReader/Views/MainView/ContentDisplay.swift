@@ -1,32 +1,150 @@
 import SwiftUI
 import UIKit
 
+/// 阅读区里一次按压已经发生过什么。
+/// 用引用类型：手势回调里要立刻读到最新值，等不到下一次视图刷新。
+private final class ReaderPressTracker {
+    var isTracking = false
+    /// 这次按压里手指离起点最远到过多远。
+    var maxDistance: CGFloat = 0
+    var longPressFired = false
+    var longPressWorkItem: DispatchWorkItem?
+
+    func reset() {
+        longPressWorkItem?.cancel()
+        longPressWorkItem = nil
+        isTracking = false
+        maxDistance = 0
+        longPressFired = false
+    }
+}
+
+private struct ReaderPageIndexKey: LayoutValueKey {
+    static let defaultValue = -1
+}
+
+enum ReaderPagePlacement {
+    /// 正在读的那一页，顶边离阅读区上沿多远。
+    ///
+    /// 平时居中。阅读区最下面 `bottomReserve` 这么高的一段上面，会浮着「定时停止」「回到第 N 页」
+    /// 「导入第一本书」这排按钮；页很高、居中后末尾几行会伸进这一段时，整页往上让，
+    /// 让开为止，最多让到顶住阅读区上沿。位置只由页高决定，按钮出现、消失时正文不用跟着挪。
+    /// 比阅读区还高的页怎么放都放不下，仍然居中。
+    static func focusedPageTop(pageHeight: CGFloat, containerHeight: CGFloat, bottomReserve: CGFloat) -> CGFloat {
+        let centered = (containerHeight - pageHeight) / 2
+        guard centered > 0 else { return centered }
+        let overflow = centered + pageHeight - (containerHeight - bottomReserve)
+        guard overflow > 0 else { return centered }
+        return centered - min(overflow, centered)
+    }
+}
+
+/// 阅读区的排版：正在读的那一页放在正中（很高的页略往上，见 `ReaderPagePlacement`），
+/// 前后各页按各自量到的高度依次往上、往下排。
+///
+/// 阅读区从不让手指直接拖动，翻页全是程序定位，所以不用 ScrollView + LazyVStack：
+/// 懒加载列表对没排过的行只能估高度，按页定位时会落偏（从后面翻回第一页最明显），
+/// 之后每重新排一次版正文就再挪一截，直到滑出屏幕。这里每一页的位置都由实际高度直接算出，没有估算。
+private struct ReaderPageColumn: Layout {
+    var focusedPage: Int
+    var spacing: CGFloat
+    var bottomReserve: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+        let rowProposal = ProposedViewSize(width: bounds.width, height: nil)
+        let heights = subviews.map { $0.sizeThatFits(rowProposal).height }
+
+        // 排出来的页总是围着正在读的那一页取的；万一它不在里面，以最接近的一页为准。
+        var anchor = 0
+        var smallestDistance = Int.max
+        for (position, subview) in subviews.enumerated() {
+            let distance = abs(subview[ReaderPageIndexKey.self] - focusedPage)
+            if distance < smallestDistance {
+                smallestDistance = distance
+                anchor = position
+            }
+        }
+
+        var tops = [CGFloat](repeating: 0, count: subviews.count)
+        tops[anchor] = bounds.minY + ReaderPagePlacement.focusedPageTop(
+            pageHeight: heights[anchor],
+            containerHeight: bounds.height,
+            bottomReserve: bottomReserve
+        )
+        for position in stride(from: anchor - 1, through: 0, by: -1) {
+            tops[position] = tops[position + 1] - spacing - heights[position]
+        }
+        for position in subviews.indices where position > anchor {
+            tops[position] = tops[position - 1] + heights[position - 1] + spacing
+        }
+
+        for (position, subview) in subviews.enumerated() {
+            subview.place(
+                at: CGPoint(x: bounds.minX, y: tops[position]),
+                anchor: .topLeading,
+                proposal: rowProposal
+            )
+        }
+    }
+}
+
 struct ContentDisplay: View {
     @ObservedObject var viewModel: ContentViewModel
+    /// 首屏「导入第一本书」打开的导入弹层是否盖在阅读区上（它不归 ViewModel 管，由外面告知）。
+    let isCoveredByImportSheet: Bool
+    /// 阅读区最下面有多高的一段会被控制栏上方那排浮动按钮盖住。
+    let bottomReserve: CGFloat
     @Environment(\.scenePhase) private var scenePhase
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = 19
+    @ScaledMetric(relativeTo: .body) private var scaledFontSize: CGFloat = ReaderTypography.baseFontSize
 
-    private var fontSize: CGFloat { min(scaledFontSize, 24) }
-    private let kerning: CGFloat = 0.3
-    private let lineSpacing: CGFloat = 8
+    /// 正文字号跟随系统「文字大小」。每页放多少字由 ViewModel 按同一个字号换算，保证一页放得进一屏。
+    private var fontSize: CGFloat { ReaderTypography.clampedFontSize(scaledFontSize) }
     private let segmentSpacing: CGFloat = 22
     private let pageTurnAnimationDuration: TimeInterval = 0.25
     private let readableColumnWidth: CGFloat = 680
 
-    /// 阅读区顶部与导航栏安全区之间保留的间隙。
-    ///
-    /// ScrollView 一旦与容器安全区相接，SwiftUI 就会把背后的 UIScrollView 向上扩进导航栏，
-    /// 并依赖 UIKit 的自动内容缩进把内容顶回来；而 `ReaderKeyboardIsolation` 为隔离键盘关掉了
-    /// 自动缩进，补偿随之消失——UIKit 实际帧比 SwiftUI 布局帧（蒙层、居中锚点所在）高出整个
-    /// 安全区，当前页被「居中」到偏上半个安全区的位置，聚焦蒙层却仍按布局帧计算，于是当前页
-    /// 首段被压暗、下一页开头反而清晰。留出 1pt 不相接，UIScrollView 便与布局帧完全一致。
-    private let safeAreaClearance: CGFloat = 1
+    /// 按住这么久算「长按选词」。短于它松手一律算点按翻页，两者不会同时发生。
+    private let longPressDuration: TimeInterval = 0.5
+    /// 手指挪动超过这个距离就不再算长按。
+    private let longPressMovementTolerance: CGFloat = 10
+    /// 手指挪动超过这个距离算滑动翻页。
+    private let swipeDistance: CGFloat = 24
+    /// 「上一页」点按区域的最小高度。当前页很高、顶到阅读区上沿时，上面几乎没有变淡的文字可点，
+    /// 这时仍在最上面留出一条能点中的区域。
+    private let minimumPreviousTapZone: CGFloat = 64
+    private let boundaryBounceDistance: CGFloat = 14
+
+    @State private var press = ReaderPressTracker()
+    /// 手指是否按在阅读区上。手势被系统打断时不会走 `onEnded`，靠它复位来收尾。
+    @GestureState private var isPressingReader = false
+    /// 翻到头时整块阅读区顶一下再弹回的位移。
+    @State private var boundaryBounceOffset: CGFloat = 0
+
+    /// 实际排出来的只有正在读的那一页和它前后各这么多页。翻页只在相邻页之间滑动，更远的页不用排。
+    private let pageWindowRadius = 5
+    private static let readerSpace = "reader"
+
+    /// 阅读区正中摆的是哪一页。和 `viewModel.currentPageIndex` 分开存，
+    /// 是为了由这里决定这次换页要不要带滑动动画。
+    @State private var displayedPageIndex: Int
 
     /// 各页在阅读区坐标系中的实测帧。静止时蒙层用当前页帧保证朗读内容不被压暗；
     /// 翻页动画期间不用它直接驱动蒙层，否则清晰窗口会先跳到下一页的当前位置再跟着上移。
     @State private var pageFrames: [Int: CGRect] = [:]
+    /// `pageFrames` 是哪一批正文量出来的（见 `ContentViewModel.pagesGeneration`）。
+    @State private var pageFramesGeneration = 0
+
+    /// 只认当前这批正文量出来的帧：整批换内容后，上一批的帧在新的一批量好之前一律当作没有。
+    private var measuredFrames: [Int: CGRect] {
+        pageFramesGeneration == viewModel.pagesGeneration ? pageFrames : [:]
+    }
 
     /// 蒙层清晰窗口在阅读区中的位置。与页码解耦，由翻页动画单独插值：高度上下同时收放，
     /// 窗口本身留在视口中央，正文滑入后再与实测帧对齐。
@@ -44,19 +162,15 @@ struct ContentDisplay: View {
     /// 聚焦蒙层能正确计算之后，避免出现「首屏整页全清晰、翻几页才有蒙层」。
     @State private var awaitingReveal = false
 
-    /// 揭示前「布局是否已稳定」的检查轮次。静默定位后 LazyVStack 还会把相邻页从估算行高
-    /// 修正为实测行高，只看当前页已测得就淡入，上一页会在淡入过程中整体挪动几点。
+    /// 揭示前「布局是否已稳定」的检查轮次。启动过渡期阅读区的高度还会变几次，
+    /// 只看当前页已测得就淡入，正文会在淡入过程中整体挪动几点。
     @State private var revealCheckGeneration = 0
     private let revealSettleInterval: TimeInterval = 1.0 / 30
     private let maxRevealSettleChecks = 6
 
-    /// 阅读区滚动位置。用状态而不是一次性 `scrollTo` 命令，回前台后的首次布局
-    /// 会按当前页自动落位，避免后台听书推进页码后画面停在离开前的页。
-    @State private var scrollPosition: ScrollPosition
-
-    /// 用于计算上下留白的稳定视口高度。搜索 sheet / 键盘进出时 GeometryReader
-    /// 会短暂给出缩小后的高度；若直接写进 spacer，当前页会整体偏移，等滚动状态
-    /// 再次对齐后才跳回。忽略这类瞬时抖动，只在旋转等真实尺寸变化时更新。
+    /// 阅读区的稳定高度，当前页以它的中线为准居中。搜索 sheet / 键盘进出时 GeometryReader
+    /// 会短暂给出缩小后的高度；若直接采用，当前页会整体偏移一下再跳回。
+    /// 忽略这类瞬时抖动，只在旋转等真实尺寸变化时更新。
     @State private var settledViewportHeight: CGFloat = 0
     @State private var settledViewportWidth: CGFloat = 0
     @State private var settledSafeAreaTop: CGFloat = 0
@@ -64,11 +178,11 @@ struct ContentDisplay: View {
     @State private var latestProposedWidth: CGFloat = 0
     @State private var latestProposedSafeAreaTop: CGFloat = 0
 
-    init(viewModel: ContentViewModel) {
+    init(viewModel: ContentViewModel, isCoveredByImportSheet: Bool = false, bottomReserve: CGFloat = 0) {
         self.viewModel = viewModel
-        _scrollPosition = State(
-            initialValue: ScrollPosition(id: viewModel.currentPageIndex, anchor: .center)
-        )
+        self.isCoveredByImportSheet = isCoveredByImportSheet
+        self.bottomReserve = bottomReserve
+        _displayedPageIndex = State(initialValue: viewModel.currentPageIndex)
     }
 
     var body: some View {
@@ -110,6 +224,7 @@ struct ContentDisplay: View {
             || viewModel.showingBookList
             || viewModel.showingSettings
             || viewModel.showingBigBang
+            || isCoveredByImportSheet
     }
 
     private func viewportHeight(from proposed: CGFloat) -> CGFloat {
@@ -133,7 +248,7 @@ struct ContentDisplay: View {
     private func adoptViewportHeight(_ proposed: CGFloat) {
         guard proposed > 1 else { return }
 
-        // sheet 盖住阅读区时只记下最新提议高度，不改 spacer / 居中基准。
+        // sheet 盖住阅读区时只记下最新提议高度，不改居中基准。
         if isReaderCoveredBySheet {
             if settledViewportHeight <= 1 {
                 settleViewport(height: proposed)
@@ -178,7 +293,7 @@ struct ContentDisplay: View {
         if viewModel.pages.isEmpty {
             emptyState(width: geometry.size.width, height: geometry.size.height)
         } else {
-            scrollingContent(geometry: geometry)
+            readerContent(geometry: geometry)
         }
     }
 
@@ -195,46 +310,55 @@ struct ContentDisplay: View {
         .frame(width: width, height: height)
     }
 
-    private func scrollingContent(geometry: GeometryProxy) -> some View {
-        let containerHeight = viewportHeight(from: geometry.size.height) - safeAreaClearance
-        return ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                Color.clear
-                    .frame(height: containerHeight * 0.5)
+    /// 实际排出来的页：正在读的那一页和它前后各几页。
+    private var pageWindow: Range<Int> {
+        let count = viewModel.pages.count
+        guard count > 0 else { return 0..<0 }
+        let center = min(max(displayedPageIndex, 0), count - 1)
+        return max(0, center - pageWindowRadius)..<min(count, center + pageWindowRadius + 1)
+    }
 
-                LazyVStack(alignment: .leading, spacing: segmentSpacing) {
-                    ForEach(viewModel.pages.indices, id: \.self) { idx in
-                        pageRow(idx: idx)
-                    }
-                }
-                .scrollTargetLayout()
-                .padding(.horizontal, 20)
-                .frame(maxWidth: readableColumnWidth)
-                .frame(maxWidth: .infinity)
-
-                Color.clear
-                    .frame(height: containerHeight * 0.5)
+    private func readerContent(geometry: GeometryProxy) -> some View {
+        let containerHeight = viewportHeight(from: geometry.size.height)
+        let generation = viewModel.pagesGeneration
+        return ReaderPageColumn(
+            focusedPage: displayedPageIndex,
+            spacing: segmentSpacing,
+            bottomReserve: bottomReserve
+        ) {
+            ForEach(pageWindow, id: \.self) { idx in
+                pageRow(idx: idx, generation: generation)
+                    .layoutValue(key: ReaderPageIndexKey.self, value: idx)
             }
         }
-        .scrollPosition($scrollPosition, anchor: .center)
-        .scrollDisabled(true)
+        // 每换一批正文就换一批全新的行，上一批量到的位置不会混进这一批里。
+        .id(generation)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: readableColumnWidth)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .coordinateSpace(.named(Self.readerSpace))
+        // 前后几页会排到阅读区外面（导航栏、控制栏的位置上，只是被蒙层遮掉了看不见），
+        // 不能让它们接住手指；点按统一由下面那层与阅读区等大的透明底来接。
+        .allowsHitTesting(false)
         .mask(focusGradient(containerHeight: containerHeight))
-        .contentShape(Rectangle())
+        .offset(y: boundaryBounceOffset)
         .animation(revealAnimation) { content in
             content.opacity(contentRevealed ? 1 : 0)
         }
-        .gesture(
-            LongPressGesture(minimumDuration: 0.3)
-                .onEnded { _ in
-                    viewModel.triggerBigBang()
-                }
-        )
-        .simultaneousGesture(
-            SpatialTapGesture()
-                .onEnded { value in
-                    handleTapGesture(at: value.location, containerHeight: containerHeight)
-                }
-        )
+        .background {
+            Color.clear
+                .contentShape(Rectangle())
+                .gesture(readerGesture(containerHeight: containerHeight))
+        }
+        .onChange(of: isPressingReader) { _, isPressing in
+            guard !isPressing else { return }
+            // 正常松手时 `onEnded` 已经收过尾；这里只处理手势被系统打断的情况，
+            // 否则没取消掉的长按计时会在手指离开之后还弹出选词。
+            DispatchQueue.main.async {
+                guard !isPressingReader else { return }
+                press.reset()
+            }
+        }
         .onAppear {
             // 清除「静默翻页」残留标志：init / 缓存恢复阶段若把页码从 0 改到上次停留的
             // 非首页，会置位该标志；但首屏定位由下方 positionAndPrepareReveal 无动画完成、
@@ -260,7 +384,7 @@ struct ContentDisplay: View {
         .onChange(of: viewModel.currentPageIndex) { _, _ in
             // 切换书籍、加载/恢复内容、删除、搜索跳转等"非阅读语境"会通过
             // ViewModel 设置一次性标志；后台听书续页也会标静默。再叠加 scenePhase，
-            // 避免回前台时把累计翻页补成一段滚动动画。
+            // 避免回前台时把累计翻页补成一段滑动动画。
             let silent = viewModel.consumePendingSilentPageScroll()
             scrollToCurrentPage(animated: !silent && scenePhase == .active)
         }
@@ -271,50 +395,53 @@ struct ContentDisplay: View {
             recenterCurrentPage()
         }
         .onChange(of: isReaderCoveredBySheet) { _, covered in
-            // 揭开时只吸收旋转等真实尺寸变化。不要在这里 scrollTo：
-            // 该时机常与键盘收起弹簧同一帧，scrollTo 会跟着整段滑下去。
+            // 揭开时只吸收旋转等真实尺寸变化。
             if !covered {
                 adoptViewportHeight(latestProposedHeight)
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
-            // 回到前台：若滚动状态仍停在离开前的页，而无动画地对齐到当前朗读页。
+            // 回到前台：若画面仍停在离开前的页，无动画地对齐到当前朗读页。
             // 同时丢掉后台「前进又后退」净变化为零时残留的静默标志，避免下次手动翻页丢动画。
             guard newPhase == .active else { return }
             _ = viewModel.consumePendingSilentPageScroll()
-            if scrollPosition.viewID(type: Int.self) != viewModel.currentPageIndex {
+            if displayedPageIndex != viewModel.currentPageIndex {
                 scrollToCurrentPage(animated: false)
             }
         }
-        // 见 `safeAreaClearance`：让 ScrollView 不与顶部安全区相接。
-        .padding(.top, safeAreaClearance)
     }
 
-    private func pageRow(idx: Int) -> some View {
+    private func pageRow(idx: Int, generation: Int) -> some View {
         Text(viewModel.pages[idx])
             .font(.system(size: fontSize))
-            .kerning(kerning)
-            .lineSpacing(lineSpacing)
+            .kerning(ReaderTypography.kerning)
+            .lineSpacing(ReaderTypography.lineSpacing)
             .multilineTextAlignment(.leading)
             .frame(maxWidth: .infinity, alignment: .topLeading)
-            .id(idx)
-            .accessibilityHidden(idx != viewModel.currentPageIndex)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(viewModel.pages[idx])
             .accessibilityValue("第 \(idx + 1) 页，共 \(viewModel.pages.count) 页")
             .accessibilityAction(named: "上一页") {
-                viewModel.previousPage()
+                turnPage(forward: false)
             }
             .accessibilityAction(named: "下一页") {
-                viewModel.nextPage()
+                turnPage(forward: true)
             }
             .accessibilityAction(named: "选词") {
                 viewModel.triggerBigBang()
             }
+            // 放在最后：要藏的是上面合成出来的这一整个元素。写在前面只会藏掉里面的文字，
+            // 前后几页变淡的内容仍会被旁白逐页读到。
+            .accessibilityHidden(idx != viewModel.currentPageIndex)
             // 记录该页在阅读区中的实测帧。静止时用来校正蒙层；翻页动画期间只更新缓存，
             // 不把清晰窗口拽到正在移动的那一页上。
-            .onGeometryChange(for: CGRect.self) { $0.frame(in: .scrollView) } action: { frame in
-                if pageFrames[idx] != frame {
+            .onGeometryChange(for: CGRect.self) { $0.frame(in: .named(Self.readerSpace)) } action: { frame in
+                // 整批换内容时，上一批的页可能在新的一批量好之后才报告，不能让它们盖掉新量到的帧。
+                guard generation == viewModel.pagesGeneration else { return }
+                if pageFramesGeneration != generation {
+                    pageFramesGeneration = generation
+                    pageFrames = [idx: frame]
+                } else if pageFrames[idx] != frame {
                     pageFrames[idx] = frame
                 }
                 if idx == viewModel.currentPageIndex {
@@ -324,30 +451,24 @@ struct ContentDisplay: View {
                     revealIfCurrentPageMeasured()
                 }
             }
-            // 懒加载回收后帧已失效，及时清掉，避免远距离跳页时蒙层短暂套用陈旧位置。
+            // 排到窗口外的页帧已失效，及时清掉，避免远距离跳页时蒙层短暂套用陈旧位置。
             .onDisappear {
+                guard generation == viewModel.pagesGeneration, pageFramesGeneration == generation else { return }
                 pageFrames[idx] = nil
             }
     }
 
-    /// 覆盖层关闭或视口抖动后，连续两帧无动画居中，避开转场中途的中间尺寸。
     private func recenterCurrentPage() {
         scrollToCurrentPage(animated: false)
-        DispatchQueue.main.async {
-            scrollToCurrentPage(animated: false)
-        }
     }
 
-    /// 把阅读区定位到当前页（居中）。滚动位置是视图状态，回前台后的首次布局会自动按它落位。
+    /// 把当前页摆到阅读区正中。
     ///
     /// 有动画时：清晰窗口留在视口中央，只插值高度（上下同时收放），正文滑进这个窗口。
     /// 不能让蒙层跟着下一页的当前位置走，否则会先「标出高亮」再整块上移，闪一下。
     private func scrollToCurrentPage(animated: Bool) {
         let target = viewModel.currentPageIndex
-        let readerHeight = max(0, settledViewportHeight - safeAreaClearance)
-        let applyScroll = {
-            scrollPosition.scrollTo(id: target, anchor: .center)
-        }
+        let readerHeight = max(0, settledViewportHeight)
 
         if animated && !reduceMotion {
             pageTurnInProgress = true
@@ -355,12 +476,12 @@ struct ContentDisplay: View {
             let generation = pageTurnGeneration
             withAnimation(.easeInOut(duration: pageTurnAnimationDuration)) {
                 applyCenteredFocusWindow(for: target, containerHeight: readerHeight)
-                applyScroll()
+                displayedPageIndex = target
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + pageTurnAnimationDuration + 0.05) {
                 guard generation == pageTurnGeneration else { return }
                 pageTurnInProgress = false
-                if let frame = pageFrames[target], frame.height > 1 {
+                if let frame = measuredFrames[target], frame.height > 1 {
                     adoptSettledFocusWindow(from: frame)
                 }
             }
@@ -369,31 +490,27 @@ struct ContentDisplay: View {
 
         pageTurnInProgress = false
         pageTurnGeneration += 1
-        if let frame = pageFrames[target], frame.height > 1 {
-            adoptSettledFocusWindow(from: frame)
-        } else {
-            applyCenteredFocusWindow(for: target, containerHeight: readerHeight)
-        }
 
         var transaction = Transaction()
         transaction.disablesAnimations = true
-        UIView.performWithoutAnimation {
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
-            withTransaction(transaction, applyScroll)
-            CATransaction.commit()
+        withTransaction(transaction) {
+            applyCenteredFocusWindow(for: target, containerHeight: readerHeight)
+            displayedPageIndex = target
         }
     }
 
-    /// 翻页动画的目标窗口：始终以阅读区中线为轴，高度取目标页实测值（没有则沿用当前窗口）。
+    /// 翻页动画的目标窗口：就是目标页排好之后所在的位置，高度取目标页实测值（没有则沿用当前窗口）。
     private func applyCenteredFocusWindow(for pageIndex: Int, containerHeight: CGFloat) {
         guard containerHeight > 1 else { return }
         let height = resolvedPageHeight(for: pageIndex)
         guard height > 1 else { return }
-        let mid = containerHeight / 2
-        let half = height / 2
-        focusMinY = mid - half
-        focusMaxY = mid + half
+        let top = ReaderPagePlacement.focusedPageTop(
+            pageHeight: height,
+            containerHeight: containerHeight,
+            bottomReserve: bottomReserve
+        )
+        focusMinY = top
+        focusMaxY = top + height
         hasFocusWindow = true
     }
 
@@ -406,7 +523,7 @@ struct ContentDisplay: View {
     }
 
     private func resolvedPageHeight(for pageIndex: Int) -> CGFloat {
-        if let height = pageFrames[pageIndex]?.height, height > 1 {
+        if let height = measuredFrames[pageIndex]?.height, height > 1 {
             return height
         }
         if hasFocusWindow {
@@ -428,17 +545,17 @@ struct ContentDisplay: View {
         }
     }
 
-    /// 淡入 / 淡出只作用于透明度：揭示那一帧若仍有滚动定位或行高修正，不能被带成一段位移。
+    /// 淡入 / 淡出只作用于透明度：揭示那一帧若正文还在重新排版，不能被带成一段位移。
     private var revealAnimation: Animation? {
         guard !reduceMotion else { return nil }
         return .easeOut(duration: contentRevealed ? 0.22 : 0.18)
     }
 
     /// 当前页帧就绪后，等当前页及相邻页的帧连续两次采样一致再淡入
-    /// （此刻聚焦蒙层才能正确罩住当前页，且上一页不会在淡入途中被行高修正挪动）。
+    /// （此刻聚焦蒙层才能正确罩住当前页，正文也不会在淡入途中再挪动）。
     private func revealIfCurrentPageMeasured() {
         guard awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
-        guard let frame = pageFrames[viewModel.currentPageIndex], frame.height > 1 else { return }
+        guard let frame = measuredFrames[viewModel.currentPageIndex], frame.height > 1 else { return }
         revealCheckGeneration += 1
         revealAfterLayoutSettles(generation: revealCheckGeneration, previous: nil, attempt: 0)
     }
@@ -447,7 +564,7 @@ struct ContentDisplay: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + revealSettleInterval) {
             guard generation == revealCheckGeneration,
                   awaitingReveal, !contentRevealed, viewModel.isContentSettled else { return }
-            let snapshot = pageFrames.filter { abs($0.key - viewModel.currentPageIndex) <= 1 }
+            let snapshot = measuredFrames.filter { abs($0.key - viewModel.currentPageIndex) <= 1 }
             guard let current = snapshot[viewModel.currentPageIndex], current.height > 1 else { return }
             if snapshot == previous || attempt >= maxRevealSettleChecks {
                 awaitingReveal = false
@@ -484,8 +601,12 @@ struct ContentDisplay: View {
         if hasFocusWindow, focusMaxY > focusMinY {
             clearRange = (focusMinY - clearPadding)...(focusMaxY + clearPadding)
         } else if let pageHeight = representativePageHeight() {
-            let clearHalf = pageHeight / 2 + clearPadding
-            clearRange = (containerHeight / 2 - clearHalf)...(containerHeight / 2 + clearHalf)
+            let top = ReaderPagePlacement.focusedPageTop(
+                pageHeight: pageHeight,
+                containerHeight: containerHeight,
+                bottomReserve: bottomReserve
+            )
+            clearRange = (top - clearPadding)...(top + pageHeight + clearPadding)
         } else {
             return LinearGradient(colors: [.black], startPoint: .top, endPoint: .bottom)
         }
@@ -532,17 +653,114 @@ struct ContentDisplay: View {
     /// 当前页帧尚未测得时的参考高度：取已渲染各页高度的中位数作为「典型页高」，
     /// 让蒙层在当前页几何回传前也能给出接近正确的清晰窗口。
     private func representativePageHeight() -> CGFloat? {
-        let measured = pageFrames.values.map(\.height).filter { $0 > 1 }.sorted()
+        let measured = measuredFrames.values.map(\.height).filter { $0 > 1 }.sorted()
         guard !measured.isEmpty else { return nil }
         return measured[measured.count / 2]
     }
 
-    private func handleTapGesture(at location: CGPoint, containerHeight: CGFloat) {
-        let isUpperArea = location.y < containerHeight / 2
-        if isUpperArea {
-            viewModel.previousPage()
-        } else {
-            viewModel.nextPage()
+    // MARK: - 点按 / 滑动 / 长按
+
+    /// 阅读区只用一个手势，由它自己判断这次按压是点按、滑动还是长按，三者互斥。
+    /// 分成几个手势各判各的，会出现按得稍慢时「既弹出选词、又翻了一页」。
+    private func readerGesture(containerHeight: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0, coordinateSpace: .local)
+            .updating($isPressingReader) { _, isPressing, _ in
+                isPressing = true
+            }
+            .onChanged { value in
+                if !press.isTracking {
+                    press.reset()
+                    press.isTracking = true
+                    scheduleLongPress()
+                }
+
+                let distance = hypot(value.translation.width, value.translation.height)
+                press.maxDistance = max(press.maxDistance, distance)
+                if distance > longPressMovementTolerance {
+                    press.longPressWorkItem?.cancel()
+                    press.longPressWorkItem = nil
+                }
+            }
+            .onEnded { value in
+                let longPressFired = press.longPressFired
+                let maxDistance = press.maxDistance
+                press.reset()
+
+                // 已经弹出选词了，松手不再翻页。
+                guard !longPressFired else { return }
+
+                handlePressEnded(
+                    startLocation: value.startLocation,
+                    translation: value.translation,
+                    maxDistance: maxDistance,
+                    containerHeight: containerHeight
+                )
+            }
+    }
+
+    private func scheduleLongPress() {
+        let workItem = DispatchWorkItem {
+            guard press.isTracking, press.maxDistance <= longPressMovementTolerance else { return }
+            press.longPressWorkItem = nil
+            press.longPressFired = true
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            viewModel.triggerBigBang()
+        }
+        press.longPressWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + longPressDuration, execute: workItem)
+    }
+
+    private func handlePressEnded(startLocation: CGPoint,
+                                  translation: CGSize,
+                                  maxDistance: CGFloat,
+                                  containerHeight: CGFloat) {
+        let horizontal = translation.width
+        let vertical = translation.height
+
+        if max(abs(horizontal), abs(vertical)) >= swipeDistance {
+            // 滑动翻页，按主方向算：往上 / 往左推是看后面，往下 / 往右拉是回前面。
+            let forward = abs(vertical) >= abs(horizontal) ? vertical < 0 : horizontal < 0
+            turnPage(forward: forward)
+            return
+        }
+
+        // 滑出去又拖回原处：当作反悔，不翻页。
+        guard maxDistance < swipeDistance else { return }
+
+        turnPage(forward: !isPreviousPageZone(y: startLocation.y, containerHeight: containerHeight))
+    }
+
+    /// 点按分区：只有当前页上方那片变淡的文字（上一页）算「上一页」，当前页和它下面的都算「下一页」。
+    /// 分界线不能从当前页中间穿过，否则点正在读的这段话，有一半位置会往回翻。
+    private func isPreviousPageZone(y: CGFloat, containerHeight: CGFloat) -> Bool {
+        guard hasFocusWindow, focusMaxY > focusMinY else {
+            return y < containerHeight / 2
+        }
+        let currentPageTop = focusMinY - segmentSpacing / 2
+        let boundary = min(max(currentPageTop, minimumPreviousTapZone), containerHeight / 2)
+        return y < boundary
+    }
+
+    private func turnPage(forward: Bool) {
+        guard !viewModel.pages.isEmpty else { return }
+        if !viewModel.turnPage(forward: forward) {
+            playBoundaryFeedback(forward: forward)
+        }
+    }
+
+    /// 已经在第一页 / 最后一页：朝翻页的方向顶一下再弹回来，加一次震动，
+    /// 让人知道「点到了，只是后面没有了」，而不是以为没点中。
+    private func playBoundaryFeedback(forward: Bool) {
+        UINotificationFeedbackGenerator().notificationOccurred(.warning)
+        guard !reduceMotion else { return }
+
+        withAnimation(.easeOut(duration: 0.12)) {
+            boundaryBounceOffset = forward ? -boundaryBounceDistance : boundaryBounceDistance
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.55)) {
+                boundaryBounceOffset = 0
+            }
         }
     }
 }

@@ -153,7 +153,8 @@ struct SharedImportFlowTests {
         #expect(viewModel.currentBookTitle == "第二本")
         #expect(viewModel.books.contains(where: { $0.fileName == "第一本.txt" }))
         #expect(viewModel.books.contains(where: { $0.fileName == "第二本.txt" }))
-        #expect(viewModel.sharedImportBannerMessage == "已导入《第二本》")
+        #expect(viewModel.notice?.kind == .success)
+        #expect(viewModel.notice?.message == "已导入 2 本，现在打开的是《第二本》")
         #expect(try sharedImportStore.pendingImports().isEmpty)
     }
 
@@ -351,83 +352,4 @@ struct SharedImportFlowTests {
         #expect(viewModel.currentPageIndex == 0)
         #expect(speechManager.stopCallCount == 0)
     }
-}
-
-private final class MockAudioSessionManager: AudioSessionManager {
-    override func registerViewModel(_ viewModel: ContentViewModel) {}
-
-    override func setupAudioSession() {}
-
-    override func setupRemoteCommandCenter(playAction: @escaping () -> Void,
-                                           pauseAction: @escaping () -> Void,
-                                           nextAction: (() -> Void)? = nil,
-                                           previousAction: (() -> Void)? = nil) {}
-
-    override func updateNowPlayingInfo(title: String?, isPlaying: Bool, currentPage: Int? = nil, totalPages: Int? = nil, deactivateSessionWhenStopped: Bool = true) {}
-}
-
-private final class MockSpeechManager: SpeechManager, @unchecked Sendable {
-    private(set) var startedTexts: [String] = []
-    private(set) var stopCallCount = 0
-    private var lastUtteranceId: UUID?
-
-    override func getAvailableVoices(languagePrefix: String = "zh") -> [AVSpeechSynthesisVoice] {
-        []
-    }
-
-    override func startReading(text: String, voice: AVSpeechSynthesisVoice?, rate: Float) -> UUID? {
-        let id = UUID()
-        startedTexts.append(text)
-        lastUtteranceId = id
-        return id
-    }
-
-    override func stopReading() {
-        guard lastUtteranceId != nil else { return }
-        stopCallCount += 1
-        lastUtteranceId = nil
-    }
-
-    func finishLastUtterance() {
-        guard let id = lastUtteranceId else {
-            Issue.record("No utterance was started")
-            return
-        }
-        lastUtteranceId = nil
-
-        onSpeechFinish?(id)
-    }
-}
-
-private final class MockTextPaginator: TextPaginator {
-    private let pagesToReturn: [String]
-
-    init(pages: [String]) {
-        self.pagesToReturn = pages
-    }
-
-    override func paginate(text: String, maxPageSize: Int = 100) -> [String] {
-        pagesToReturn
-    }
-}
-
-private func makeTemporaryDirectory() throws -> URL {
-    let directoryURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-    try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
-    return directoryURL
-}
-
-private func waitUntil(timeoutNanoseconds: UInt64,
-                       pollIntervalNanoseconds: UInt64 = 50_000_000,
-                       condition: @escaping @Sendable () -> Bool) async throws {
-    let deadline = DispatchTime.now().uptimeNanoseconds + timeoutNanoseconds
-
-    while DispatchTime.now().uptimeNanoseconds < deadline {
-        if condition() {
-            return
-        }
-        try await Task.sleep(nanoseconds: pollIntervalNanoseconds)
-    }
-
-    Issue.record("Condition was not satisfied before timeout")
 }

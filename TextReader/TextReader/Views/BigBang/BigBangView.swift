@@ -192,6 +192,16 @@ struct BigBangView: View {
     
     private let tokenHeight: CGFloat = 40
     private let tokenSpacing: CGFloat = 8
+
+    private var hasSelection: Bool {
+        !vm.selectedTokenIDs.isEmpty
+    }
+
+    /// 选择范围的起点：第一个点的那个词。
+    private var anchorToken: Token? {
+        guard let anchorID = vm.selectionAnchorTokenID else { return nil }
+        return vm.tokens.first { $0.id == anchorID }
+    }
     
     var body: some View {
         NavigationStack {
@@ -200,97 +210,68 @@ struct BigBangView: View {
                     ProgressView("正在分词…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
-                    ScrollView {
-                        FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
-                            tokenButton(token)
+                    VStack(spacing: 0) {
+                        Text(Self.selectionHint(selectedCount: vm.selectedTokenIDs.count, anchorWord: anchorToken?.value))
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 4)
+
+                        ScrollView {
+                            FlowLayout(vm.tokens, id: \.id, spacing: tokenSpacing) { token in
+                                tokenButton(token)
+                            }
+                            .padding()
                         }
-                        .padding()
                     }
                 }
             }
             .navigationTitle("选词")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(role: .close) { dismiss() }
                         .accessibilityLabel("关闭")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("清空") {
-                        if !vm.selectedTokenIDs.isEmpty {
+                ToolbarItem(placement: .bottomBar) {
+                    HStack {
+                        // 「清空」单独放在左边，离「复制」远一些，不容易点错。
+                        Button("清空") {
                             vm.clearSelectedTokens()
                             HapticFeedback.shared.impactOccurred()
                         }
-                    }
-                    .disabled(vm.selectedTokenIDs.isEmpty)
-                }
-                ToolbarItem(placement: .bottomBar) {
-                    HStack {
-                        Menu("模板") {
-                            ForEach(vm.templates) { tpl in
-                                Menu(tpl.name) {
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .perplexity)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("打开 Perplexity", systemImage: "safari")
-                                    }
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .raycast)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("打开 Raycast", systemImage: "command")
-                                    }
-                                    Button {
-                                        vm.buildPrompt(using: tpl, destination: .copyOnly)
-                                        HapticFeedback.shared.impactOccurred()
-                                        dismiss()
-                                    } label: {
-                                        Label("仅复制", systemImage: "doc.on.doc")
-                                    }
-                                }
-                            }
-                            Divider()
-                            Button("管理模板…") {
-                                vm.showingTemplatePicker = true
-                            }
-                        }
-                        .disabled(vm.selectedTokenIDs.isEmpty)
+                        .disabled(!hasSelection)
 
                         Spacer()
 
                         Text(selectionStatusText)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                             .accessibilityLabel(selectionStatusText)
 
                         Spacer()
+
+                        templateMenu
 
                         Button("复制") {
                             HapticFeedback.shared.impactOccurred()
                             vm.copySelected()
                             dismiss()
                         }
-                        .disabled(vm.selectedTokenIDs.isEmpty)
+                        .fontWeight(.semibold)
+                        .disabled(!hasSelection)
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
-            .sheet(isPresented: $vm.showingTemplatePicker) {
-                PromptTemplatePicker(viewModel: vm)
-            }
-            .alert(
-                vm.generatedPrompt?.message ?? "",
-                isPresented: Binding(
-                    get: { vm.generatedPrompt != nil },
-                    set: { if !$0 { vm.generatedPrompt = nil } }
-                )
-            ) {
-                Button("好") {
-                    vm.generatedPrompt = nil
+            .sheet(isPresented: $vm.showingTemplateLibrary) {
+                NavigationStack {
+                    PromptTemplateLibraryView(viewModel: vm, showsCloseButton: true)
                 }
+                .tint(vm.currentAccentColor)
             }
         }
         .tint(vm.currentAccentColor)
@@ -299,13 +280,78 @@ struct BigBangView: View {
         }
     }
 
+    /// 「模板」菜单始终能点开：没选词时也看得到有哪些模板，也能从这里去管理模板。
+    private var templateMenu: some View {
+        Menu("模板") {
+            Section(hasSelection ? "把选中的文字套进模板" : "先选词，再用模板") {
+                ForEach(vm.templates) { template in
+                    templateMenuItem(template)
+                }
+            }
+
+            Section {
+                Button {
+                    vm.showingTemplateLibrary = true
+                } label: {
+                    Label(vm.templates.isEmpty ? "新建模板…" : "管理模板…", systemImage: "slider.horizontal.3")
+                }
+            }
+        }
+        .menuOrder(.fixed)
+    }
+
+    @ViewBuilder
+    private func templateMenuItem(_ template: PromptTemplate) -> some View {
+        if let destination = template.destination {
+            // 去向定好了的模板点一下直接用，不再多一层选择。
+            Button {
+                use(template)
+            } label: {
+                Text(template.name)
+                Text(destination.shortName)
+            }
+            .disabled(!hasSelection)
+        } else {
+            Menu(template.name) {
+                Section("选一次，以后直接用") {
+                    ForEach(PromptTemplate.Destination.allCases) { destination in
+                        Button(destination.displayName) {
+                            use(template, destination: destination)
+                        }
+                    }
+                }
+            }
+            .disabled(!hasSelection)
+        }
+    }
+
+    private func use(_ template: PromptTemplate, destination: PromptTemplate.Destination? = nil) {
+        HapticFeedback.shared.impactOccurred()
+        vm.useTemplate(template, destination: destination)
+        dismiss()
+    }
+
     private var selectionStatusText: String {
         let count = vm.selectedTokenIDs.count
         return count == 0 ? "未选词" : "已选 \(count) 个词"
     }
 
+    /// 选词规则写在页面上，不用靠试：选中的总是「起点」到「刚点的词」之间的全部。
+    static func selectionHint(selectedCount: Int, anchorWord: String?) -> String {
+        guard selectedCount > 0 else {
+            return "点一个词开始选。"
+        }
+
+        let anchor = anchorWord.map { "「\(ContentViewModel.shortTitle($0, maxLength: 6))」" } ?? "起点"
+        if selectedCount == 1 {
+            return "再点另一个词，中间的会一起选上。再点一次\(anchor)取消。"
+        }
+        return "点别的词可以改范围。点起点\(anchor)只留它一个。"
+    }
+
     private func tokenButton(_ token: Token) -> some View {
         let isSelected = vm.selectedTokenIDs.contains(token.id)
+        let isAnchor = isSelected && token.id == vm.selectionAnchorTokenID
         return Button {
             vm.processTokenTap(tappedTokenID: token.id)
             HapticFeedback.shared.selectionChanged()
@@ -319,16 +365,22 @@ struct BigBangView: View {
                 .foregroundStyle(.primary)
                 .background(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(isSelected ? vm.currentAccentColor.opacity(0.22) : Color(.secondarySystemBackground))
+                        .fill(tokenFill(isSelected: isSelected, isAnchor: isAnchor))
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(isSelected ? vm.currentAccentColor : .clear, lineWidth: 1.5)
+                        .strokeBorder(isSelected ? vm.currentAccentColor : .clear, lineWidth: isAnchor ? 2.5 : 1.5)
                 )
                 .padding(4)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityValue(isAnchor ? "起点" : "")
+    }
+
+    private func tokenFill(isSelected: Bool, isAnchor: Bool) -> Color {
+        guard isSelected else { return Color(.secondarySystemBackground) }
+        return vm.currentAccentColor.opacity(isAnchor ? 0.4 : 0.22)
     }
 }
